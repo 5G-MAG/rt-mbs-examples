@@ -18,7 +18,7 @@ app.use(cookieParser());
 app.use(cors());
 //app.use(bodyParser.xml());
 app.use(bodyParser.text({ type: 'application/xml' }));
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'public'), {etag: true, index: false, lastModified: true, setHeaders(res, path, stat) { res.set('Content-Type', 'text/plain'); } }));
 
 app.use('/', indexRouter);
 
