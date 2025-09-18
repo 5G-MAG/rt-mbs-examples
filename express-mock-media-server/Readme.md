@@ -2,7 +2,8 @@
 
 ## Introduction
 
-This project provides a very simple HTTP server that implements a simple set of object downloads with varying redirections.
+This project provides a very simple HTTP server that implements a simple set of object downloads with varying
+redirections.
 
 This server is intended to be used for development when static responses are enough to implement or test a new feature.
 
@@ -30,3 +31,12 @@ npm start
 ```` 
 
 The server is started on port `3004` per default, this can be changed by setting the PORT environment variable.
+
+## Docker
+
+You can also build and run the server in a docker container. For that purpose execute the following steps:
+
+```
+cd ~/rt-mbs-examples/express-mock-media-server/docker
+docker compose up --build
+```
