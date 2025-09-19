@@ -2,7 +2,7 @@
 
 ## Introduction
 
-This project provides a very simple HTTP server that implements a simple set of object downloads with varying
+This project provides a very simple HTTP server that implements a basic set of object downloads with varying
 redirections.
 
 This server is intended to be used for development when static responses are enough to implement or test a new feature.
