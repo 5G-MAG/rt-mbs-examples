@@ -1,0 +1,370 @@
+type: collection.insomnia.rest/5.0
+schema_version: "5.1"
+name: 5GMAG-MBSF
+meta:
+  id: wrk_318a31680dfa43d3aba497335592a685
+  created: 1767956171322
+  modified: 1767956171322
+  description: ""
+collection:
+  - url: "{{ _.mbsf_base_url }}/nmbsf-mbs-ud-ingest/v1/sessions/{{
+      _.mbs_user_data_ing_session_id }}"
+    name: Delete MBS User Data Ingest Session
+    meta:
+      id: req_0a84534ab9ee4f5eb251745693b75146
+      created: 1767961735779
+      modified: 1767961783891
+      isPrivate: false
+      description: ""
+      sortKey: -1767957096859.5
+    method: DELETE
+    headers:
+      - name: User-Agent
+        value: insomnia/12.2.0
+        description: ""
+        disabled: false
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - name: MBS User Service Operations
+    meta:
+      id: fld_8cd28d6166e84d45be40765c1f870acd
+      created: 1767956278437
+      modified: 1767961561843
+      sortKey: -1767956278437
+      description: ""
+    children:
+      - url: "{{ _.mbsf_base_url }}/nmbsf-mbs-us/v1/mbs-user-services"
+        name: Create MBS User Service
+        meta:
+          id: req_21422b34389b4b2ab145039385f0ee2a
+          created: 1767956300178
+          modified: 1767961698987
+          isPrivate: false
+          description: ""
+          sortKey: -1767957515485
+        method: POST
+        body:
+          mimeType: application/json
+          text: >-
+            {
+              "extServiceIds": ["https://example.broadcaster.com/services/first-service"],
+              "servType": "MULTICAST",
+              "servClass": "urn:oma:bcast:oma_bsc:st:1.0",
+              "servAnnModes": ["VIA_MBS_5", "VIA_MBS_DISTRIBUTION_SESSION", "PASSED_BACK"],
+              "servNameDescs": [
+                {
+                  "servName": "First Service",
+                  "servDescrip": "The first service, operated by Example Broadcaster, is our general entertainment channel",
+                  "language": "eng"
+                }
+              ],
+              "mainServLang": "eng"
+            }
+        headers:
+          - name: Content-Type
+            value: application/json
+          - name: User-Agent
+            value: insomnia/12.2.0
+            description: ""
+            disabled: false
+        scripts:
+          afterResponse: >-
+            const locationHeader = insomnia.response.headers.find(header =>
+            header.key.toLowerCase() === 'location')
+
+            let locationValue = locationHeader.value;
+
+
+
+            if (locationValue) {
+                const uuid = locationValue.split('/').pop();
+                insomnia.environment.set('mbs_user_service_id', uuid);
+            }
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ _.mbsf_base_url }}/nmbsf-mbs-us/v1/mbs-user-services/{{
+          _.mbs_user_service_id }}"
+        name: Retrieve MBS User Service
+        meta:
+          id: req_a3893a45660b40c1abdf5be6ecdae949
+          created: 1767957515385
+          modified: 1767957727653
+          isPrivate: false
+          description: ""
+          sortKey: -1767957515385
+        method: GET
+        headers:
+          - name: User-Agent
+            value: insomnia/12.2.0
+            description: ""
+            disabled: false
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ _.mbsf_base_url }}/nmbsf-mbs-us/v1/mbs-user-services/{{
+          _.mbs_user_service_id }}"
+        name: Update MBS User Service
+        meta:
+          id: req_984e861fae3940e9ac04c9572c7fc166
+          created: 1767957746625
+          modified: 1767961701671
+          isPrivate: false
+          description: ""
+          sortKey: -1767957211583.25
+        method: PUT
+        body:
+          mimeType: application/json
+          text: >-
+            {
+              "extServiceIds": ["https://example.broadcaster.com/services/first-service"],
+              "servType": "MULTICAST",
+              "servClass": "urn:oma:bcast:oma_bsc:st:1.0",
+              "servAnnModes": ["VIA_MBS_5", "VIA_MBS_DISTRIBUTION_SESSION", "PASSED_BACK"],
+              "servNameDescs": [
+                {
+                  "servName": "First Service",
+                  "servDescrip": "The description has been changed!",
+                  "language": "eng"
+                }
+              ],
+              "mainServLang": "eng"
+            }
+        headers:
+          - name: Content-Type
+            value: application/json
+          - name: User-Agent
+            value: insomnia/12.2.0
+            description: ""
+            disabled: false
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ _.mbsf_base_url }}/nmbsf-mbs-us/v1/mbs-user-services/{{
+          _.mbs_user_service_id }}"
+        name: Delete MBS User Service
+        meta:
+          id: req_66c6babe55d24d8bae47e35e6554b10f
+          created: 1767957838745
+          modified: 1767957842793
+          isPrivate: false
+          description: ""
+          sortKey: -1767956907781.5
+        method: DELETE
+        headers:
+          - name: User-Agent
+            value: insomnia/12.2.0
+            description: ""
+            disabled: false
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+  - name: MBS User Data Ingest Session Operations
+    meta:
+      id: fld_ea346c0e8ec14bbf8cbaee896799f805
+      created: 1767957915282
+      modified: 1767961985232
+      sortKey: -1767957915282
+      description: ""
+    children:
+      - url: "{{ _.mbsf_base_url }}/nmbsf-mbs-ud-ingest/v1/sessions"
+        name: "Create MBS User Data Ingest Session "
+        meta:
+          id: req_15db96fa7b844fafbd2011ae2370529a
+          created: 1767957947370
+          modified: 1767961819720
+          isPrivate: false
+          description: ""
+          sortKey: -1767957956499
+        method: POST
+        body:
+          mimeType: application/json
+          text: >+
+            {
+              "mbsUserServId": "{{ _.mbs_user_service_id }}",
+              "mbsDisSessInfos": {
+                "AP_MBS_SESSION_1": {
+                  "mbsSessionId": {
+                    "ssm": {
+                      "sourceIpAddr": {
+                        "ipv4Addr": "127.0.0.5"
+                      },
+                      "destIpAddr": {
+                        "ipv4Addr": "232.10.0.7"
+                      }
+                    }
+                  },
+                  "mbsDistSessState": "INACTIVE",
+                  "maxContBitRate": "10 Mbps",
+                  "distrMethod": "OBJECT",
+                  "objDistrInfo": {
+                    "operatingMode": "STREAMING",
+                    "objAcqMethod": "PULL",
+                    "objIngUri": "https://livesim2.dashif.org/livesim2/WAVE/vectors/cfhd_sets/12.5_25_50/t1/2022-10-17/",
+                    "objAcqIds": ["stream.mpd"],
+                    "objDistUri": "http://127.0.0.2/"
+                  }
+                }
+              }
+            }
+
+        headers:
+          - name: Content-Type
+            value: application/json
+          - name: User-Agent
+            value: insomnia/12.2.0
+            description: ""
+            disabled: false
+        scripts:
+          afterResponse: >-
+            const locationHeader = insomnia.response.headers.find(header =>
+            header.key.toLowerCase() === 'location')
+
+
+            if(locationHeader) {
+            	let locationValue = locationHeader.value;
+            	if (locationValue) {
+            			const uuid = locationValue.split('/').pop();
+            			insomnia.environment.set('mbs_user_data_ing_session_id', uuid);
+            	}
+            }
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ _.mbsf_base_url }}/nmbsf-mbs-ud-ingest/v1/sessions/{{
+          _.mbs_user_data_ing_session_id }}"
+        name: Update MBS User Data Ingest Session
+        meta:
+          id: req_75f6c29fa2fc4ce1ae095bff9f9bf0cb
+          created: 1767961690765
+          modified: 1767961852760
+          isPrivate: false
+          description: ""
+          sortKey: -1767957956399
+        method: PUT
+        body:
+          mimeType: application/json
+          text: >+
+            {
+              "mbsUserServId": "{{ _.mbs_user_service_id }}",
+              "mbsDisSessInfos": {
+                "AP_MBS_SESSION_1": {
+                  "mbsSessionId": {
+                    "ssm": {
+                      "sourceIpAddr": {
+                        "ipv4Addr": "127.0.0.5"
+                      },
+                      "destIpAddr": {
+                        "ipv4Addr": "232.10.0.7"
+                      }
+                    }
+                  },
+                  "mbsDistSessState": "INACTIVE",
+                  "maxContBitRate": "10 Mbps",
+                  "distrMethod": "OBJECT",
+                  "objDistrInfo": {
+                    "operatingMode": "STREAMING",
+                    "objAcqMethod": "PULL",
+                    "objIngUri": "https://livesim2.dashif.org/livesim2/WAVE/vectors/cfhd_sets/12.5_25_50/t1/2022-10-18/",
+                    "objAcqIds": ["stream.mpd"],
+                    "objDistUri": "http://127.0.0.2/"
+                  }
+                }
+              }
+            }
+
+        headers:
+          - name: Content-Type
+            value: application/json
+          - name: User-Agent
+            value: insomnia/12.2.0
+            description: ""
+            disabled: false
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ _.mbsf_base_url }}/nmbsf-mbs-ud-ingest/v1/sessions/{{
+          _.mbs_user_data_ing_session_id }}"
+        name: Retrieve MBS User Data Ingest Session
+        meta:
+          id: req_c6c1f0101178486dae328a1448e9c923
+          created: 1767961714945
+          modified: 1767961764339
+          isPrivate: false
+          description: ""
+          sortKey: -1767957956449
+        method: GET
+        headers:
+          - name: User-Agent
+            value: insomnia/12.2.0
+            description: ""
+            disabled: false
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+cookieJar:
+  name: Default Jar
+  meta:
+    id: jar_8d62cf651d3b6078028ee56ec838b7ff13fa3961
+    created: 1767956171326
+    modified: 1767961985230
+environments:
+  name: Base Environment
+  meta:
+    id: env_8d62cf651d3b6078028ee56ec838b7ff13fa3961
+    created: 1767956171325
+    modified: 1767961985231
+    isPrivate: false
+  subEnvironments:
+    - name: 5G-MAG MBSF
+      meta:
+        id: env_b9d8bb7a4c2a47be850135092ddea2e3
+        created: 1767956472475
+        modified: 1767961985231
+        isPrivate: false
+        sortKey: 1767956472475
+      data:
+        mbsf_base_url: http://127.0.0.68:7777
+        mbs_user_service_id: 5c30bd02-ed56-41f0-b306-0d4aa45dea44
+        mbs_user_data_ing_session_id: 588b19da-ed57-41f0-a467-ef3affd854d7
