@@ -7,35 +7,11 @@ meta:
   modified: 1767956171322
   description: ""
 collection:
-  - url: "{{ _.mbsf_base_url }}/nmbsf-mbs-ud-ingest/v1/sessions/{{
-      _.mbs_user_data_ing_session_id }}"
-    name: Delete MBS User Data Ingest Session
-    meta:
-      id: req_0a84534ab9ee4f5eb251745693b75146
-      created: 1767961735779
-      modified: 1767961783891
-      isPrivate: false
-      description: ""
-      sortKey: -1767957096859.5
-    method: DELETE
-    headers:
-      - name: User-Agent
-        value: insomnia/12.2.0
-        description: ""
-        disabled: false
-    settings:
-      renderRequestBody: true
-      encodeUrl: true
-      followRedirects: global
-      cookies:
-        send: true
-        store: true
-      rebuildPath: true
   - name: MBS User Service Operations
     meta:
       id: fld_8cd28d6166e84d45be40765c1f870acd
       created: 1767956278437
-      modified: 1767961561843
+      modified: 1769444002229
       sortKey: -1767956278437
       description: ""
     children:
@@ -100,7 +76,7 @@ collection:
         meta:
           id: req_a3893a45660b40c1abdf5be6ecdae949
           created: 1767957515385
-          modified: 1767957727653
+          modified: 1768837185725
           isPrivate: false
           description: ""
           sortKey: -1767957515385
@@ -189,7 +165,7 @@ collection:
     meta:
       id: fld_ea346c0e8ec14bbf8cbaee896799f805
       created: 1767957915282
-      modified: 1767961985232
+      modified: 1769444001204
       sortKey: -1767957915282
       description: ""
     children:
@@ -198,7 +174,7 @@ collection:
         meta:
           id: req_15db96fa7b844fafbd2011ae2370529a
           created: 1767957947370
-          modified: 1767961819720
+          modified: 1768838013681
           isPrivate: false
           description: ""
           sortKey: -1767957956499
@@ -213,10 +189,10 @@ collection:
                   "mbsSessionId": {
                     "ssm": {
                       "sourceIpAddr": {
-                        "ipv4Addr": "127.0.0.5"
+                        "ipv4Addr": "127.10.11.23"
                       },
                       "destIpAddr": {
-                        "ipv4Addr": "232.10.0.7"
+                        "ipv4Addr": "232.10.11.12"
                       }
                     }
                   },
@@ -343,28 +319,52 @@ collection:
             send: true
             store: true
           rebuildPath: true
+      - url: "{{ _.mbsf_base_url }}/nmbsf-mbs-ud-ingest/v1/sessions/{{
+          _.mbs_user_data_ing_session_id }}"
+        name: Delete MBS User Data Ingest Session
+        meta:
+          id: req_0a84534ab9ee4f5eb251745693b75146
+          created: 1767961735779
+          modified: 1768837330502
+          isPrivate: false
+          description: ""
+          sortKey: -1767957956299
+        method: DELETE
+        headers:
+          - name: User-Agent
+            value: insomnia/12.2.0
+            description: ""
+            disabled: false
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
 cookieJar:
   name: Default Jar
   meta:
     id: jar_8d62cf651d3b6078028ee56ec838b7ff13fa3961
     created: 1767956171326
-    modified: 1767961985230
+    modified: 1769443228132
 environments:
   name: Base Environment
   meta:
     id: env_8d62cf651d3b6078028ee56ec838b7ff13fa3961
     created: 1767956171325
-    modified: 1767961985231
+    modified: 1769443228133
     isPrivate: false
   subEnvironments:
     - name: 5G-MAG MBSF
       meta:
         id: env_b9d8bb7a4c2a47be850135092ddea2e3
         created: 1767956472475
-        modified: 1767961985231
+        modified: 1769443228132
         isPrivate: false
         sortKey: 1767956472475
       data:
         mbsf_base_url: http://127.0.0.68:7777
-        mbs_user_service_id: 5c30bd02-ed56-41f0-b306-0d4aa45dea44
-        mbs_user_data_ing_session_id: 588b19da-ed57-41f0-a467-ef3affd854d7
+        mbs_user_service_id: 101f40c8-fad0-41f0-b705-4960f7b1c2d7
+        mbs_user_data_ing_session_id: 221cf4d2-fad0-41f0-b705-4960f7b1c2d7
