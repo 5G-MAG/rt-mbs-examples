@@ -70,11 +70,11 @@ tmux send-keys -t $SESSION:UDM "$BASE_DIR/install/bin/open5gs-udmd" Enter
 
 tmux new-window -t $SESSION -n "MBSTF"
 register_pane_pgid "$SESSION:MBSTF"
-tmux send-keys -t $SESSION:MBSTF "sudo /usr/local/bin/open5gs-mbstfd" Enter
+tmux send-keys -t $SESSION:MBSTF "/usr/local/bin/open5gs-mbstfd" Enter
 
 tmux new-window -t $SESSION -n "MBSF"
 register_pane_pgid "$SESSION:MBSF"
-tmux send-keys -t $SESSION:MBSF "sudo /usr/local/bin/open5gs-mbsfd -c $BASE_DIR/local-mbsf.yaml" Enter
+tmux send-keys -t $SESSION:MBSF "/usr/local/bin/open5gs-mbsfd -c $BASE_DIR/local-mbsf.yaml" Enter
 
 # Connect session
 
