@@ -3,6 +3,7 @@
 SESSION="mbsf-tutorial"
 BASE_DIR=~/5gmag/open5gs_mbs_development
 PANE_PGIDS=()
+PANE_PIDS=()
 
 register_pane_pgid() {
   local pane_id="$1"
@@ -15,7 +16,10 @@ register_pane_pgid() {
   # Get the process group ID
   pgid="$(ps -o pgid= -p "$pane_pid" | tr -d ' ')"
 
-  # Append to list of PGIDs
+  if [[ -n "$pane_pid" ]]; then
+    PANE_PIDS+=("$pane_pid")
+  fi
+
   if [[ -n "$pgid" ]]; then
     PANE_PGIDS+=("$pgid")
   fi
@@ -27,10 +31,16 @@ cleanup() {
   fi
 
   # Terminate all process groups tied to panes from this session.
+  for pid in "${PANE_PIDS[@]}"; do
+    kill -TERM "$pid" 2>/dev/null || true
+  done
   for pgid in "${PANE_PGIDS[@]}"; do
     kill -TERM -- "-$pgid" 2>/dev/null || true
   done
   sleep 1
+  for pid in "${PANE_PIDS[@]}"; do
+    kill -KILL "$pid" 2>/dev/null || true
+  done
   for pgid in "${PANE_PGIDS[@]}"; do
     kill -KILL -- "-$pgid" 2>/dev/null || true
   done
@@ -44,38 +54,31 @@ tmux kill-session -t $SESSION 2>/dev/null
 
 # New session with new windows
 
-tmux new-session -d -s $SESSION -n "NRF"
+tmux new-session -d -s $SESSION -n "NRF" "$BASE_DIR/install/bin/open5gs-nrfd"
 register_pane_pgid "$SESSION:NRF"
-tmux send-keys -t $SESSION:NRF "$BASE_DIR/install/bin/open5gs-nrfd" Enter
 
-tmux new-window -t $SESSION -n "SCP"
+tmux new-window -t $SESSION -n "SCP" "$BASE_DIR/install/bin/open5gs-scpd"
 register_pane_pgid "$SESSION:SCP"
-tmux send-keys -t $SESSION:SCP "$BASE_DIR/install/bin/open5gs-scpd" Enter
 
-tmux new-window -t $SESSION -n "SMF"
+tmux new-window -t $SESSION -n "SMF" "$BASE_DIR/install/bin/open5gs-smfd"
 register_pane_pgid "$SESSION:SMF"
-tmux send-keys -t $SESSION:SMF "$BASE_DIR/install/bin/open5gs-smfd" Enter
 
-tmux new-window -t $SESSION -n "UPF"
+tmux new-window -t $SESSION -n "UPF" "sudo $BASE_DIR/install/bin/open5gs-upfd"
 register_pane_pgid "$SESSION:UPF"
-tmux send-keys -t $SESSION:UPF "sudo $BASE_DIR/install/bin/open5gs-upfd" Enter
 
-tmux new-window -t $SESSION -n "AMF"
+tmux new-window -t $SESSION -n "AMF" "$BASE_DIR/install/bin/open5gs-amfd"
 register_pane_pgid "$SESSION:AMF"
-tmux send-keys -t $SESSION:AMF "$BASE_DIR/install/bin/open5gs-amfd" Enter
 
-tmux new-window -t $SESSION -n "UDM"
+tmux new-window -t $SESSION -n "UDM" "$BASE_DIR/install/bin/open5gs-udmd"
 register_pane_pgid "$SESSION:UDM"
-tmux send-keys -t $SESSION:UDM "$BASE_DIR/install/bin/open5gs-udmd" Enter
 
-tmux new-window -t $SESSION -n "MBSTF"
+tmux new-window -t $SESSION -n "MBSTF" "/usr/local/bin/open5gs-mbstfd"
 register_pane_pgid "$SESSION:MBSTF"
-tmux send-keys -t $SESSION:MBSTF "/usr/local/bin/open5gs-mbstfd" Enter
 
-tmux new-window -t $SESSION -n "MBSF"
+tmux new-window -t $SESSION -n "MBSF" "/usr/local/bin/open5gs-mbsfd -c $BASE_DIR/local-mbsf.yaml"
 register_pane_pgid "$SESSION:MBSF"
-tmux send-keys -t $SESSION:MBSF "/usr/local/bin/open5gs-mbsfd -c $BASE_DIR/local-mbsf.yaml" Enter
 
 # Connect session
 
 tmux attach -t $SESSION
+
