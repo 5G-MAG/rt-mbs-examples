@@ -5,6 +5,7 @@ BASE_DIR=~/5gmag/open5gs_mbs_development
 PANE_PGIDS=()
 PANE_PIDS=()
 
+# PANE_PIDS stores the direct process ID of the command running in each tmux pane (the main service). PANE_PGIDS stores the process group ID for that pane, which lets you terminate any child processes spawned by the service (same process group).
 register_pane_pgid() {
   local pane_id="$1"
   local pane_pid
@@ -25,25 +26,24 @@ register_pane_pgid() {
   fi
 }
 
+kill_pane_targets() {
+  local signal="$1"
+
+  for pid in "${PANE_PIDS[@]}"; do
+    kill "$signal" "$pid" 2>/dev/null || true
+  done
+  for pgid in "${PANE_PGIDS[@]}"; do
+    kill "$signal" -- "-$pgid" 2>/dev/null || true
+  done
+}
+
 cleanup() {
   if tmux has-session -t "$SESSION" 2>/dev/null; then
     return
   fi
 
   # Terminate all process groups tied to panes from this session.
-  for pid in "${PANE_PIDS[@]}"; do
-    kill -TERM "$pid" 2>/dev/null || true
-  done
-  for pgid in "${PANE_PGIDS[@]}"; do
-    kill -TERM -- "-$pgid" 2>/dev/null || true
-  done
-  sleep 1
-  for pid in "${PANE_PIDS[@]}"; do
-    kill -KILL "$pid" 2>/dev/null || true
-  done
-  for pgid in "${PANE_PGIDS[@]}"; do
-    kill -KILL -- "-$pgid" 2>/dev/null || true
-  done
+  kill_pane_targets -TERM
 }
 
 trap cleanup EXIT
