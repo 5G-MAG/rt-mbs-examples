@@ -42,13 +42,13 @@ step of the tutorial. Namely, it starts the following components:
 
 ##### Starting the MBSF Tutorial tmux session
 
-1. Open `mbs-function-tutorial-startup.sh` and set the URL to your Open5GS folder in the `BASE_DIR` variable.
-2. Copy your `local-mbsf.yaml` MBSF configuration file to the path defined in `BASE_DIR`.
-3. Run `bash ./mbs-function-tutorial-startup.sh` to start the tmux session with all the required components.
-4. You can navigate between the different panes using `Ctrl+b` followed by the arrow keys or by typing the concrete
+1. From the root folder of this project navigate to `scripts/tmux` 
+1. Optional: Adjust the MBSF configuration located in `local-mbsf.yaml` if needed.
+1. Run `bash ./mbs-function-tutorial-startup.sh` to start the tmux session with all the required components.
+1. You can navigate between the different panes using `Ctrl+b` followed by the arrow keys or by typing the concrete
    number of the pane you want to switch to. Navigate to the `UPF` (`Ctrl+b 3`) pane and enter the `sudo`
    password.
-5. Now all processes should be running. You can continue using the components now.
+1. Now all processes should be running. You can continue using the components now.
 
 ##### Stopping the MBSF Tutorial tmux session
 

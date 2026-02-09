@@ -75,7 +75,7 @@ register_pane_pgid "$SESSION:UDM"
 tmux new-window -t $SESSION -n "MBSTF" "/usr/local/bin/open5gs-mbstfd"
 register_pane_pgid "$SESSION:MBSTF"
 
-tmux new-window -t $SESSION -n "MBSF" "/usr/local/bin/open5gs-mbsfd -c $BASE_DIR/local-mbsf.yaml"
+tmux new-window -t $SESSION -n "MBSF" "/usr/local/bin/open5gs-mbsfd -c ./local-mbsf.yaml"
 register_pane_pgid "$SESSION:MBSF"
 
 # Connect session
