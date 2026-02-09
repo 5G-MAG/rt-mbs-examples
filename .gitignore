@@ -33,3 +33,5 @@ env.bak/
 venv.bak/
 
 bake-remote.hcl
+
+.idea
