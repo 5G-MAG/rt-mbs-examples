@@ -1,6 +1,7 @@
 # Description
 
-This folder contains scripts for the [tmux](https://github.com/tmux/tmux)  is a terminal multiplexer.
+This folder contains scripts for [tmux](https://github.com/tmux/tmux) an open-source terminal multiplexer that allows
+users to manage multiple terminal sessions, windows, and panes from a single screen or terminal window.
 
 ## Usage
 
