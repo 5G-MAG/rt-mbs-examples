@@ -1,0 +1,20 @@
+type: environment.insomnia.rest/5.0
+schema_version: "5.1"
+name: 5G-MAG MBS Environment
+meta:
+  id: wrk_daf14b6088794d7b9a630de933100c6c
+  created: 1771856876733
+  modified: 1771856899116
+  description: ""
+environments:
+  name: 5G-MAG_MBS
+  meta:
+    id: env_c2337880aca8430484e53921cc535a83
+    created: 1771856876736
+    modified: 1771856876736
+    isPrivate: false
+  data:
+    smf_mb_smf_url: smf-mb-smf.5g-mag.org
+    tmgiAllocated: "{}"
+    tmgiAllocatedExpiration: '""'
+    tmgiRefreshedExpiration: '""'
