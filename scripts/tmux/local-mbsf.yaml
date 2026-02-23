@@ -1,0 +1,30 @@
+global:
+  max:
+    ue: 128
+
+logger:
+  level: debug
+
+mbsf:
+  sbi:
+    server:
+      - address: 127.0.0.68
+        port: 7777
+    client:
+      scp:
+        - uri: http://127.0.0.200:7777
+      nrf:
+        - uri: http://127.0.0.10:7777
+  mbsUserServices:
+    - addr: 127.0.0.68
+      port: 7777
+  mbsUserDataIngestSession:
+    - addr: 127.0.0.68
+      port: 7777
+  serverResponseCacheControl:
+    - maxAge: 60
+      mbsUserServiceMaxAge: 60
+      mbsUserDataIngestSessionMaxAge: 60
+  activeDistributionSessionsSoftLimit: 1000
+  activeUserServicesSoftLimit: 50
+  actPeriodGoToEstablishedState: 60
