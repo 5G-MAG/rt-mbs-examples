@@ -16,7 +16,7 @@ bash ./<script-name>.sh
 ### Stopping
 
 In general, to stop the tmux session started by the scripts, attach to the tmux session and stop processes. In the tmux
-session, press `Ctrl+b` and then type `kill-session` and hit Enter.
+session, press `Ctrl+b` and then type `:kill-session` and hit Enter.
 
 As an alternative kill the tmux session from a normal session with `tmux kill-session -t <session-name>`. For instance:
 `tmux kill-session -t mbsf-tutorial`.
