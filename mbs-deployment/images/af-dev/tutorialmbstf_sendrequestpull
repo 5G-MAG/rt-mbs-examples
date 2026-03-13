@@ -1,0 +1,73 @@
+#!/bin/bash
+set -eu
+
+upf_udp_tunnel_port="${1}"
+n_objects="${2-4}"
+
+if   [[ "${n_objects}" == 4 ]]; then
+    objects='"object4", "object3", "object2", "object1"'
+elif [[ "${n_objects}" == 3 ]] ; then
+    objects='"object3", "object2", "object1"'
+elif [[ "${n_objects}" == 2 ]] ; then
+    objects='"object2", "object1"'
+elif [[ "${n_objects}" == 2_1 ]] ; then
+    objects='"object2", "object3"'
+elif [[ "${n_objects}" == 2_2 ]] ; then
+    objects='"object4", "object3"'
+elif [[ "${n_objects}" == 1 ]] ; then
+    objects='"object1"'
+else
+    echo "ERROR: Only supported values: 1, 2, 3, 4" 1>&2
+    exit
+fi
+
+
+upf_fqdn=mb-upf.open5gs.org
+upf_ip=$(dig +short "${upf_fqdn}")
+
+mediaserver_fqdn=mediaserver.5g-mag.com
+mediaserver_ip=$(dig +short "${mediaserver_fqdn}")
+
+multicast_group_ip=239.0.0.25
+
+
+request=' 
+{
+  "distSession": {
+    "distSessionId": "cab87e4b-01b1-4138-9018-7d30bcb1606b",
+    "distSessionState": "ACTIVE",
+    "mbUpfTunAddr": {
+      "ipv4Addr": "'"${upf_ip}"'",
+      "portNumber": '"${upf_udp_tunnel_port}"'
+    },
+    "upTrafficFlowInfo": {
+      "destIpAddr": {
+        "ipv4Addr": "'"${multicast_group_ip}"'"
+      },
+      "portNumber": 5000
+    },
+    "mbr": "10 Mbps",
+    "objDistributionData": {
+      "objDistributionOperatingMode": "SINGLE",
+      "objAcquisitionMethod": "PULL",
+      "objAcquisitionIdsPull": [
+          '"${objects}"'
+      ],
+      "objIngestBaseUrl": "http://'"${mediaserver_ip}"':3004/",
+      "objDistributionBaseUrl": "http://127.0.0.2/"
+    }
+  }
+}
+'
+
+
+echo "Request:"
+echo "${request}"
+
+echo "Response:"
+curl --silent --http2-prior-knowledge --header "Content-Type: application/json" \
+    --data "${request}" \
+    mbstf.5g-mag.com:7777/nmbstf-distsession/v1/dist-sessions | jq
+
+#newline
+echo

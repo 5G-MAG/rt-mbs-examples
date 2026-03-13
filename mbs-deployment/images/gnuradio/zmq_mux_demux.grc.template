@@ -1,0 +1,246 @@
+options:
+  parameters:
+    author: ''
+    catch_exceptions: 'True'
+    category: '[GRC Hier Blocks]'
+    cmake_opt: ''
+    comment: ''
+    copyright: ''
+    description: ''
+    gen_cmake: 'On'
+    gen_linking: dynamic
+    generate_options: no_gui
+    hier_block_src_path: '.:'
+    id: zmq_mux_demux
+    max_nouts: '0'
+    output_language: python
+    placement: (0,0)
+    qt_qss_theme: ''
+    realtime_scheduling: ''
+    run: 'True'
+    run_command: '{python} -u {filename}'
+    run_options: run
+    sizing_mode: fixed
+    thread_safe_setters: ''
+    title: srsRAN_multi_UE
+    window_size: (1000,1000)
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [8, 8]
+    rotation: 0
+    state: enabled
+
+blocks:
+- name: samp_rate
+  id: variable
+  parameters:
+    comment: ''
+    value: '11520000'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [184, 12]
+    rotation: 0
+    state: enabled
+- name: zmq_hwm
+  id: variable
+  parameters:
+    comment: ''
+    value: '-1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [432, 12.0]
+    rotation: 0
+    state: enabled
+- name: zmq_timeout
+  id: variable
+  parameters:
+    comment: ''
+    value: '100'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [304, 12.0]
+    rotation: 0
+    state: enabled
+- name: blocks_add_xx_0
+  id: blocks_add_xx
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: ''
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    num_inputs: '2'
+    type: complex
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [480, 416.0]
+    rotation: 0
+    state: enabled
+- name: blocks_throttle_0
+  id: blocks_throttle
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: ''
+    ignoretag: 'True'
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    samples_per_second: 23.04*1000000
+    type: complex
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [424, 176.0]
+    rotation: 0
+    state: true
+- name: zeromq_rep_sink_0
+  id: zeromq_rep_sink
+  parameters:
+    address: tcp://${GNURADIO_IP}:2100
+    affinity: ''
+    alias: ''
+    bind: 'True'
+    comment: ''
+    hwm: zmq_hwm
+    pass_tags: 'False'
+    timeout: zmq_timeout
+    type: complex
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [648, 100.0]
+    rotation: 0
+    state: true
+- name: zeromq_rep_sink_0_0
+  id: zeromq_rep_sink
+  parameters:
+    address: tcp://${GNURADIO_IP}:2200
+    affinity: ''
+    alias: ''
+    bind: 'True'
+    comment: ''
+    hwm: zmq_hwm
+    pass_tags: 'False'
+    timeout: zmq_timeout
+    type: complex
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [648, 204.0]
+    rotation: 0
+    state: true
+- name: zeromq_rep_sink_0_1
+  id: zeromq_rep_sink
+  parameters:
+    address: tcp://${GNURADIO_IP}:2001
+    affinity: ''
+    alias: ''
+    bind: 'True'
+    comment: ''
+    hwm: zmq_hwm
+    pass_tags: 'False'
+    timeout: zmq_timeout
+    type: complex
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [664, 404.0]
+    rotation: 0
+    state: true
+- name: zeromq_req_source_0
+  id: zeromq_req_source
+  parameters:
+    address: tcp://${GNB_IP}:2000
+    affinity: ''
+    alias: ''
+    bind: 'False'
+    comment: ''
+    hwm: zmq_hwm
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    pass_tags: 'False'
+    timeout: zmq_timeout
+    type: complex
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [168, 152.0]
+    rotation: 0
+    state: true
+- name: zeromq_req_source_1
+  id: zeromq_req_source
+  parameters:
+    address: tcp://${UE1_IP}:2101
+    affinity: ''
+    alias: ''
+    bind: 'False'
+    comment: ''
+    hwm: zmq_hwm
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    pass_tags: 'False'
+    timeout: zmq_timeout
+    type: complex
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [192, 348.0]
+    rotation: 0
+    state: true
+- name: zeromq_req_source_1_0
+  id: zeromq_req_source
+  parameters:
+    address: tcp://${UE2_IP}:2201
+    affinity: ''
+    alias: ''
+    bind: 'False'
+    comment: ''
+    hwm: zmq_hwm
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    pass_tags: 'False'
+    timeout: zmq_timeout
+    type: complex
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [192, 468.0]
+    rotation: 0
+    state: true
+
+connections:
+- [blocks_add_xx_0, '0', zeromq_rep_sink_0_1, '0']
+- [blocks_throttle_0, '0', zeromq_rep_sink_0, '0']
+- [blocks_throttle_0, '0', zeromq_rep_sink_0_0, '0']
+- [zeromq_req_source_0, '0', blocks_throttle_0, '0']
+- [zeromq_req_source_1, '0', blocks_add_xx_0, '0']
+- [zeromq_req_source_1_0, '0', blocks_add_xx_0, '1']
+
+metadata:
+  file_format: 1
+  grc_version: 3.10.12.0

@@ -1,0 +1,284 @@
+services:
+  db:
+    container_name: db
+    image: "mongo:${MONGODB_VERSION}"
+    command: "mongod --bind_ip 0.0.0.0 --port 27017"
+    networks:
+      open5gs:
+        aliases:
+          - db.open5gs.org
+    volumes:
+      - db_data:/data/db
+      - db_config:/data/configdb
+
+  nrf:
+    container_name: nrf
+    image: "ghcr.io/borjis131/nrf:${OPEN5GS_VERSION}"
+    command: "-c /etc/open5gs/custom/nrf.yaml"
+    networks:
+      open5gs:
+        aliases:
+          - nrf.open5gs.org
+    configs:
+      - source: nrf_config
+        target: /etc/open5gs/custom/nrf.yaml
+
+  ausf:
+    container_name: ausf
+    image: "ghcr.io/borjis131/ausf:${OPEN5GS_VERSION}"
+    command: "-c /etc/open5gs/custom/ausf.yaml"
+    networks:
+      open5gs:
+        aliases:
+          - ausf.open5gs.org
+    configs:
+      - source: ausf_config
+        target: /etc/open5gs/custom/ausf.yaml
+    depends_on:
+      - nrf
+
+  udm:
+    container_name: udm
+    image: "ghcr.io/borjis131/udm:${OPEN5GS_VERSION}"
+    command: "-c /etc/open5gs/custom/udm.yaml"
+    networks:
+      open5gs:
+        aliases:
+          - udm.open5gs.org
+    configs:
+      - source: udm_config
+        target: /etc/open5gs/custom/udm.yaml
+    depends_on:
+      - nrf
+
+  udr:
+    container_name: udr
+    image: "ghcr.io/borjis131/udr:${OPEN5GS_VERSION}"
+    command: "-c /etc/open5gs/custom/udr.yaml"
+    restart: unless-stopped
+    networks:
+      open5gs:
+        aliases:
+          - udr.open5gs.org
+    configs:
+      - source: udr_config
+        target: /etc/open5gs/custom/udr.yaml
+    depends_on:
+      - db
+      - nrf
+
+  nssf:
+    container_name: nssf
+    image: "ghcr.io/borjis131/nssf:${OPEN5GS_VERSION}"
+    command: "-c /etc/open5gs/custom/nssf.yaml"
+    networks:
+      open5gs:
+        aliases:
+          - nssf.open5gs.org
+    configs:
+      - source: nssf_config
+        target: /etc/open5gs/custom/nssf.yaml
+    depends_on:
+      - nrf
+
+  bsf:
+    container_name: bsf
+    image: "ghcr.io/borjis131/bsf:${OPEN5GS_VERSION}"
+    command: "-c /open5gs/config/bsf.yaml"
+    networks:
+      open5gs:
+        aliases:
+          - bsf.open5gs.org
+    configs:
+      - source: bsf_config
+        target: /open5gs/config/bsf.yaml
+    depends_on:
+      - nrf
+
+  pcf:
+    container_name: pcf
+    image: "ghcr.io/borjis131/pcf:${OPEN5GS_VERSION}"
+    command: "-c /etc/open5gs/custom/pcf.yaml"
+    restart: unless-stopped
+    networks:
+      open5gs:
+        aliases:
+          - pcf.open5gs.org
+    configs:
+      - source: pcf_config
+        target: /etc/open5gs/custom/pcf.yaml
+    depends_on:
+      - db
+      - nrf
+
+  webui:
+    container_name: webui
+    image: "ghcr.io/borjis131/webui:${OPEN5GS_VERSION}"
+    environment:
+      - DB_URI=mongodb://db.open5gs.org/open5gs
+      - PORT=9999
+      - HOSTNAME=0.0.0.0
+      - NODE_ENV=dev
+    command: "run dev"
+    networks:
+      open5gs:
+        aliases:
+          - webui.open5gs.org
+    depends_on:
+      - db
+    ports:
+      - "0.0.0.0:9999:9999/tcp"
+
+  mb-amf:
+    container_name: mb-amf
+    image: "mb-amf-dev:${OPEN5GS_MBS_VERSION}"
+    command: "-c /etc/open5gs/custom/mb-amf.yaml"
+    networks:
+      open5gs:
+        aliases:
+          - mb-amf.open5gs.org
+    configs:
+      - source: mb_amf_config
+        target: /etc/open5gs/custom/mb-amf.yaml
+    volumes:
+      - ../../../open5gs:/open5gs
+    depends_on:
+      - nrf
+
+  mb-smf:
+    container_name: mb-smf
+    image: "mb-smf-dev:${OPEN5GS_MBS_VERSION}"
+    environment:
+      - ENABLE_GDB=${ENABLE_GDB}
+    command: "-c /etc/open5gs/custom/mb-smf.yaml"
+    networks:
+      open5gs:
+        aliases:
+          - mb-smf.open5gs.org
+    configs:
+      - source: mb_smf_config
+        target: /etc/open5gs/custom/mb-smf.yaml
+    volumes:
+      - ../../../open5gs:/open5gs
+    depends_on:
+      - nrf
+      - mb-upf
+
+  mb-upf:
+    container_name: mb-upf
+    image: "mb-upf-dev:${OPEN5GS_MBS_VERSION}"
+    environment:
+      - ENABLE_GDB=FALSE
+    command: "-c /etc/open5gs/custom/mb-upf.yaml"
+    networks:
+      open5gs:
+        aliases:
+          - mb-upf.open5gs.org
+    configs:
+      - source: mb_upf_config
+        target: /etc/open5gs/custom/mb-upf.yaml
+    volumes:
+      - ../../../open5gs:/open5gs
+    privileged: true
+    cap_add:
+      - NET_ADMIN
+
+  af:
+    container_name: af
+    image: "af-dev:${OPEN5GS_MBS_VERSION}"
+    networks:
+      open5gs:
+        aliases:
+          - af.open5gs.org
+
+  mb-gnb:
+    container_name: mb-gnb
+    image: "mb-gnb-dev:${SRSRAN_MBS_VERSION}"
+    environment:
+      - GNB_FQDN=mb-gnb.srsran.org
+      - UE_FQDN=mb-ue.srsran.org
+      - ENABLE_GDB=FALSE
+    command: "/etc/rt-srsRAN_Project/custom/mb-gnb.yaml"
+    networks:
+      open5gs:
+        aliases:
+          - mb-gnb.srsran.org
+    configs:
+      - source: mb_gnb_config
+        target: /etc/rt-srsRAN_Project/custom/mb-gnb.yaml
+    volumes:
+      - ../../../rt-srsRAN_Project:/rt-srsRAN_Project
+    privileged: true
+    cap_add:
+      - NET_ADMIN
+    depends_on:
+      - mb-amf
+
+  mb-ue:
+    container_name: mb-ue
+    image: "mb-ue-dev:${SRSRAN_MBS_VERSION}"
+    environment:
+      - UE_FQDN=mb-ue.srsran.org
+      - GNB_FQDN=mb-gnb.srsran.org
+      - ENABLE_GDB=FALSE
+    command: "/etc/srsRAN_4G/custom/mb-ue.conf"
+    networks:
+      open5gs:
+        aliases:
+          - mb-ue.srsran.org
+    configs:
+      - source: mb_ue_config
+        target: /etc/srsRAN_4G/custom/mb-ue.conf
+    volumes:
+      - ../../../srsRAN_4G:/srsRAN_4G
+    privileged: true
+    cap_add:
+      - NET_ADMIN
+    depends_on:
+      - mb-gnb
+
+networks:
+  open5gs:
+    name: open5gs
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.name: br-ogs
+    ipam:
+      config:
+        - subnet: 10.33.33.0/24
+
+volumes:
+  db_data:
+    name: open5gs_db_data
+    labels:
+      org.open5gs.mongodb_version: ${MONGODB_VERSION}
+  db_config:
+    name: open5gs_db_config
+    labels:
+      org.open5gs.mongodb_version: ${MONGODB_VERSION}
+
+configs:
+  nrf_config:
+    file: ../../configs/internal/nrf.yaml
+  ausf_config:
+    file: ../../configs/internal/ausf.yaml
+  udm_config:
+    file: ../../configs/internal/udm.yaml
+  udr_config:
+    file: ../../configs/internal/udr.yaml
+  nssf_config:
+    file: ../../configs/internal/nssf.yaml
+  bsf_config:
+    file: ../../configs/internal/bsf.yaml
+  pcf_config:
+    file: ../../configs/internal/pcf.yaml
+  mb_amf_config:
+    file: ../../configs/internal/mb-amf.yaml
+  mb_smf_config:
+    file: ../../configs/internal/mb-smf.yaml
+  mb_upf_config:
+    file: ../../configs/internal/mb-upf.yaml
+  mb_gnb_config:
+    file: ../../configs/internal/mb-gnb.yaml
+  mb_ue_config:
+    file: ../../configs/internal/mb-ue.conf

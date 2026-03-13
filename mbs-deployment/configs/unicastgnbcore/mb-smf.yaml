@@ -1,0 +1,40 @@
+logger:
+  file:
+    path: /var/log/open5gs/mb-smf.log
+
+global:
+
+smf:
+  sbi:
+    server:
+      - address: mb-smf.open5gs.org
+        port: 80
+    client:
+      nrf:
+        - uri: http://nrf.open5gs.org:80
+  pfcp:
+    server:
+      - address: mb-smf.open5gs.org
+    client:
+      upf:
+        - address: mb-upf.open5gs.org
+  gtpu:
+    server:
+      - address: mb-smf.open5gs.org
+  session:
+    - subnet: 10.45.0.0/16
+      gateway: 10.45.0.1
+  dns:
+    - 8.8.8.8
+    - 8.8.4.4
+  mtu: 1400
+  info:
+    - s_nssai:
+        - sst: 1
+          dnn:
+            - internet
+      tai:
+        - plmn_id:
+            mcc: 999
+            mnc: 70
+          tac: 1
