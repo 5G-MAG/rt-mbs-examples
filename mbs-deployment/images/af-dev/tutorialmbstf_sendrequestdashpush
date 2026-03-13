@@ -1,0 +1,55 @@
+#!/bin/bash
+set -eu
+
+upf_udp_tunnel_port="${1}"
+
+upf_fqdn=mb-upf.open5gs.org
+upf_ip=$(dig +short "${upf_fqdn}")
+
+mediaserver_fqdn=mediaserver.5g-mag.com
+mediaserver_ip=$(dig +short "${mediaserver_fqdn}")
+
+multicast_group_ip=239.0.0.25
+
+request=' 
+{
+  "distSession": {
+    "distSessionId": "33acd99a-8564-42a1-a96c-9f293d90c41e",
+    "distSessionState": "ACTIVE",
+    "mbUpfTunAddr": {
+      "ipv4Addr": "'"${upf_ip}"'",
+      "portNumber": '"${upf_udp_tunnel_port}"'
+    },
+    "upTrafficFlowInfo": {
+      "destIpAddr": {
+        "ipv4Addr": "'"${multicast_group_ip}"'"
+      },
+      "portNumber": 5000
+    },
+    "mbr": "10 Mbps",
+    "objDistributionData": {
+      "objDistributionOperatingMode": "STREAMING",
+      "objAcquisitionMethod": "PUSH",
+      "objAcquisitionIdPush": "manifest.mpd",
+      "objDistributionBaseUrl": "http://127.0.0.2/"
+    }
+  }
+}
+'
+
+echo "Request:"
+echo "${request}"
+
+response=$(curl --silent --http2-prior-knowledge --header "Content-Type: application/json" \
+    --data "${request}" \
+    mbstf.5g-mag.com:7777/nmbstf-distsession/v1/dist-sessions)
+
+echo "Response:"
+echo "${response}" | jq
+#newline
+echo
+
+echo "${response}" | jq -r '"URL=\(.distSession.objDistributionData.objIngestBaseUrl)\(.distSession.objDistributionData.objAcquisitionIdPush)"'
+
+#newline
+echo
