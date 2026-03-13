@@ -181,9 +181,12 @@ docker exec -i af tutorialmbstf_sendmpd "${URL}"
 ```
 
 
-# Todo, possible bugs
+# TODO and possible bugs
 ## Bug with substitution of variables names from docker compose in config files 
 It seems that variables such as GNB_IP work, but GNB_ZMQ_IP gets resolved a wrong IP. Probably because of the double "_".
+
+## gnuradio container slow start
+The gnuradio container takes a while to start. To confirm that it has started you can do `docker logs -f gnuradio` and wait until you see any output.
 
 # misc
 ## Create video from the DASH fragments 
