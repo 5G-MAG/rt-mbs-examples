@@ -1,0 +1,20 @@
+{
+  "updateInterval": 30,
+  "objects": [
+    {
+      "locator": "http://localhost:3004/object1",
+      "repetitionInterval": 500,
+      "keepUpdatedInterval": 5
+    },
+    {
+      "locator": "http://localhost:3004/object2",
+      "repetitionInterval": 333
+    },
+    {
+      "locator": "http://localhost:3004/object3"
+    },
+    {
+      "locator": "http://localhost:3004/object4"
+    }
+  ]
+}
