@@ -1,82 +1,149 @@
 #!/bin/bash
 
+# ==============================================================================
+# 1. CONFIGURATION
+# ==============================================================================
 SESSION="mbstf-tutorial"
-OPEN5GS_BASE_DIR=~/5gmag/open5gs_mbs
+# Verified absolute paths
+OPEN5GS_BASE_DIR="${HOME}/5gmag/open5gs_mbs/install/bin"
 MBSTF_BASE_DIR=/usr/local/bin
-MEDIA_SERVER_BASE_DIR=~/5gmag/rt-mbs-examples/express-mock-media-server
+MEDIA_SERVER_DIR="${HOME}/5gmag/rt-mbs-examples/express-mock-media-server"
+
 PANE_PGIDS=()
 PANE_PIDS=()
 
-# PANE_PIDS stores the direct process ID of the command running in each tmux pane (the main service). PANE_PGIDS stores the process group ID for that pane, which lets you terminate any child processes spawned by the service (same process group).
-register_pane_pgid() {
-  local pane_id="$1"
-  local pane_pid
-  local pgid
+# ==============================================================================
+# 2. PRE-FLIGHT CLEANUP (Prevent Port Conflicts)
+# ==============================================================================
+echo "--- Cleaning up existing processes ---"
+tmux kill-session -t "$SESSION" 2>/dev/null
 
-  # Get the PID of the pane's process
-  pane_pid="$(tmux display-message -p -t "$pane_id" "#{pane_pid}")"
+# Kill Open5GS components
+sudo pkill -9 open5gs-nrfd 2>/dev/null
+sudo pkill -9 open5gs-scpd 2>/dev/null
+sudo pkill -9 open5gs-smfd 2>/dev/null
+sudo pkill -9 open5gs-upfd 2>/dev/null
+sudo pkill -9 open5gs-amfd 2>/dev/null
+sudo pkill -9 open5gs-mbstfd 2>/dev/null
 
-  # Get the process group ID
-  pgid="$(ps -o pgid= -p "$pane_pid" | tr -d ' ')"
+# Kill Node/Media Server processes
+pkill -9 -f "node" 2>/dev/null
 
-  if [[ -n "$pane_pid" ]]; then
-    PANE_PIDS+=("$pane_pid")
-  fi
+sleep 1
 
-  if [[ -n "$pgid" ]]; then
-    PANE_PGIDS+=("$pgid")
+if ! sudo -n true 2>/dev/null; then
+    echo "Sudo access required for UPF. Please run 'sudo true' first."
+    exit 1
+fi
+
+require_command() {
+  local command_name="$1"
+  if ! command -v "$command_name" >/dev/null 2>&1; then
+    echo "Required command not found: $command_name"
+    exit 1
   fi
 }
 
-kill_pane_targets() {
-  local signal="$1"
+require_executable() {
+  local executable_path="$1"
+  if [[ ! -x "$executable_path" ]]; then
+    echo "Required executable not found or not executable: $executable_path"
+    exit 1
+  fi
+}
 
-  for pid in "${PANE_PIDS[@]}"; do
-    kill "$signal" "$pid" 2>/dev/null || true
+require_dir() {
+  local dir_path="$1"
+  if [[ ! -d "$dir_path" ]]; then
+    echo "Required directory not found: $dir_path"
+    exit 1
+  fi
+}
+
+require_file() {
+  local file_path="$1"
+  if [[ ! -f "$file_path" ]]; then
+    echo "Required file not found: $file_path"
+    exit 1
+  fi
+}
+
+require_command tmux
+require_command npm
+require_executable "$OPEN5GS_BASE_DIR/open5gs-nrfd"
+require_executable "$OPEN5GS_BASE_DIR/open5gs-scpd"
+require_executable "$OPEN5GS_BASE_DIR/open5gs-smfd"
+require_executable "$OPEN5GS_BASE_DIR/open5gs-upfd"
+require_executable "$OPEN5GS_BASE_DIR/open5gs-amfd"
+require_executable "$MBSTF_BASE_DIR/open5gs-mbstfd"
+require_dir "$MEDIA_SERVER_DIR"
+require_file "$MEDIA_SERVER_DIR/package.json"
+
+# ==============================================================================
+# 3. FUNCTIONS
+# ==============================================================================
+
+register_pane_pgid() {
+  local target="$1"
+  local pane_pid=""
+  local pgid=""
+  # Wait for tmux to assign the PID
+  for _ in {1..10}; do
+    pane_pid=$(tmux display-message -t "$target" -p "#{pane_pid}" 2>/dev/null)
+    [[ -n "$pane_pid" ]] && break
+    sleep 0.2
   done
-  for pgid in "${PANE_PGIDS[@]}"; do
-    kill "$signal" -- "-$pgid" 2>/dev/null || true
-  done
+  if [[ -n "$pane_pid" ]]; then
+    PANE_PIDS+=("$pane_pid")
+    # Capture PGID (crucial for npm/node sub-processes)
+    pgid=$(ps -o pgid= -p "$pane_pid" 2>/dev/null | tr -d ' ')
+    [[ -n "$pgid" ]] && PANE_PGIDS+=("$pgid")
+  fi
 }
 
 cleanup() {
-  if tmux has-session -t "$SESSION" 2>/dev/null; then
-    return
-  fi
+  echo -e "\n--- Shutting down MBSTF environment ---"
+  # Kill main PIDs and child process groups
+  for pid in "${PANE_PIDS[@]}"; do kill -TERM "$pid" 2>/dev/null; done
+  for pgid in "${PANE_PGIDS[@]}"; do kill -TERM -- "-$pgid" 2>/dev/null; done
 
-  # Terminate all process groups tied to panes from this session.
-  kill_pane_targets -TERM
+  sleep 1
+  tmux kill-session -t "$SESSION" 2>/dev/null
+  echo "All services stopped."
 }
 
 trap cleanup EXIT
 
-# End existing session if it exists
+# ==============================================================================
+# 4. EXECUTION
+# ==============================================================================
 
-tmux kill-session -t $SESSION 2>/dev/null
-
-# New session with new windows
-
-tmux new-session -d -s $SESSION -n "NRF" "$OPEN5GS_BASE_DIR/install/bin/open5gs-nrfd"
+echo "Starting NRF..."
+tmux new-session -d -s "$SESSION" -n "NRF" "$OPEN5GS_BASE_DIR/open5gs-nrfd"
+sleep 1
 register_pane_pgid "$SESSION:NRF"
 
-tmux new-window -t $SESSION -n "SCP" "$OPEN5GS_BASE_DIR/install/bin/open5gs-scpd"
-register_pane_pgid "$SESSION:SCP"
+# Components List: "WindowName|Command"
+COMPONENTS=(
+  "SCP|$OPEN5GS_BASE_DIR/open5gs-scpd"
+  "SMF|$OPEN5GS_BASE_DIR/open5gs-smfd"
+  "UPF|sudo $OPEN5GS_BASE_DIR/open5gs-upfd"
+  "AMF|$OPEN5GS_BASE_DIR/open5gs-amfd"
+  "MBSTF|$MBSTF_BASE_DIR/open5gs-mbstfd"
+  "MediaServer|cd $MEDIA_SERVER_DIR && npm start"
+)
 
-tmux new-window -t $SESSION -n "SMF" "$OPEN5GS_BASE_DIR/install/bin/open5gs-smfd"
-register_pane_pgid "$SESSION:SMF"
+for item in "${COMPONENTS[@]}"; do
+  IFS="|" read -r NAME CMD <<< "$item"
+  echo "Launching $NAME..."
+  tmux new-window -t "$SESSION" -n "$NAME" "$CMD"
+  register_pane_pgid "$SESSION:$NAME"
+  sleep 0.3
+done
 
-tmux new-window -t $SESSION -n "UPF" "sudo $OPEN5GS_BASE_DIR/install/bin/open5gs-upfd"
-register_pane_pgid "$SESSION:UPF"
-
-tmux new-window -t $SESSION -n "AMF" "$OPEN5GS_BASE_DIR/install/bin/open5gs-amfd"
-register_pane_pgid "$SESSION:AMF"
-
-tmux new-window -t $SESSION -n "MBSTF" "$MBSTF_BASE_DIR/open5gs-mbstfd"
-register_pane_pgid "$SESSION:MBSTF"
-
-tmux new-window -t $SESSION -n "MediaServer" "cd \"$MEDIA_SERVER_BASE_DIR\" && npm start"
-register_pane_pgid "$SESSION:MediaServer"
-
-# Connect session
-tmux attach -t $SESSION
-
+if tmux has-session -t "$SESSION" 2>/dev/null; then
+  echo "--- Environment started successfully ---"
+  tmux attach -t "$SESSION"
+else
+  echo "Error: Session failed. Ensure all paths and npm dependencies are correct."
+fi

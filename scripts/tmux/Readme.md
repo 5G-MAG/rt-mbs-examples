@@ -78,7 +78,7 @@ components in one step instead of launching each process manually. Namely, it st
 
 1. From the root folder of this project navigate to `scripts/tmux/mbs-transport-function-tutorial`.
 1. In `mbs-transport-function-api-examples-tutorial.sh` adjust `OPEN5GS_BASE_DIR`, `MBSTF_BASE_DIR`, and
-   `MEDIA_SERVER_BASE_DIR` if needed for your setup.
+   `MEDIA_SERVER_DIR` if needed for your setup.
 1. Run `bash ./mbs-transport-function-api-examples-tutorial.sh` to start the tmux session with all required
    components.
 1. You can navigate between the different panes using `Ctrl+b` followed by the arrow keys or by typing the concrete
