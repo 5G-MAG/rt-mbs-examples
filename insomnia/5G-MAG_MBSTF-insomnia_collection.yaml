@@ -1,0 +1,522 @@
+type: collection.insomnia.rest/5.0
+schema_version: "5.1"
+name: 5GMAG-MBSTF
+meta:
+  id: wrk_0c6934bd7e8f4f2e99b6bfa2a0933b16
+  created: 1772783504149
+  modified: 1772783504149
+  description: ""
+collection:
+  - name: MBS Session
+    meta:
+      id: fld_dde10533be75428da63b087185087ec7
+      created: 1772783557996
+      modified: 1772797977543
+      sortKey: -1772786888456
+      description: ""
+    children:
+      - url: "{{ _.base_url_smf }}nmbsmf-mbssession/v1/mbs-sessions"
+        name: Create MBS Session
+        meta:
+          id: req_129dddd2788c4c60be0a5d8f988586eb
+          created: 1772783548145
+          modified: 1772790875173
+          isPrivate: false
+          description: ""
+          sortKey: -1772783564408
+        method: POST
+        body:
+          mimeType: application/json
+          text: |
+            {
+              "mbsSession": {
+                "mbsSessionId": {
+                  "ssm": {
+                    "sourceIpAddr": {
+                      "ipv4Addr": "127.0.0.1"
+                    },
+                    "destIpAddr": {
+                      "ipv4Addr": "232.0.0.1"
+                    }
+                  }
+                },
+                "tmgiAllocReq": true,
+                "serviceType": "MULTICAST",
+                "ingressTunAddrReq": true,
+                "activityStatus": "ACTIVE",
+                "anyUeInd": true
+              }
+            }
+        headers:
+          - name: Content-Type
+            value: application/json
+          - name: User-Agent
+            value: insomnia/12.2.0
+            description: ""
+            disabled: false
+        scripts:
+          afterResponse: >+
+            let data;
+
+            try {
+             data = insomnia.response.json();
+            } catch (e) {
+            	console.log(e);
+             return;
+            }
+
+
+            const ingressTunAddr = data?.mbsSession?.ingressTunAddr?.[0];
+
+
+            if (ingressTunAddr?.ipv4Addr) {
+             insomnia.environment.set( "ingressTunAddrIP",`${ingressTunAddr.ipv4Addr}`);
+            } 
+
+
+            if (ingressTunAddr?.portNumber != null) {
+             insomnia.environment.set(
+             "ingressTunAddrPort",`${ingressTunAddr.portNumber}`);
+            } 
+
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+  - name: MBSTF
+    meta:
+      id: fld_05bcb537eb8c4bde90e8d974cf73844b
+      created: 1772786888356
+      modified: 1772798043492
+      sortKey: -1772786888356
+      description: ""
+    children:
+      - url: "{{ _.base_url_mbstf }}nmbstf-distsession/v1/dist-sessions"
+        name: DistSession-PULL-request
+        meta:
+          id: req_640aa5f589d549538732492748483ebf
+          created: 1772786904973
+          modified: 1772790741347
+          isPrivate: false
+          description: ""
+          sortKey: -1772786904973
+        method: POST
+        body:
+          mimeType: application/json
+          text: |
+            {
+              "distSession": {
+                "distSessionId": "cab87e4b-01b1-4138-9018-7d30bcb1606b",
+                "distSessionState": "ACTIVE",
+                "mbUpfTunAddr": {
+                  "ipv4Addr": "{{ _.ingressTunAddrIP }}",
+                  "portNumber": {{ _.ingressTunAddrPort }}
+                },
+                "upTrafficFlowInfo": {
+                  "destIpAddr": {
+                    "ipv4Addr": "232.0.0.1"
+                  },
+                  "portNumber": 5000
+                },
+                "mbr": "10 Mbps",
+                "objDistributionData": {
+                  "objDistributionOperatingMode": "SINGLE",
+                  "objAcquisitionMethod": "PULL",
+                  "objAcquisitionIdsPull": [
+                    "object1",
+                    "object2",
+                    "object3",
+                    "object4"
+                  ],
+                  "objIngestBaseUrl": "http://127.0.0.1:3004/",
+                  "objDistributionBaseUrl": "http://127.0.0.2/"
+                }
+              }
+            }
+        headers:
+          - name: Content-Type
+            value: application/json
+          - name: User-Agent
+            value: insomnia/12.2.0
+            description: ""
+            disabled: false
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ _.base_url_mbstf }}nmbstf-distsession/v1/dist-sessions"
+        name: DistSession-PUSH-request
+        meta:
+          id: req_9fe922ef8afb4d7db9c002119d282974
+          created: 1772790754174
+          modified: 1772791047255
+          isPrivate: false
+          description: ""
+          sortKey: -1772785234690.5
+        method: POST
+        body:
+          mimeType: application/json
+          text: |
+            {
+              "distSession": {
+                "distSessionId": "3e3dc3fb-0677-42a3-86c6-bc44e3544b0f",
+                "distSessionState": "ACTIVE",
+                "mbUpfTunAddr": {
+                  "ipv4Addr": "{{ _.ingressTunAddrIP }}",
+                  "portNumber": {{ _.ingressTunAddrPort }}
+                },
+                "upTrafficFlowInfo": {
+                  "destIpAddr": {
+                    "ipv4Addr": "232.0.0.1"
+                  },
+                  "portNumber": 5000
+                },
+                "mbr": "10 Mbps",
+                "objDistributionData": {
+                  "objDistributionOperatingMode": "SINGLE",
+                  "objAcquisitionMethod": "PUSH",
+                  "objDistributionBaseUrl": "http://127.0.0.2/"
+                }
+              }
+            }
+        headers:
+          - name: Content-Type
+            value: application/json
+          - name: User-Agent
+            value: insomnia/12.2.0
+            description: ""
+            disabled: false
+        scripts:
+          afterResponse: >+
+            let data;
+
+            try {
+             data = insomnia.response.json();
+            } catch (e) {
+            	console.log(e);
+             return;
+            }
+
+
+            const objIngestBaseUrl =
+            data?.distSession?.objDistributionData?.objIngestBaseUrl;
+
+
+            if (objIngestBaseUrl) {
+             insomnia.environment.set( "push_prefix_url",`${objIngestBaseUrl}`);
+            } 
+
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ _.base_url_mbstf }}nmbstf-distsession/v1/dist-sessions"
+        name: DistSession-DASH-PULL-request
+        meta:
+          id: req_b8624cc0bac1470a9e16744d48a56711
+          created: 1772791157223
+          modified: 1772791441022
+          isPrivate: false
+          description: ""
+          sortKey: -1772786069831.75
+        method: POST
+        body:
+          mimeType: application/json
+          text: >
+            {
+              "distSession": {
+                "distSessionId": "541ebbd2-ebf9-496b-a3b8-dcd1c17fbc9d",
+                "distSessionState": "INACTIVE",
+                "mbUpfTunAddr": {
+                  "ipv4Addr": "{{ _.ingressTunAddrIP }}",
+                  "portNumber": {{ _.ingressTunAddrPort }}
+                },
+                "upTrafficFlowInfo": {
+                  "destIpAddr": {
+                    "ipv4Addr": "232.0.0.1"
+                  },
+                  "portNumber": 5000
+                },
+                "mbr": "10 Mbps",
+                "objDistributionData": {
+                  "objDistributionOperatingMode": "STREAMING",
+                  "objAcquisitionMethod": "PULL",
+                  "objIngestBaseUrl": "https://livesim2.dashif.org/livesim2/WAVE/vectors/cfhd_sets/12.5_25_50/t1/2022-10-17/",
+                  "objAcquisitionIdsPull": [
+                    "stream.mpd"
+                  ],
+                  "objDistributionBaseUrl": "http://127.0.0.2/"
+                }
+              }
+            }
+        headers:
+          - name: Content-Type
+            value: application/json
+          - name: User-Agent
+            value: insomnia/12.2.0
+            description: ""
+            disabled: false
+        scripts:
+          afterResponse: >+
+            let data;
+
+            try {
+             data = insomnia.response.json();
+            } catch (e) {
+            	console.log(e);
+             return;
+            }
+
+
+            const distSessionId = data?.distSession?.distSessionId;
+
+
+            if (distSessionId) {
+             insomnia.environment.set( "dash_pull_dist_session_id",`${distSessionId}`);
+            } 
+
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ _.base_url_mbstf }}nmbstf-distsession/v1/dist-sessions/{{
+          _.dash_pull_dist_session_id }}"
+        name: DASH_PULL_ACTIVATE
+        meta:
+          id: req_2a962afedd194f99ba367505c8ed740f
+          created: 1772791316527
+          modified: 1772791627150
+          isPrivate: false
+          description: ""
+          sortKey: -1772791316527
+        method: PATCH
+        body:
+          mimeType: application/json
+          text: |-
+            [
+            	{
+            		"op": "replace",
+            		"path": "/distSession/distSessionState",
+            		"value": "ACTIVE"
+            	}
+            ]
+        headers:
+          - name: Content-Type
+            value: application/json-patch+json
+          - name: User-Agent
+            value: insomnia/12.2.0
+            description: ""
+            disabled: false
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ _.base_url_mbstf }}nmbstf-distsession/v1/dist-sessions/{{
+          _.dash_pull_dist_session_id }}"
+        name: DASH_PULL_DEACTIVATE
+        meta:
+          id: req_c3e6d899a4dd41c1a3f800c30fbfe5d1
+          created: 1772791687389
+          modified: 1772792190174
+          isPrivate: false
+          description: ""
+          sortKey: -1772789110750
+        method: PATCH
+        body:
+          mimeType: application/json
+          text: |-
+            [
+            	{
+            		"op": "replace",
+            		"path": "/distSession/distSessionState",
+            		"value": "INACTIVE"
+            	}
+            ]
+        headers:
+          - name: Content-Type
+            value: application/json-patch+json
+          - name: User-Agent
+            value: insomnia/12.2.0
+            description: ""
+            disabled: false
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ _.base_url_mbstf }}nmbstf-distsession/v1/dist-sessions/{{
+          _.dash_pull_dist_session_id }}"
+        name: Destroy MBS Distribution Session
+        meta:
+          id: req_8084f998182e468fa96a8c62de7a2558
+          created: 1772792116215
+          modified: 1772792198743
+          isPrivate: false
+          description: ""
+          sortKey: -1772791316627
+        method: DELETE
+        headers:
+          - name: User-Agent
+            value: insomnia/12.2.0
+            description: ""
+            disabled: false
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ _.base_url_mbstf }}nmbstf-distsession/v1/dist-sessions"
+        name: DistSession-DASH-PUSH-request
+        meta:
+          id: req_afee0e3ab3b541a08a2a17ff3a35a873
+          created: 1772792270042
+          modified: 1772797391448
+          isPrivate: false
+          description: ""
+          sortKey: -1772785652261.125
+        method: POST
+        body:
+          mimeType: application/json
+          text: |
+            {
+              "distSession": {
+                "distSessionId": "33acd99a-8564-42a1-a96c-9f293d90c41e",
+                "distSessionState": "ACTIVE",
+                "mbUpfTunAddr": {
+                  "ipv4Addr": "{{ _.ingressTunAddrIP }}",
+                  "portNumber": {{ _.ingressTunAddrPort }}
+                },
+                "upTrafficFlowInfo": {
+                  "destIpAddr": {
+                    "ipv4Addr": "232.0.0.1"
+                  },
+                  "portNumber": 5000
+                },
+                "mbr": "10 Mbps",
+                "objDistributionData": {
+                  "objDistributionOperatingMode": "STREAMING",
+                  "objAcquisitionMethod": "PUSH",
+                  "objAcquisitionIdPush": "manifest.mpd",
+                  "objDistributionBaseUrl": "http://127.0.0.2/"
+                }
+              }
+            }
+        headers:
+          - name: Content-Type
+            value: application/json
+          - name: User-Agent
+            value: insomnia/12.2.0
+            description: ""
+            disabled: false
+        scripts:
+          afterResponse: >+
+            let data;
+
+            try {
+             data = insomnia.response.json();
+            } catch (e) {
+            	console.log(e);
+             return;
+            }
+
+
+            const objDistributionData = data?.distSession?.objDistributionData;
+
+
+            if (objDistributionData?.objIngestBaseUrl &&
+            objDistributionData?.objAcquisitionIdPush) {
+             insomnia.environment.set( "dash_push_ingest_url",`${objDistributionData.objIngestBaseUrl}${objDistributionData.objAcquisitionIdPush}`);
+            } 
+
+
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ _.dash_push_ingest_url }}"
+        name: Push a live-profile MPD
+        meta:
+          id: req_41f7847f57f743c5bf549420ab0df3d3
+          created: 1772797692319
+          modified: 1772797804283
+          isPrivate: false
+          description: ""
+          sortKey: -1772797692319
+        method: PUT
+        body:
+          mimeType: application/octet-stream
+          fileName: /home/dsi/5gmag/rt-mbs-transport-function-test-release/tests/tutorial/push-croatia-live.mpd
+        headers:
+          - name: Content-Type
+            value: application/dash+xml
+          - name: User-Agent
+            value: insomnia/12.2.0
+            description: ""
+            disabled: false
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+cookieJar:
+  name: Default Jar
+  meta:
+    id: jar_b5705e750f0565ca9a1616f1463383de05b759da
+    created: 1772783504152
+    modified: 1772798043487
+environments:
+  name: Base Environment
+  meta:
+    id: env_b5705e750f0565ca9a1616f1463383de05b759da
+    created: 1772783504151
+    modified: 1772798043491
+    isPrivate: false
+  subEnvironments:
+    - name: MBSTF
+      meta:
+        id: env_0df319fc661747c895661f19ddd08d84
+        created: 1772783605463
+        modified: 1772798043491
+        isPrivate: false
+        sortKey: 1772783605463
+      data:
+        base_url_smf: http://127.0.0.4:7777/
+        ingressTunAddrIP: 127.0.0.7
+        ingressTunAddrPort: "48582"
+        base_url_mbstf: http://127.0.0.62:7777/
+        push_prefix_url: http://dsi-1234:33093/
+        dash_pull_dist_session_id: 33acd99a-8564-42a1-a96c-9f293d90c41e
+        dash_push_ingest_url: http://dsi-1234:42485/manifest.mpd
