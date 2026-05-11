@@ -4,68 +4,50 @@
 # 1. CONFIGURATION
 # ==============================================================================
 SESSION="mbstf-tutorial"
-# Verified absolute paths
-OPEN5GS_BASE_DIR="${HOME}/5gmag/open5gs_mbs/install/bin"
-MBSTF_BASE_DIR=/usr/local/bin
-MEDIA_SERVER_DIR="${HOME}/5gmag/rt-mbs-examples/express-mock-media-server"
+OPEN5GS_BASE_DIR="/usr/local/bin"
+MBSTF_BASE_DIR="/usr/local/bin"
+MEDIA_SERVER_DIR="${HOME}/rt-mbs-examples/express-mock-media-server"
+LOG_DIR="/var/local/log/open5gs"
 
 PANE_PGIDS=()
 PANE_PIDS=()
 
 # ==============================================================================
-# 2. PRE-FLIGHT CLEANUP (Prevent Port Conflicts)
+# 2. PRE-FLIGHT CHECKS & CLEANUP
 # ==============================================================================
-echo "--- Cleaning up existing processes ---"
+echo "--- Initializing Setup ---"
+# Prompt for sudo password once
+read -s -p "[sudo] password for $(whoami): " SUDO_PASS
+echo ""
+
+# Validate password
+echo "$SUDO_PASS" | sudo -S -v || { echo "Invalid password"; exit 1; }
+
+echo "--- Ensuring log directory exists and is writable ---"
+echo "$SUDO_PASS" | sudo -S mkdir -p "$LOG_DIR"
+echo "$SUDO_PASS" | sudo -S chown -R $(whoami):$(whoami) "$LOG_DIR"
+
+echo "--- Cleaning up existing processes and services ---"
 tmux kill-session -t "$SESSION" 2>/dev/null
 
-# Kill Open5GS components
-sudo pkill -9 open5gs-nrfd 2>/dev/null
-sudo pkill -9 open5gs-scpd 2>/dev/null
-sudo pkill -9 open5gs-smfd 2>/dev/null
-sudo pkill -9 open5gs-upfd 2>/dev/null
-sudo pkill -9 open5gs-amfd 2>/dev/null
-sudo pkill -9 open5gs-mbstfd 2>/dev/null
+# 2a. Stop Background System Services
+echo "Stopping Open5GS systemctl services..."
+for SERVICE in nrfd scpd smfd upfd amfd mbstfd; do
+    echo "$SUDO_PASS" | sudo -S systemctl stop open5gs-$SERVICE 2>/dev/null
+done
 
-# Kill Node/Media Server processes
+# 2b. Kill Binary Instances
+echo "Killing orphaned processes..."
+echo "$SUDO_PASS" | sudo -S pkill -9 open5gs-nrfd open5gs-scpd open5gs-smfd open5gs-upfd open5gs-amfd open5gs-mbstfd 2>/dev/null
 pkill -9 -f "node" 2>/dev/null
 
 sleep 1
 
-if ! sudo -n true 2>/dev/null; then
-    echo "Sudo access required for UPF. Please run 'sudo true' first."
-    exit 1
-fi
-
 require_command() {
-  local command_name="$1"
-  if ! command -v "$command_name" >/dev/null 2>&1; then
-    echo "Required command not found: $command_name"
-    exit 1
-  fi
+    command -v "$1" >/dev/null 2>&1 || { echo "Missing command: $1"; exit 1; }
 }
-
 require_executable() {
-  local executable_path="$1"
-  if [[ ! -x "$executable_path" ]]; then
-    echo "Required executable not found or not executable: $executable_path"
-    exit 1
-  fi
-}
-
-require_dir() {
-  local dir_path="$1"
-  if [[ ! -d "$dir_path" ]]; then
-    echo "Required directory not found: $dir_path"
-    exit 1
-  fi
-}
-
-require_file() {
-  local file_path="$1"
-  if [[ ! -f "$file_path" ]]; then
-    echo "Required file not found: $file_path"
-    exit 1
-  fi
+    [[ -x "$1" ]] || { echo "Missing executable: $1"; exit 1; }
 }
 
 require_command tmux
@@ -76,40 +58,37 @@ require_executable "$OPEN5GS_BASE_DIR/open5gs-smfd"
 require_executable "$OPEN5GS_BASE_DIR/open5gs-upfd"
 require_executable "$OPEN5GS_BASE_DIR/open5gs-amfd"
 require_executable "$MBSTF_BASE_DIR/open5gs-mbstfd"
-require_dir "$MEDIA_SERVER_DIR"
-require_file "$MEDIA_SERVER_DIR/package.json"
 
 # ==============================================================================
 # 3. FUNCTIONS
 # ==============================================================================
 
+wrap_cmd() {
+    local cmd="$1"
+    echo "bash -c \"$cmd || { echo; echo 'PROCESS FAILED'; read -p 'Press Enter to close...'; }\""
+}
+
 register_pane_pgid() {
-  local target="$1"
-  local pane_pid=""
-  local pgid=""
-  # Wait for tmux to assign the PID
-  for _ in {1..10}; do
-    pane_pid=$(tmux display-message -t "$target" -p "#{pane_pid}" 2>/dev/null)
-    [[ -n "$pane_pid" ]] && break
-    sleep 0.2
-  done
-  if [[ -n "$pane_pid" ]]; then
-    PANE_PIDS+=("$pane_pid")
-    # Capture PGID (crucial for npm/node sub-processes)
-    pgid=$(ps -o pgid= -p "$pane_pid" 2>/dev/null | tr -d ' ')
-    [[ -n "$pgid" ]] && PANE_PGIDS+=("$pgid")
-  fi
+    local target="$1"
+    local pane_pid=""
+    for _ in {1..10}; do
+        pane_pid=$(tmux display-message -t "$target" -p "#{pane_pid}" 2>/dev/null)
+        [[ -n "$pane_pid" ]] && break
+        sleep 0.2
+    done
+    if [[ -n "$pane_pid" ]]; then
+        PANE_PIDS+=("$pane_pid")
+        local pgid=$(ps -o pgid= -p "$pane_pid" 2>/dev/null | tr -d ' ')
+        [[ -n "$pgid" ]] && PANE_PGIDS+=("$pgid")
+    fi
 }
 
 cleanup() {
-  echo -e "\n--- Shutting down MBSTF environment ---"
-  # Kill main PIDs and child process groups
-  for pid in "${PANE_PIDS[@]}"; do kill -TERM "$pid" 2>/dev/null; done
-  for pgid in "${PANE_PGIDS[@]}"; do kill -TERM -- "-$pgid" 2>/dev/null; done
-
-  sleep 1
-  tmux kill-session -t "$SESSION" 2>/dev/null
-  echo "All services stopped."
+    echo -e "\n--- Shutting down MBSTF environment ---"
+    for pid in "${PANE_PIDS[@]}"; do kill -TERM "$pid" 2>/dev/null; done
+    for pgid in "${PANE_PGIDS[@]}"; do kill -TERM -- "-$pgid" 2>/dev/null; done
+    sleep 1
+    tmux kill-session -t "$SESSION" 2>/dev/null
 }
 
 trap cleanup EXIT
@@ -119,31 +98,35 @@ trap cleanup EXIT
 # ==============================================================================
 
 echo "Starting NRF..."
-tmux new-session -d -s "$SESSION" -n "NRF" "$OPEN5GS_BASE_DIR/open5gs-nrfd"
+LAUNCH_NRF=$(wrap_cmd "$OPEN5GS_BASE_DIR/open5gs-nrfd")
+tmux new-session -d -s "$SESSION" -n "NRF" "$LAUNCH_NRF"
 sleep 1
+
+if ! tmux has-session -t "$SESSION" 2>/dev/null; then
+    echo "Error: Tmux session failed to start. Check NRF logs."
+    exit 1
+fi
+
 register_pane_pgid "$SESSION:NRF"
 
-# Components List: "WindowName|Command"
 COMPONENTS=(
-  "SCP|$OPEN5GS_BASE_DIR/open5gs-scpd"
-  "SMF|$OPEN5GS_BASE_DIR/open5gs-smfd"
-  "UPF|sudo $OPEN5GS_BASE_DIR/open5gs-upfd"
-  "AMF|$OPEN5GS_BASE_DIR/open5gs-amfd"
-  "MBSTF|$MBSTF_BASE_DIR/open5gs-mbstfd"
-  "MediaServer|cd $MEDIA_SERVER_DIR && npm start"
+    "SCP|$OPEN5GS_BASE_DIR/open5gs-scpd"
+    "SMF|$OPEN5GS_BASE_DIR/open5gs-smfd"
+    "UPF|echo '$SUDO_PASS' | sudo -S -E $OPEN5GS_BASE_DIR/open5gs-upfd"
+    "AMF|$OPEN5GS_BASE_DIR/open5gs-amfd"
+    "MBSTF|$MBSTF_BASE_DIR/open5gs-mbstfd"
+    "MediaServer|cd $MEDIA_SERVER_DIR && npm start"
 )
 
 for item in "${COMPONENTS[@]}"; do
-  IFS="|" read -r NAME CMD <<< "$item"
-  echo "Launching $NAME..."
-  tmux new-window -t "$SESSION" -n "$NAME" "$CMD"
-  register_pane_pgid "$SESSION:$NAME"
-  sleep 0.3
+    IFS="|" read -r NAME CMD <<< "$item"
+    echo "Launching $NAME..."
+    WRAPPED=$(wrap_cmd "$CMD")
+    tmux new-window -t "$SESSION" -n "$NAME" "$WRAPPED"
+    register_pane_pgid "$SESSION:$NAME"
+    sleep 0.5
 done
 
-if tmux has-session -t "$SESSION" 2>/dev/null; then
-  echo "--- Environment started successfully ---"
-  tmux attach -t "$SESSION"
-else
-  echo "Error: Session failed. Ensure all paths and npm dependencies are correct."
-fi
+echo "--- Environment started successfully ---"
+unset SUDO_PASS
+tmux attach -t "$SESSION"
