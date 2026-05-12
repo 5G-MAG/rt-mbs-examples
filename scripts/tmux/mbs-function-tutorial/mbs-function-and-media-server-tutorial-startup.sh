@@ -8,7 +8,7 @@ OPEN5GS_BASE_DIR="/usr/local/bin"
 MBSTF_BASE_DIR="/usr/local/bin"
 MBSF_BASE_DIR="/usr/local/bin"
 MBSF_YAML_BASE_DIR=$PWD
-MEDIA_SERVER_DIR="${HOME}/rt-mbs-examples_RC/express-mock-media-server"
+MEDIA_SERVER_DIR="${HOME}/rt-mbs-examples/express-mock-media-server"
 LOG_DIR="/var/local/log/open5gs"
 
 # Capture IDs for clean exit
