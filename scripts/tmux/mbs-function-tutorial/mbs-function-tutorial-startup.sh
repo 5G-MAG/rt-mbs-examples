@@ -7,9 +7,8 @@ SESSION="mbsf-tutorial"
 OPEN5GS_BASE_DIR="/usr/local/bin"
 MBSTF_BASE_DIR="/usr/local/bin"
 MBSF_BASE_DIR="/usr/local/bin"
-MBSF_YAML_BASE_DIR=$HOME
+MBSF_YAML_BASE_DIR=$PWD
 LOG_DIR="/var/local/log/open5gs"
-SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 
 # Capture IDs for clean exit
 PANE_PGIDS=()
