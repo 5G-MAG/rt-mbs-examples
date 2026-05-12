@@ -6,9 +6,10 @@
 SESSION="mbstf-tutorial"
 OPEN5GS_BASE_DIR="/usr/local/bin"
 MBSTF_BASE_DIR="/usr/local/bin"
-MEDIA_SERVER_DIR="${HOME}/rt-mbs-examples/express-mock-media-server"
+MEDIA_SERVER_DIR="${HOME}/rt-mbs-examples_RC/express-mock-media-server"
 LOG_DIR="/var/local/log/open5gs"
 
+# Capture IDs for clean exit
 PANE_PGIDS=()
 PANE_PIDS=()
 
@@ -63,6 +64,7 @@ require_executable "$MBSTF_BASE_DIR/open5gs-mbstfd"
 # 3. FUNCTIONS
 # ==============================================================================
 
+# Wraps commands so the tmux window stays open on failure
 wrap_cmd() {
     local cmd="$1"
     echo "bash -c \"$cmd || { echo; echo 'PROCESS FAILED'; read -p 'Press Enter to close...'; }\""
@@ -102,13 +104,16 @@ LAUNCH_NRF=$(wrap_cmd "$OPEN5GS_BASE_DIR/open5gs-nrfd")
 tmux new-session -d -s "$SESSION" -n "NRF" "$LAUNCH_NRF"
 sleep 1
 
+# Verify session started before continuing
 if ! tmux has-session -t "$SESSION" 2>/dev/null; then
-    echo "Error: Tmux session failed to start. Check NRF logs."
+    echo "Error: Tmux session failed to start. Check NRF logs or paths."
     exit 1
 fi
 
 register_pane_pgid "$SESSION:NRF"
 
+# Define components: "WindowName|Command"
+# Note the UPF uses the SUDO_PASS variable for non-interactive sudo
 COMPONENTS=(
     "SCP|$OPEN5GS_BASE_DIR/open5gs-scpd"
     "SMF|$OPEN5GS_BASE_DIR/open5gs-smfd"
@@ -128,5 +133,6 @@ for item in "${COMPONENTS[@]}"; do
 done
 
 echo "--- Environment started successfully ---"
+# Clear the password from memory for safety
 unset SUDO_PASS
 tmux attach -t "$SESSION"
