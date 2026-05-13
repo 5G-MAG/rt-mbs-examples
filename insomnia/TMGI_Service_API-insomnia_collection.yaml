@@ -20,7 +20,7 @@ collection:
             
         - TMGI Deallocate Service operation
     children:
-      - url: https://{{_['smf_mb_smf_url']}}/nmbsmf-tmgi/v1/tmgi
+      - url: http://{{_['smf_mb_smf_url']}}/nmbsmf-tmgi/v1/tmgi
         name: TMGI_allocate
         meta:
           id: req_4595d4f1370142d2b53432945e6e4b49
@@ -79,7 +79,7 @@ collection:
             send: true
             store: true
           rebuildPath: true
-      - url: https://{{_['smf_mb_smf_url']}}/nmbsmf-tmgi/v1/tmgi
+      - url: http://{{_['smf_mb_smf_url']}}/nmbsmf-tmgi/v1/tmgi
         name: TMGI_refresh
         meta:
           id: req_757c77012fe34b4ea10ccb09d80ffaf7
@@ -158,7 +158,7 @@ collection:
             send: true
             store: true
           rebuildPath: true
-      - url: https://{{_['smf_mb_smf_url']}}/nmbsmf-tmgi/v1/tmgi
+      - url: http://{{_['smf_mb_smf_url']}}/nmbsmf-tmgi/v1/tmgi
         name: TMGI_deallocate
         meta:
           id: req_2fbed678b65c4f0f91fe80e04f115ac4
