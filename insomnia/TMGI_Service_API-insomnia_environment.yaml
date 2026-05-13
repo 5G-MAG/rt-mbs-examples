@@ -14,7 +14,7 @@ environments:
     modified: 1771856876736
     isPrivate: false
   data:
-    smf_mb_smf_url: smf-mb-smf.5g-mag.org
+    smf_mb_smf_url: 127.0.0.4:7777
     tmgiAllocated: "{}"
     tmgiAllocatedExpiration: '""'
     tmgiRefreshedExpiration: '""'
