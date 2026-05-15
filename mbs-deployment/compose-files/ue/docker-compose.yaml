@@ -1,0 +1,44 @@
+services:
+  mb-ue:
+    container_name: mb-ue
+    image: "mb-ue-dev:${SRSRAN_MBS_VERSION}"
+    environment:
+      - UE_FQDN=mb-ue.srsran.org
+      - ENABLE_GDB=FALSE
+    command: "/etc/srsRAN_4G/custom/mb-ue.conf"
+    networks:
+      open5gs:
+        aliases:
+          - mb-ue.srsran.org
+    configs:
+      - source: mb_ue_config
+        target: /etc/srsRAN_4G/custom/mb-ue.conf
+    volumes:
+      - ../../../srsRAN_4G:/srsRAN_4G
+    privileged: true
+    cap_add:
+      - NET_ADMIN
+
+networks:
+  open5gs:
+    name: open5gs
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.name: br-ogs
+    ipam:
+      config:
+        - subnet: 10.33.33.0/24
+
+volumes:
+  db_data:
+    name: open5gs_db_data
+    labels:
+      org.open5gs.mongodb_version: ${MONGODB_VERSION}
+  db_config:
+    name: open5gs_db_config
+    labels:
+      org.open5gs.mongodb_version: ${MONGODB_VERSION}
+
+configs:
+  mb_ue_config:
+    file: ../../configs/ue/mb-ue.conf

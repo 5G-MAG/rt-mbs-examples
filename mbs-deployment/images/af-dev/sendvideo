@@ -1,0 +1,68 @@
+#!/bin/bash
+
+set -m
+
+video="${1:-test}"
+shift
+if [[ "${video}" == test ]]; then
+    path_to_video=/test.mp4
+elif [[ "${video}" == bunny ]]; then
+    path_to_video=/bun33s.mp4
+
+elif [[ "${video}" == twitch ]]; then
+    url="${1:-https://www.twitch.tv/cineillojuan}"
+    path_to_video=$(/usr/local/bin/yt-dlp -g "${url}")
+elif [[ "${video}" == stream ]]; then
+    url="${1:-https://www.youtube.com/watch?v=ku09JnYKhz0}"
+    path_to_video=$(/usr/local/bin/yt-dlp -g "${url}")
+else
+    path_to_video="/${video}"
+    echo $video
+    echo $path_to_video
+fi
+ffmpeg -re -i "${path_to_video}" -c copy -map 0 -f rtp_mpegts rtp://239.0.0.25:9988
+
+#ffmpeg -re -i "${path_to_video}" \
+#-c:v libx264 \
+#-preset veryfast \
+#-tune zerolatency \
+#-profile:v baseline \
+#-g 30 -keyint_min 30 -sc_threshold 0 \
+#-x264-params "repeat-headers=1" \
+#-c:a copy \
+#-f rtp_mpegts \
+#rtp://239.0.0.25:9988
+
+#ffmpeg -re -i "${path_to_video}" \
+#-c:v libx264 \
+#-preset ultrafast \
+#-profile:v baseline \
+#-g 30 -keyint_min 30 -sc_threshold 0 \
+#-x264-params "repeat-headers=1" \
+#-c:a copy \
+#-f rtp_mpegts \
+#rtp://239.0.0.25:9988
+
+#/usr/local/bin/yt-dlp -f 232 "https://www.youtube.com/watch?v=ku09JnYKhz0" -o - | ffmpeg -re -i - -c copy -map 0 -f rtp_mpegts rtp://239.0.0.25:9988
+#/usr/local/bin/yt-dlp https://www.twitch.tv/cineillojuan -o - | ffmpeg -re -i - -c copy -map 0 -f rtp_mpegts rtp://239.0.0.25:9988
+#/usr/local/bin/yt-dlp https://www.twitch.tv/cineillojuan -o - | ffmpeg -re -i - \
+#-c:v libx264 \
+#-preset ultrafast \
+#-b:v 3000k  \
+#-profile:v baseline \
+#-g 30 -keyint_min 30 -sc_threshold 0 \
+#-x264-params "repeat-headers=1" \
+#-c:a copy \
+#-f rtp_mpegts \
+#rtp://239.0.0.25:9988
+
+#/usr/local/bin/yt-dlp https://www.twitch.tv/cineillojuan -o - | ffmpeg -re -i - -c:v libx264 -preset ultrafast -b:v 5000k -maxrate 5000k -bufsize 7500k -profile:v baseline -g 30 -keyint_min 30 -sc_threshold 0 -x264-params "repeat-headers=1" -c:a copy -f rtp_mpegts rtp://239.0.0.25:9988
+
+#for bitrate in $(seq 1000 1000 7000); do 
+#    echo "${bitrate}"
+#    ( /usr/local/bin/yt-dlp https://www.twitch.tv/cineillojuan -o - | ffmpeg -re -i - -avoid_negative_ts make_zero -hide_banner -loglevel error -stats -c:v libx264 -b:v "${bitrate}k" -maxrate "${bitrate}k" -bufsize "${bitrate}k" -x264-params "nal-hrd=cbr:force-cfr=1" -profile:v baseline -g 30 -keyint_min 30 -sc_threshold 0 -c:a copy -muxrate "${bitrate}k" -muxdelay 0 -muxpreload 0 -f rtp_mpegts rtp://239.0.0.25:9988 ) 2>/dev/null 1>/dev/null &
+#    sleep 10
+#    pkill ffmpeg
+#    pkill yt-dlp
+#    sleep 0.1
+#done
