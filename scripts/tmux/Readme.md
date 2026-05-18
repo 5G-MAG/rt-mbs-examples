@@ -44,14 +44,21 @@ step of the tutorial. Namely, it starts the following components:
 #### Starting the MBSF Tutorial tmux session
 
 1. From the root folder of this project navigate to `scripts/tmux`
-1. In `mbs-function-tutorial-startup.sh` adjust the `OPEN5GS_BASE_DIR` to point to your Open5GS MBS folder. Also adjust
-   `MBSTF_BASE_DIR` and `MBSF_BASE_DIR` if needed for your setup.
-1. Optional: Adjust the MBSF configuration located in `local-mbsf.yaml` if needed.
-1. Run `bash ./mbs-function-tutorial-startup.sh` to start the tmux session with all the required components.
-1. You can navigate between the different panes using `Ctrl+b` followed by the arrow keys or by typing the concrete
-   number of the pane you want to switch to. Navigate to the `UPF` (`Ctrl+b 3`) pane and enter the `sudo`
-   password.
-1. Now all processes should be running. You can continue using the components now.
+2. In `mbs-function-tutorial.sh` adjust the directories of your setup:
+
+   ```
+   OPEN5GS_BASE_DIR="/home/fivegmag/Developer/open5gs_mbs/install/bin"
+   OPEN5GS_CONFIG_DIR="/home/fivegmag/Developer/open5gs_mbs/install/etc/open5gs"
+   MBSTF_BASE_DIR="/home/fivegmag/Developer/rt-mbs-transport-function/build/src/mbstf"
+   MBSTF_CONFIG_DIR="/home/fivegmag/Developer/rt-mbs-transport-function/build/src/mbstf"
+   MBSF_BASE_DIR="/home/fivegmag/Developer/rt-mbs-function/build/src/mbsf"
+   MBSF_CONFIG_DIR="/home/fivegmag/Developer/rt-mbs-examples/scripts/tmux/mbs-function-tutorial"
+   MEDIA_SERVER_DIR="/home/fivegmag/Developer/rt-mbs-examples/express-mock-media-server"
+   LOG_DIR="/var/local/log/open5gs"
+   ```
+3. Optional: Adjust the MBSF configuration located in `local-mbsf.yaml` if needed and the file name in "MBSF|$MBSF_BASE_DIR/open5gs-mbsfd -c $MBSF_CONFIG_DIR/local-mbsf.yaml"`
+4. Run `bash ./mbs-function-tutorial.sh` to start the tmux session with all the required components.
+5. Now all processes should be running. You can continue using the components now.
 
 #### Stopping the MBSF Tutorial tmux session
 
