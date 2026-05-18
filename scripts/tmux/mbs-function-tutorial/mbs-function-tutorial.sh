@@ -4,10 +4,13 @@
 # 1. CONFIGURATION
 # ==============================================================================
 SESSION="mbsf-tutorial"
-OPEN5GS_BASE_DIR="/usr/local/bin"
-MBSTF_BASE_DIR="/usr/local/bin"
-MBSF_BASE_DIR="/usr/local/bin"
-MBSF_YAML_BASE_DIR=$PWD
+OPEN5GS_BASE_DIR="/home/fivegmag/Developer/open5gs_mbs/install/bin"
+OPEN5GS_CONFIG_DIR="/home/fivegmag/Developer/open5gs_mbs/install/etc/open5gs"
+MBSTF_BASE_DIR="/home/fivegmag/Developer/rt-mbs-transport-function/build/src/mbstf"
+MBSTF_CONFIG_DIR="/home/fivegmag/Developer/rt-mbs-transport-function/build/src/mbstf"
+MBSF_BASE_DIR="/home/fivegmag/Developer/rt-mbs-function/build/src/mbsf"
+MBSF_CONFIG_DIR="/home/fivegmag/Developer/rt-mbs-examples/scripts/tmux/mbs-function-tutorial"
+MEDIA_SERVER_DIR="/home/fivegmag/Developer/rt-mbs-examples/express-mock-media-server"
 LOG_DIR="/var/local/log/open5gs"
 
 # Capture IDs for clean exit
@@ -34,14 +37,14 @@ tmux kill-session -t "$SESSION" 2>/dev/null
 
 # 2a. Stop Background System Services
 echo "Stopping Open5GS systemctl services..."
-for SERVICE in nrfd scpd smfd upfd amfd udmd mbstfd mbsfd; do
+for SERVICE in nrfd scpd smfd upfd amfd mbstfd mbsf; do
     echo "$SUDO_PASS" | sudo -S systemctl stop open5gs-$SERVICE 2>/dev/null
 done
 
 # 2b. Kill Binary Instances
 echo "Killing orphaned processes..."
-echo "$SUDO_PASS" | sudo -S pkill -9 open5gs-nrfd open5gs-scpd open5gs-smfd open5gs-upfd open5gs-amfd open5gs-udmd open5gs-mbstfd open5gs-mbsfd 2>/dev/null
-pkill -9 -f "node" 2>/dev/null
+echo "$SUDO_PASS" | sudo -S pkill -9 open5gs-nrfd open5gs-scpd open5gs-smfd open5gs-upfd open5gs-amfd open5gs-mbstfd open5gs-mbsfd 2>/dev/null
+echo "$SUDO_PASS" | sudo -S fuser -k 3004/tcp 2>/dev/null
 
 sleep 1
 
@@ -57,7 +60,6 @@ require_command npm
 require_executable "$OPEN5GS_BASE_DIR/open5gs-nrfd"
 require_executable "$OPEN5GS_BASE_DIR/open5gs-scpd"
 require_executable "$OPEN5GS_BASE_DIR/open5gs-smfd"
-require_executable "$OPEN5GS_BASE_DIR/open5gs-udmd"
 require_executable "$OPEN5GS_BASE_DIR/open5gs-upfd"
 require_executable "$OPEN5GS_BASE_DIR/open5gs-amfd"
 require_executable "$MBSTF_BASE_DIR/open5gs-mbstfd"
@@ -89,14 +91,11 @@ register_pane_pgid() {
 }
 
 cleanup() {
-    echo -e "\n--- Shutting down 5G Core environment ---"
-    # Kill process groups first to catch children, then specific PIDs
-    for pgid in "${PANE_PGIDS[@]}"; do kill -TERM -- "-$pgid" 2>/dev/null; done
+    echo -e "\n--- Shutting down MBSTF environment ---"
     for pid in "${PANE_PIDS[@]}"; do kill -TERM "$pid" 2>/dev/null; done
-    
+    for pgid in "${PANE_PGIDS[@]}"; do kill -TERM -- "-$pgid" 2>/dev/null; done
     sleep 1
     tmux kill-session -t "$SESSION" 2>/dev/null
-    echo "Cleanup complete."
 }
 
 trap cleanup EXIT
@@ -121,13 +120,13 @@ register_pane_pgid "$SESSION:NRF"
 # Define components: "WindowName|Command"
 # Note the UPF uses the SUDO_PASS variable for non-interactive sudo
 COMPONENTS=(
-    "SCP|$OPEN5GS_BASE_DIR/open5gs-scpd"
-    "SMF|$OPEN5GS_BASE_DIR/open5gs-smfd"
-    "UPF|echo '$SUDO_PASS' | sudo -S -E $OPEN5GS_BASE_DIR/open5gs-upfd"
-    "AMF|$OPEN5GS_BASE_DIR/open5gs-amfd"
-    "UDM|$OPEN5GS_BASE_DIR/open5gs-udmd"
-    "MBSTF|$MBSTF_BASE_DIR/open5gs-mbstfd"
-    "MBSF|$MBSF_BASE_DIR/open5gs-mbsfd -c $MBSF_YAML_BASE_DIR/local-mbsf.yaml"
+"SCP|$OPEN5GS_BASE_DIR/open5gs-scpd -c $OPEN5GS_CONFIG_DIR/scp.yaml"
+    "SMF|$OPEN5GS_BASE_DIR/open5gs-smfd -c $OPEN5GS_CONFIG_DIR/smf.yaml"
+    "UPF|echo '$SUDO_PASS' | sudo -S -E $OPEN5GS_BASE_DIR/open5gs-upfd -c $OPEN5GS_CONFIG_DIR/upf.yaml"
+    "AMF|$OPEN5GS_BASE_DIR/open5gs-amfd -c $OPEN5GS_CONFIG_DIR/amf.yaml"
+    "MBSTF|$MBSTF_BASE_DIR/open5gs-mbstfd -c $MBSTF_CONFIG_DIR/mbstf.yaml"
+    "MBSF|$MBSF_BASE_DIR/open5gs-mbsfd -c $MBSF_CONFIG_DIR/local-mbsf.yaml"
+    "MediaServer|cd $MEDIA_SERVER_DIR && npm start"
 )
 
 for item in "${COMPONENTS[@]}"; do
@@ -139,7 +138,7 @@ for item in "${COMPONENTS[@]}"; do
     sleep 0.5
 done
 
-echo "--- All components launched successfully ---"
+echo "--- Environment started successfully ---"
 # Clear the password from memory for safety
 unset SUDO_PASS
 tmux attach -t "$SESSION"
