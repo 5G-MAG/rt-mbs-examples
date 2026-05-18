@@ -1,0 +1,333 @@
+type: collection.insomnia.rest/5.0
+schema_version: "5.1"
+name: 5GMAG-MB-SMF
+meta:
+  id: wrk_2e66283496cd4aa58e56dc439bae7ab5
+  created: 1778704073094
+  modified: 1779126557470
+  description: ""
+collection:
+  - name: TMGI Service API
+    meta:
+      id: fld_ec698c2279b3464c81918133f896a7f6
+      created: 1771856972771
+      modified: 1779128926650
+      sortKey: -1771856971433
+      description: |-
+        Following 3GPP TS 29.532 - Release 17.4.0
+
+        - TMGI Allocate Service operation
+            
+        - TMGI Deallocate Service operation
+    children:
+      - url: http://{{_['smf_mb_smf_url']}}/nmbsmf-tmgi/v1/tmgi
+        name: TMGI Update
+        meta:
+          id: req_d21c9d3cfd154ca2bc8ab912e7468ff3
+          created: 1771856972772
+          modified: 1779127820720
+          isPrivate: false
+          description: ""
+          sortKey: -1771856971431
+        method: POST
+        body:
+          mimeType: application/json
+          text: '{ "tmgiList": [ {{tmgiAllocated}} ] }'
+        headers:
+          - name: Content-Type
+            value: application/json
+        scripts:
+          afterResponse: "// Test 1: Check status code 200\r
+
+            insomnia.test(\"Status code is 200\", function () {\r
+
+            \    insomnia.response.to.have.status(200);\r
+
+            });\r
+
+            \r
+
+            // Test 2: Check data types of the refreshed TMGI (response)\r
+
+            const responseData = insomnia.response.json();\r
+
+            insomnia.test(\"Check data types of the response\", () => {\r
+
+            \    insomnia.expect(responseData.tmgiList).to.be.an(\"array\");\r
+
+            \    insomnia.expect(responseData.tmgiList).to.be.empty;\r
+
+            \    insomnia.expect(responseData.expirationTime).to.be.a(\"string\
+            \");\r
+
+            });\r
+
+            \r
+
+            // Save the response as variables\r
+
+            insomnia.environment.set(\"tmgiRefreshedExpiration\",
+            responseData.expirationTime);\r
+
+            \r
+
+            // Test 3: Check the expiration time\r
+
+            insomnia.test(\"Compare expirationTime between tmgiAllocated and
+            tmgiRefreshed\", () => {\r
+
+            \    const tmgiAllocatedExpiration = new
+            Date(insomnia.environment.get(\"tmgiAllocatedExpiration\"));\r
+
+            \    const tmgiRefreshedExpiration = new
+            Date(insomnia.environment.get(\"tmgiRefreshedExpiration\"));\r
+
+            \r
+
+            \    // Compare expiration times between the allocated TMGI and the
+            refreshed TMGI\r
+
+            \    insomnia.expect(tmgiRefreshedExpiration).to.be.above(tmgiAlloc\
+            atedExpiration);\r
+
+            });\r\n"
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: http://{{_['smf_mb_smf_url']}}/nmbsmf-tmgi/v1/tmgi
+        name: TMGI Allocate
+        meta:
+          id: req_d8b8b4f994f94eefa550bbff7e95c65c
+          created: 1771856972772
+          modified: 1779127463365
+          isPrivate: false
+          description: ""
+          sortKey: -1771856971432
+        method: POST
+        body:
+          mimeType: application/json
+          text: '{ "tmgiNumber": 1 }'
+        headers:
+          - name: Content-Type
+            value: application/json
+        scripts:
+          afterResponse: "// Test 1: Check status code 200\r
+
+            insomnia.test(\"Status code is 200\", function () {\r
+
+            \    insomnia.response.to.have.status(200);\r
+
+            });\r
+
+            \r
+
+            // Test 2: Check data types of the allocated TMGI (response)\r
+
+            const responseData = insomnia.response.json();\r
+
+            insomnia.test(\"Check data types of the response\", () => {\r
+
+            \    insomnia.expect(responseData.tmgiList).to.be.an(\"array\");\r
+
+            \    insomnia.expect(responseData.tmgiList).to.not.be.empty;\r
+
+            \    insomnia.expect(responseData.expirationTime).to.be.a(\"string\
+            \");\r
+
+            });\r
+
+            \r
+
+            // Save the response as variables\r
+
+            insomnia.environment.set(\"tmgiAllocated\",
+            JSON.stringify(responseData.tmgiList[0]))\r
+
+            insomnia.environment.set(\"tmgiAllocatedExpiration\",
+            responseData.expirationTime)\r\n"
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: http://{{_['smf_mb_smf_url']}}/nmbsmf-tmgi/v1/tmgi
+        name: TMGI Deallocate
+        meta:
+          id: req_afdec382e9af40d68968156fde8c4135
+          created: 1771856972773
+          modified: 1779127472380
+          isPrivate: false
+          description: ""
+          sortKey: -1771856971430
+        method: DELETE
+        parameters:
+          - name: tmgi-list
+            value: "[{{tmgiAllocated}}]"
+            disabled: false
+        scripts:
+          afterResponse: "// Test 1: Check status code 204\r
+
+            insomnia.test(\"Status code is 204\", function () {\r
+
+            \    insomnia.response.to.have.status(204);\r
+
+            });\r\n"
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+  - name: "MBS Session Service API "
+    meta:
+      id: fld_ca5a64bf7cf64c1f922b92c7fb5d3cf0
+      created: 1779128901355
+      modified: 1779129815329
+      sortKey: -1779128901355
+      description: ""
+    children:
+      - url: http://{{_['smf_mb_smf_url']}}/nmbsmf-mbssession/v1/mbs-sessions
+        name: MBS Session Create request with TMGI allocate
+        meta:
+          id: req_7de1b5eebd5847d897c0dbe18458b04f
+          created: 1779126748242
+          modified: 1779129989869
+          isPrivate: false
+          description: ""
+          sortKey: -1779128952876
+        method: POST
+        body:
+          mimeType: application/json
+          text: |-
+            { 
+            	"mbsSession": { 
+            		"ssm": { 
+            			"sourceIpAddr": { 
+            				"ipv4Addr": "127.0.0.1"
+            			  }, 
+            			  "destIpAddr": { 
+            					"ipv4Addr": "232.0.0.1"
+            			  }
+            		},
+            		"tmgiAllocReq": true,
+            		"serviceType":"BROADCAST"
+            	}
+            }
+        headers:
+          - name: Content-Type
+            value: application/json
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: http://{{_['smf_mb_smf_url']}}/nmbsmf-mbssession/v1/mbs-sessions
+        name: MBS Session Create request with existing TMGI
+        meta:
+          id: req_5c812fe96a674f6da7e9fd160e0f0790
+          created: 1779127606531
+          modified: 1779129993164
+          isPrivate: false
+          description: ""
+          sortKey: -1779128952851
+        method: POST
+        body:
+          mimeType: application/json
+          text: |-
+            {
+            	"mbsSession": {
+            		"mbsSessionId": {
+            			"tmgi": {{tmgiAllocated}}
+            		},
+            		"ssm": {
+            			"sourceIpAddr": {
+            				"ipv4Addr": "127.0.0.1"
+            			},
+            			"destIpAddr": {
+            				"ipv4Addr": "232.0.0.1"
+            			}
+            		},
+            		"serviceType":"BROADCAST"
+            	}
+            }
+        headers:
+          - name: Content-Type
+            value: application/json
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: http://{{_['smf_mb_smf_url']}}/nmbsmf-mbssession/v1/mbs-sessions
+        name: MBS Session Create request with UDP tunnel
+        meta:
+          id: req_2448954b3fca45729c0ca1a722217813
+          created: 1779128733889
+          modified: 1779129995009
+          isPrivate: false
+          description: ""
+          sortKey: -1779128952826
+        method: POST
+        body:
+          mimeType: application/json
+          text: |-
+            { 
+            	"mbsSession": { 
+            		"ssm": { 
+            			"sourceIpAddr": { 
+            				"ipv4Addr": "127.0.0.1"
+            			  }, 
+            			  "destIpAddr": { 
+            					"ipv4Addr": "232.0.0.1"
+            			  }
+            		},
+            		"tmgiAllocReq": true,
+            		"serviceType":"BROADCAST",
+                "ingressTunAddrReq": true
+            	}
+            }
+        headers:
+          - name: Content-Type
+            value: application/json
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+cookieJar:
+  name: Default Jar
+  meta:
+    id: jar_60ee8f57605a4116869732a32c4641af
+    created: 1771856972775
+    modified: 1779129815324
+environments:
+  name: Base Environment
+  meta:
+    id: env_e4faa0be0f1a4e94825366f7353ebe31
+    created: 1771856972774
+    modified: 1779129815327
+    isPrivate: false
+  data:
+    tmgiAllocated: '{"mbsServiceId":"C68A02","plmnId":{"mcc":"000","mnc":"000"}}'
+    tmgiAllocatedExpiration: 2026-05-18T20:13:39.899145Z
+    tmgiRefreshedExpiration: 2026-05-18T19:46:07.402107Z
+    storedMbsSessionId: '{"tmgi":{"mbsServiceId":"300E52","plmnId":{"mcc":"000","mnc":"000"}}}'
