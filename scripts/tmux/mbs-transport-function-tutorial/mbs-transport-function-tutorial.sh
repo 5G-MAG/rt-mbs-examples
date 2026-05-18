@@ -6,9 +6,9 @@
 SESSION="mbstf-tutorial"
 OPEN5GS_BASE_DIR="/home/fivegmag/Developer/open5gs_mbs/install/bin"
 OPEN5GS_CONFIG_DIR="/home/fivegmag/Developer/open5gs_mbs/install/etc/open5gs"
-MBSTF_BASE_DIR="/home/fivegmag/Developer/rt-mbs-transport-function_RC/build/src/mbstf"
-MBSTF_CONFIG_DIR="/home/fivegmag/Developer/rt-mbs-transport-function_RC/build/src/mbstf"
-MEDIA_SERVER_DIR="/home/fivegmag/Developer/rt-mbs-examples_RC/express-mock-media-server"
+MBSTF_BASE_DIR="/home/fivegmag/Developer/rt-mbs-transport-function/build/src/mbstf"
+MBSTF_CONFIG_DIR="/home/fivegmag/Developer/rt-mbs-transport-function/build/src/mbstf"
+MEDIA_SERVER_DIR="/home/fivegmag/Developer/rt-mbs-examples/express-mock-media-server"
 LOG_DIR="/var/local/log/open5gs"
 
 # Capture IDs for clean exit
