@@ -34,10 +34,10 @@ steps described in
 the [Prerequisites](https://hub.5g-mag.com/Getting-Started/pages/5g-multicast-broadcast-services/tutorials/mbsf.html#prerequisites)
 step of the tutorial. Namely, it starts the following components:
 
-* The `NRF`, `SCP`, `MB-SMF`, `MB-UPF`, `MB-AMF` and `UDM` Network Functions of
-  the [Open5GS core](https://github.com/5G-MAG/open5gs)
+* The `NRF`, `SCP`, `MB-SMF`, `MB-UPF`, `MB-AMF` and `UDM` Network Functions of the [Open5GS core](https://github.com/5G-MAG/open5gs)
 * The [MBSTF](https://github.com/5G-MAG/rt-mbs-transport-function)
 * The [MBSF](https://github.com/5G-MAG/rt-mbs-function)
+* The simple media server located in [express-mock-media-server](https://github.com/5G-MAG/rt-mbs-examples/tree/main/express-mock-media-server).  
 
 ### Usage
 
@@ -75,10 +75,11 @@ The `mbs-transport-function-testing-tutorial.sh` script located in `mbs-transpor
 an automated tmux session for MBSTF transport-function API example runs. It makes it easier to start all required
 components in one step instead of launching each process manually. Namely, it starts the following components:
 
-* The `NRF`, `SCP`, `SMF`, `UPF` and `AMF` Network Functions of
-  the [Open5GS core](https://github.com/5G-MAG/open5gs)
+
+* The `NRF`, `SCP`, `MB-SMF`, `MB-UPF`, `MB-AMF` and `UDM` Network Functions of the [Open5GS core](https://github.com/5G-MAG/open5gs)
 * The [MBSTF](https://github.com/5G-MAG/rt-mbs-transport-function)
-* The simple media server located in `express-mock-media-server`
+* The [MBSF](https://github.com/5G-MAG/rt-mbs-function)
+* The simple media server located in [express-mock-media-server](https://github.com/5G-MAG/rt-mbs-examples/tree/main/express-mock-media-server).  
 
 ### Usage
 
