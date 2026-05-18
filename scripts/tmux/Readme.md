@@ -91,8 +91,6 @@ components in one step instead of launching each process manually. Namely, it st
    
 4. Run `bash ./mbs-transport-function-tutorial.sh` to start the tmux session with all required components.
 5. You can navigate between the different panes using `Ctrl+b` followed by the arrow keys or by typing the concrete number of the pane you want to switch to.
-6. Navigate to the `UPF` pane and enter the `sudo` password when prompted.
-7. Now all processes should be running. You can continue using the components now.
 
 #### Stopping the MBSTF Tutorial tmux session
 
