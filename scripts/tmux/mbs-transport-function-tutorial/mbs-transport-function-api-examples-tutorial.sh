@@ -4,9 +4,11 @@
 # 1. CONFIGURATION
 # ==============================================================================
 SESSION="mbstf-tutorial"
-OPEN5GS_BASE_DIR="/usr/local/bin"
-MBSTF_BASE_DIR="/usr/local/bin"
-MEDIA_SERVER_DIR="${HOME}/rt-mbs-examples/express-mock-media-server"
+OPEN5GS_BASE_DIR="/home/fivegmag/Developer/open5gs_mbs/install/bin"
+OPEN5GS_CONFIG_DIR="/home/fivegmag/Developer/open5gs_mbs/install/etc/open5gs"
+MBSTF_BASE_DIR="/home/fivegmag/Developer/rt-mbs-transport-function_RC/build/src/mbstf"
+MBSTF_CONFIG_DIR="/home/fivegmag/Developer/rt-mbs-transport-function_RC/build/src/mbstf"
+MEDIA_SERVER_DIR="/home/fivegmag/Developer/rt-mbs-examples_RC/express-mock-media-server"
 LOG_DIR="/var/local/log/open5gs"
 
 # Capture IDs for clean exit
@@ -40,7 +42,7 @@ done
 # 2b. Kill Binary Instances
 echo "Killing orphaned processes..."
 echo "$SUDO_PASS" | sudo -S pkill -9 open5gs-nrfd open5gs-scpd open5gs-smfd open5gs-upfd open5gs-amfd open5gs-mbstfd 2>/dev/null
-pkill -9 -f "node" 2>/dev/null
+echo "$SUDO_PASS" | sudo -S fuser -k 3004/tcp 2>/dev/null
 
 sleep 1
 
@@ -115,11 +117,11 @@ register_pane_pgid "$SESSION:NRF"
 # Define components: "WindowName|Command"
 # Note the UPF uses the SUDO_PASS variable for non-interactive sudo
 COMPONENTS=(
-    "SCP|$OPEN5GS_BASE_DIR/open5gs-scpd"
-    "SMF|$OPEN5GS_BASE_DIR/open5gs-smfd"
-    "UPF|echo '$SUDO_PASS' | sudo -S -E $OPEN5GS_BASE_DIR/open5gs-upfd"
-    "AMF|$OPEN5GS_BASE_DIR/open5gs-amfd"
-    "MBSTF|$MBSTF_BASE_DIR/open5gs-mbstfd"
+"SCP|$OPEN5GS_BASE_DIR/open5gs-scpd -c $OPEN5GS_CONFIG_DIR/scp.yaml"
+    "SMF|$OPEN5GS_BASE_DIR/open5gs-smfd -c $OPEN5GS_CONFIG_DIR/smf.yaml"
+    "UPF|echo '$SUDO_PASS' | sudo -S -E $OPEN5GS_BASE_DIR/open5gs-upfd -c $OPEN5GS_CONFIG_DIR/upf.yaml"
+    "AMF|$OPEN5GS_BASE_DIR/open5gs-amfd -c $OPEN5GS_CONFIG_DIR/amf.yaml"
+    "MBSTF|$MBSTF_BASE_DIR/open5gs-mbstfd -c $MBSTF_CONFIG_DIR/mbstf.yaml"
     "MediaServer|cd $MEDIA_SERVER_DIR && npm start"
 )
 
