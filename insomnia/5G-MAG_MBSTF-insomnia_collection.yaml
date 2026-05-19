@@ -2,23 +2,23 @@ type: collection.insomnia.rest/5.0
 schema_version: "5.1"
 name: 5GMAG-MBSTF
 meta:
-  id: wrk_0c6934bd7e8f4f2e99b6bfa2a0933b16
-  created: 1772783504149
-  modified: 1772783504149
+  id: wrk_39f1bd8dc0eb4edbbca5800bf92fe06e
+  created: 1778503853915
+  modified: 1778503853915
   description: ""
 collection:
   - name: MBS Session
     meta:
-      id: fld_dde10533be75428da63b087185087ec7
+      id: fld_fbb1d24f30c1426fa88247daa433b9de
       created: 1772783557996
-      modified: 1772797977543
+      modified: 1779122449683
       sortKey: -1772786888456
       description: ""
     children:
       - url: "{{ _.base_url_smf }}nmbsmf-mbssession/v1/mbs-sessions"
         name: Create MBS Session
         meta:
-          id: req_129dddd2788c4c60be0a5d8f988586eb
+          id: req_bd3745230f064191b81aee6c37f8f1d3
           created: 1772783548145
           modified: 1772790875173
           isPrivate: false
@@ -89,21 +89,21 @@ collection:
           rebuildPath: true
   - name: MBSTF
     meta:
-      id: fld_05bcb537eb8c4bde90e8d974cf73844b
+      id: fld_17ee4ca1cf5542e480f6b66ee5f355b1
       created: 1772786888356
-      modified: 1772798043492
+      modified: 1779118904359
       sortKey: -1772786888356
       description: ""
     children:
       - url: "{{ _.base_url_mbstf }}nmbstf-distsession/v1/dist-sessions"
         name: DistSession-PULL-request
         meta:
-          id: req_640aa5f589d549538732492748483ebf
+          id: req_81da03c9b0a64246a58177de99bb7f73
           created: 1772786904973
-          modified: 1772790741347
+          modified: 1779118872898
           isPrivate: false
           description: ""
-          sortKey: -1772786904973
+          sortKey: -1772797692419
         method: POST
         body:
           mimeType: application/json
@@ -117,6 +117,10 @@ collection:
                   "portNumber": {{ _.ingressTunAddrPort }}
                 },
                 "upTrafficFlowInfo": {
+                  "transportSessionId": 1234,
+                  "srcIpAddr": {
+                    "ipv4Addr": "127.0.0.7"
+                  },
                   "destIpAddr": {
                     "ipv4Addr": "232.0.0.1"
                   },
@@ -144,6 +148,22 @@ collection:
             value: insomnia/12.2.0
             description: ""
             disabled: false
+        scripts:
+          afterResponse: |+
+            let data;
+            try {
+             data = insomnia.response.json();
+            } catch (e) {
+            	console.log(e);
+             return;
+            }
+
+            const distSessionId = data?.distSession?.distSessionId;
+
+            if (distSessionId) {
+             insomnia.environment.set( "distSessionId",`${distSessionId}`);
+            } 
+
         settings:
           renderRequestBody: true
           encodeUrl: true
@@ -155,12 +175,12 @@ collection:
       - url: "{{ _.base_url_mbstf }}nmbstf-distsession/v1/dist-sessions"
         name: DistSession-PUSH-request
         meta:
-          id: req_9fe922ef8afb4d7db9c002119d282974
+          id: req_b68decea835e4b1f8ffce023133d217f
           created: 1772790754174
-          modified: 1772791047255
+          modified: 1779118877331
           isPrivate: false
           description: ""
-          sortKey: -1772785234690.5
+          sortKey: -1772797692369
         method: POST
         body:
           mimeType: application/json
@@ -174,6 +194,10 @@ collection:
                   "portNumber": {{ _.ingressTunAddrPort }}
                 },
                 "upTrafficFlowInfo": {
+                  "transportSessionId": 1234,
+                  "srcIpAddr": {
+                    "ipv4Addr": "127.0.0.7"
+                  },
                   "destIpAddr": {
                     "ipv4Addr": "232.0.0.1"
                   },
@@ -206,6 +230,14 @@ collection:
             }
 
 
+            const distSessionId = data?.distSession?.distSessionId;
+
+
+            if (distSessionId) {
+             insomnia.environment.set( "distSessionId",`${distSessionId}`);
+            } 
+
+
             const objIngestBaseUrl =
             data?.distSession?.objDistributionData?.objIngestBaseUrl;
 
@@ -225,12 +257,12 @@ collection:
       - url: "{{ _.base_url_mbstf }}nmbstf-distsession/v1/dist-sessions"
         name: DistSession-DASH-PULL-request
         meta:
-          id: req_b8624cc0bac1470a9e16744d48a56711
+          id: req_11008c514e0b4a09bbb08f6653222ff2
           created: 1772791157223
-          modified: 1772791441022
+          modified: 1779118880000
           isPrivate: false
           description: ""
-          sortKey: -1772786069831.75
+          sortKey: -1772797692344
         method: POST
         body:
           mimeType: application/json
@@ -244,6 +276,10 @@ collection:
                   "portNumber": {{ _.ingressTunAddrPort }}
                 },
                 "upTrafficFlowInfo": {
+                  "transportSessionId": 1234,
+                  "srcIpAddr": {
+                    "ipv4Addr": "127.0.0.7"
+                  },
                   "destIpAddr": {
                     "ipv4Addr": "232.0.0.1"
                   },
@@ -269,9 +305,8 @@ collection:
             description: ""
             disabled: false
         scripts:
-          afterResponse: >+
+          afterResponse: |+
             let data;
-
             try {
              data = insomnia.response.json();
             } catch (e) {
@@ -279,12 +314,10 @@ collection:
              return;
             }
 
-
             const distSessionId = data?.distSession?.distSessionId;
 
-
             if (distSessionId) {
-             insomnia.environment.set( "dash_pull_dist_session_id",`${distSessionId}`);
+             insomnia.environment.set( "distSessionId",`${distSessionId}`);
             } 
 
         settings:
@@ -299,7 +332,7 @@ collection:
           _.dash_pull_dist_session_id }}"
         name: DASH_PULL_ACTIVATE
         meta:
-          id: req_2a962afedd194f99ba367505c8ed740f
+          id: req_e68ef3c6a3784f4d8e2e929f8021ee49
           created: 1772791316527
           modified: 1772791627150
           isPrivate: false
@@ -335,7 +368,7 @@ collection:
           _.dash_pull_dist_session_id }}"
         name: DASH_PULL_DEACTIVATE
         meta:
-          id: req_c3e6d899a4dd41c1a3f800c30fbfe5d1
+          id: req_ac74969ce9c746f1b75f415ad379238c
           created: 1772791687389
           modified: 1772792190174
           isPrivate: false
@@ -368,15 +401,15 @@ collection:
             store: true
           rebuildPath: true
       - url: "{{ _.base_url_mbstf }}nmbstf-distsession/v1/dist-sessions/{{
-          _.dash_pull_dist_session_id }}"
+          _.distSessionId }}"
         name: Destroy MBS Distribution Session
         meta:
-          id: req_8084f998182e468fa96a8c62de7a2558
+          id: req_3b71dd56511b4f0e8a8e02a32071f466
           created: 1772792116215
-          modified: 1772792198743
+          modified: 1779118866762
           isPrivate: false
           description: ""
-          sortKey: -1772791316627
+          sortKey: -1772785234590.5
         method: DELETE
         headers:
           - name: User-Agent
@@ -394,12 +427,12 @@ collection:
       - url: "{{ _.base_url_mbstf }}nmbstf-distsession/v1/dist-sessions"
         name: DistSession-DASH-PUSH-request
         meta:
-          id: req_afee0e3ab3b541a08a2a17ff3a35a873
+          id: req_2415b117c68348c9975a83d5a46b3273
           created: 1772792270042
-          modified: 1772797391448
+          modified: 1779118882127
           isPrivate: false
           description: ""
-          sortKey: -1772785652261.125
+          sortKey: -1772797692331.5
         method: POST
         body:
           mimeType: application/json
@@ -413,6 +446,10 @@ collection:
                   "portNumber": {{ _.ingressTunAddrPort }}
                 },
                 "upTrafficFlowInfo": {
+                  "transportSessionId": 1234,
+                  "srcIpAddr": {
+                    "ipv4Addr": "127.0.0.7"
+                  },
                   "destIpAddr": {
                     "ipv4Addr": "232.0.0.1"
                   },
@@ -446,6 +483,14 @@ collection:
             }
 
 
+            const distSessionId = data?.distSession?.distSessionId;
+
+
+            if (distSessionId) {
+             insomnia.environment.set( "distSessionId",`${distSessionId}`);
+            } 
+
+
             const objDistributionData = data?.distSession?.objDistributionData;
 
 
@@ -466,7 +511,7 @@ collection:
       - url: "{{ _.dash_push_ingest_url }}"
         name: Push a live-profile MPD
         meta:
-          id: req_41f7847f57f743c5bf549420ab0df3d3
+          id: req_89d1eec895844c0988855aa7b0d22338
           created: 1772797692319
           modified: 1772797804283
           isPrivate: false
@@ -494,29 +539,30 @@ collection:
 cookieJar:
   name: Default Jar
   meta:
-    id: jar_b5705e750f0565ca9a1616f1463383de05b759da
+    id: jar_f4ac04206a764b97b639a2cf15c7393b
     created: 1772783504152
-    modified: 1772798043487
+    modified: 1779122449674
 environments:
   name: Base Environment
   meta:
-    id: env_b5705e750f0565ca9a1616f1463383de05b759da
+    id: env_0ae13342595f413bb478fcacfe2da173
     created: 1772783504151
-    modified: 1772798043491
+    modified: 1779122449681
     isPrivate: false
   subEnvironments:
     - name: MBSTF
       meta:
-        id: env_0df319fc661747c895661f19ddd08d84
+        id: env_10d9917e52314c2fa9eaa150bdce2ddc
         created: 1772783605463
-        modified: 1772798043491
+        modified: 1779122449678
         isPrivate: false
         sortKey: 1772783605463
       data:
         base_url_smf: http://127.0.0.4:7777/
         ingressTunAddrIP: 127.0.0.7
-        ingressTunAddrPort: "48582"
+        ingressTunAddrPort: "34665"
         base_url_mbstf: http://127.0.0.62:7777/
-        push_prefix_url: http://dsi-1234:33093/
-        dash_pull_dist_session_id: 33acd99a-8564-42a1-a96c-9f293d90c41e
-        dash_push_ingest_url: http://dsi-1234:42485/manifest.mpd
+        push_prefix_url: http://fivegmag:38017/
+        distSessionId: 541ebbd2-ebf9-496b-a3b8-dcd1c17fbc9d
+        dash_pull_dist_session_id: 541ebbd2-ebf9-496b-a3b8-dcd1c17fbc9d
+        dash_push_ingest_url: http://fivegmag:41539/manifest.mpd
