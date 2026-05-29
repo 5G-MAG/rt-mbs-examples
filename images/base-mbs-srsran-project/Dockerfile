@@ -13,7 +13,7 @@ ARG DEBIAN_FRONTEND="noninteractive"
 
 # install dependencies
 RUN apt-get update && apt-get install cmake make gcc g++ pkg-config libfftw3-dev libmbedtls-dev libsctp-dev \
-    libyaml-cpp-dev libgtest-dev libzmq3-dev git libtool -y
+    libyaml-cpp-dev libgtest-dev libzmq3-dev git libtool openssh-client -y
 
 # clone czmq repository
 RUN git clone --depth 1 https://github.com/zeromq/czmq.git
@@ -21,9 +21,12 @@ RUN git clone --depth 1 https://github.com/zeromq/czmq.git
 # install czmq
 RUN cd czmq && ./autogen.sh && ./configure && make && make install && ldconfig
 
+# Add Github to known hosts
+RUN mkdir -p -m 0700 ~/.ssh && ssh-keyscan github.com >> ~/.ssh/known_hosts
+
 # clone the specific srsRAN_Project version
-RUN git clone --depth 1 --branch=${SRSRAN_PROJECT_BRANCH} https://github.com/5G-MAG/rt-srsRAN_Project
+RUN --mount=type=ssh git clone --depth 1 --branch=${SRSRAN_PROJECT_BRANCH} git@github.com:5G-MAG/srsRAN_Project_mbs.git
 
 # install srsRAN_Project
-RUN cd rt-srsRAN_Project && mkdir build && cd build && cmake ../ -DENABLE_EXPORT=ON -DENABLE_ZEROMQ=ON -DBUILD_TESTS=OFF \
+RUN cd srsRAN_Project_mbs && mkdir build && cd build && cmake ../ -DENABLE_EXPORT=ON -DENABLE_ZEROMQ=ON -DBUILD_TESTS=OFF \
     && make -j `nproc`

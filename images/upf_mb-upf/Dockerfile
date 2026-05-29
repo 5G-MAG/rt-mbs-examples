@@ -1,8 +1,8 @@
 # syntax=docker/dockerfile:1
 
 # global build-time arguments for FROM statements
-ARG FIVEG_MAG_MBS_VERSION="0.1.1"
-ARG UBUNTU_VERSION="jammy"
+ARG FIVEG_MAG_MBS_VERSION="0.1.2"
+ARG UBUNTU_VERSION="noble"
 
 FROM base-mbs-open5gs:${FIVEG_MAG_MBS_VERSION} AS builder
 
@@ -17,7 +17,7 @@ ARG YQ_VERSION="v4.30.6"
 
 # install dependencies
 RUN apt-get update && apt-get install libssl-dev libtalloc-dev libtins-dev \
-    libyaml-dev iproute2 iptables wget libmicrohttpd-dev smcroute -y
+    libyaml-dev iproute2 iptables wget libmicrohttpd-dev smcroute tini -y
 
 # install yq
 RUN wget --quiet https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_${TARGETARCH} -O /usr/bin/yq && chmod +x /usr/bin/yq
@@ -28,7 +28,7 @@ COPY --from=builder /open5gs/install/etc/open5gs/upf.yaml /etc/open5gs/default/u
 COPY --from=builder /open5gs/install/lib/*/libogsproto.so.2 /open5gs/install/lib/*/libogscore.so.2 \
 /open5gs/install/lib/*/libogsapp.so.2 /open5gs/install/lib/*/libogspfcp.so.2 /open5gs/install/lib/*/libogsgtp.so.2 \
 /open5gs/install/lib/*/libogstun.so.2 /open5gs/install/lib/*/libogsipfw.so.2 /open5gs/install/lib/*/libogsmetrics.so.2 \
-/open5gs/install/lib/*/libprom.so /usr/local/lib/
+/open5gs/install/lib/*/libprom.so /open5gs/install/lib/*/libogsmulticastrouter.so.2 /usr/local/lib/
 
 # configure dynamically linked libraries
 RUN ldconfig
@@ -40,7 +40,8 @@ COPY ./entrypoint.sh /usr/local/bin/entrypoint.sh
 # create directory to store the logs
 RUN mkdir -p /var/log/open5gs/
 
-ENTRYPOINT [ "entrypoint.sh" ]
+#ENTRYPOINT [ "entrypoint.sh" ]
+ENTRYPOINT ["/usr/bin/tini", "--", "entrypoint.sh"]
 
 # use CMD to provide arguments to ENTRYPOINT (can be overridden by user)
 CMD [ "-c", "/etc/open5gs/default/upf.yaml" ]

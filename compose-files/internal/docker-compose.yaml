@@ -131,7 +131,7 @@ services:
 
   amf_with_mbs:
     container_name: amf_with_mbs
-    image: "ghcr.io/5g-mag/amf_with_mbs:${FIVEG_MAG_MBS_VERSION}"
+    image: "amf_with_mbs:${FIVEG_MAG_MBS_VERSION}"
     command: "-c /etc/open5gs/custom/amf_with_mbs.yaml"
     networks:
       5g-mag:
@@ -145,7 +145,7 @@ services:
 
   smf_mb-smf:
     container_name: smf_mb-smf
-    image: "ghcr.io/5g-mag/smf_mb-smf:${FIVEG_MAG_MBS_VERSION}"
+    image: "smf_mb-smf:${FIVEG_MAG_MBS_VERSION}"
     command: "-c /etc/open5gs/custom/smf_mb-smf.yaml"
     networks:
       5g-mag:
@@ -160,7 +160,7 @@ services:
 
   upf_mb-upf:
     container_name: upf_mb-upf
-    image: "ghcr.io/5g-mag/upf_mb-upf:${FIVEG_MAG_MBS_VERSION}"
+    image: "upf_mb-upf:${FIVEG_MAG_MBS_VERSION}"
     command: "-c /etc/open5gs/custom/upf_mb-upf.yaml"
     networks:
       5g-mag:
@@ -175,19 +175,19 @@ services:
 
   test_mbs_af_as:
     container_name: test_mbs_af_as
-    image: "ghcr.io/5g-mag/test_mbs_af_as:${FIVEG_MAG_MBS_VERSION}"
+    image: "test_mbs_af_as:${FIVEG_MAG_MBS_VERSION}"
     networks:
       5g-mag:
         aliases:
           - test-mbs-af-as.5g-mag.org
     volumes:
       - ../../test:/test:ro
-    cap_add:
-      - NET_ADMIN
+        #    cap_add:
+        #      - NET_ADMIN
 
   gnb_with_mbs:
     container_name: gnb_with_mbs
-    image: "ghcr.io/5g-mag/gnb_with_mbs:${FIVEG_MAG_MBS_VERSION}"
+    image: "gnb_with_mbs:${FIVEG_MAG_MBS_VERSION}"
     environment:
       - GNB_FQDN=gnb-with-mbs.5g-mag.org
       - UE_FQDN=ue-with-mbs.5g-mag.org
@@ -207,7 +207,7 @@ services:
 
   ue_with_mbs:
     container_name: ue_with_mbs
-    image: "ghcr.io/5g-mag/ue_with_mbs:${FIVEG_MAG_MBS_VERSION}"
+    image: "ue_with_mbs:${FIVEG_MAG_MBS_VERSION}"
     environment:
       - UE_FQDN=ue-with-mbs.5g-mag.org
       - GNB_FQDN=gnb-with-mbs.5g-mag.org

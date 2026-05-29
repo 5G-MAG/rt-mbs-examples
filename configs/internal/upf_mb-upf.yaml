@@ -15,3 +15,8 @@ upf:
   session:
     - subnet: 10.45.0.0/16
       gateway: 10.45.0.1
+  mbs:
+    multicast_router:
+      input_interface: eth0
+      output_interface: ogstun
+      activate: true

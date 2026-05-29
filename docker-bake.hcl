@@ -15,7 +15,7 @@ variable "SRSRAN_PROJECT_BRANCH" {
 }
 
 variable "SRSRAN_4G_BRANCH" {
-  default = "5mbs"
+  default = "5mbs-development"
 }
 
 variable "UBUNTU_VERSION" {
@@ -47,6 +47,7 @@ target "base-mbs-srsran-project" {
   context = "./images/base-mbs-srsran-project"
   tags = ["base-mbs-srsran-project:${FIVEG_MAG_MBS_VERSION}"]
   output = ["type=image"]
+  ssh = ["default"]
 }
 
 target "base-mbs-srsran-4g" {
@@ -57,6 +58,7 @@ target "base-mbs-srsran-4g" {
   context = "./images/base-mbs-srsran-4g"
   tags = ["base-mbs-srsran-4g:${FIVEG_MAG_MBS_VERSION}"]
   output = ["type=image"]
+  ssh = ["default"]
 }
 
 target "amf_with_mbs" {
@@ -68,7 +70,7 @@ target "amf_with_mbs" {
   contexts = {
     "base-mbs-open5gs:${FIVEG_MAG_MBS_VERSION}" = "target:base-mbs-open5gs"
   }
-  tags = ["${GITHUB_REGISTRY}/amf_with_mbs:${FIVEG_MAG_MBS_VERSION}"]
+  tags = ["amf_with_mbs:${FIVEG_MAG_MBS_VERSION}"]
   output = ["type=image"]
 }
 
@@ -81,7 +83,7 @@ target "smf_mb-smf" {
   contexts = {
     "base-mbs-open5gs:${FIVEG_MAG_MBS_VERSION}" = "target:base-mbs-open5gs"
   }
-  tags = ["${GITHUB_REGISTRY}/smf_mb-smf:${FIVEG_MAG_MBS_VERSION}"]
+  tags = ["smf_mb-smf:${FIVEG_MAG_MBS_VERSION}"]
   output = ["type=image"]
 }
 
@@ -94,7 +96,7 @@ target "upf_mb-upf" {
   contexts = {
     "base-mbs-open5gs:${FIVEG_MAG_MBS_VERSION}" = "target:base-mbs-open5gs"
   }
-  tags = ["${GITHUB_REGISTRY}/upf_mb-upf:${FIVEG_MAG_MBS_VERSION}"]
+  tags = ["upf_mb-upf:${FIVEG_MAG_MBS_VERSION}"]
   output = ["type=image"]
 }
 
@@ -104,7 +106,7 @@ target "test_mbs_af_as" {
   }
   context = "."
   dockerfile = "./images/test_mbs_af_as/Dockerfile"
-  tags = ["${GITHUB_REGISTRY}/test_mbs_af_as:${FIVEG_MAG_MBS_VERSION}"]
+  tags = ["test_mbs_af_as:${FIVEG_MAG_MBS_VERSION}"]
   output = ["type=image"]
 }
 
@@ -117,7 +119,7 @@ target "gnb_with_mbs" {
   contexts = {
     "base-mbs-srsran-project:${FIVEG_MAG_MBS_VERSION}" = "target:base-mbs-srsran-project"
   }
-  tags = ["${GITHUB_REGISTRY}/gnb_with_mbs:${FIVEG_MAG_MBS_VERSION}"]
+  tags = ["gnb_with_mbs:${FIVEG_MAG_MBS_VERSION}"]
   output = ["type=image"]
 }
 
@@ -130,6 +132,6 @@ target "ue_with_mbs" {
   contexts = {
     "base-mbs-srsran-4g:${FIVEG_MAG_MBS_VERSION}" = "target:base-mbs-srsran-4g"
   }
-  tags = ["${GITHUB_REGISTRY}/ue_with_mbs:${FIVEG_MAG_MBS_VERSION}"]
+  tags = ["ue_with_mbs:${FIVEG_MAG_MBS_VERSION}"]
   output = ["type=image"]
 }

@@ -1,8 +1,8 @@
 # syntax=docker/dockerfile:1
 
 # global build-time arguments for FROM statements
-ARG FIVEG_MAG_MBS_VERSION="0.1.1"
-ARG UBUNTU_VERSION="jammy"
+ARG FIVEG_MAG_MBS_VERSION="0.1.2"
+ARG UBUNTU_VERSION="noble"
 
 FROM base-mbs-open5gs:${FIVEG_MAG_MBS_VERSION} AS builder
 

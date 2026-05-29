@@ -34,42 +34,12 @@ name and follow Open5GS' versioning, the latest version available is the `v2.7.2
 | UDM              | ghcr.io/5g-mag/udm  | v2.7.2  |
 | UDR              | ghcr.io/5g-mag/udr  | v2.7.2  |
 
-The following components are being developed for MBS and the latest version available is the `0.1.2`.
-
-| Network Function               | image name                    | version |
-|--------------------------------|-------------------------------|---------|
-| AMF (with Rel-17 MBS features) | ghcr.io/5g-mag/amf_with_mbs   | 0.1.2   |
-| SMF + MB-SMF                   | ghcr.io/5g-mag/smf_mb-smf     | 0.1.2   |
-| UPF + MB-UPF                   | ghcr.io/5g-mag/upf_mb-upf     | 0.1.2   |
-| Test MBS AF/AS                 | ghcr.io/5g-mag/test_mbs_af_as | 0.1.2   |
-| gNB (with Rel-17 MBS features) | ghcr.io/5g-mag/gnb_with_mbs   | 0.1.2   |
-| UE (with Rel-17 MBS features)  | ghcr.io/5g-mag/ue_with_mbs    | 0.1.2   |
-
-Those components are being developed using [Open5GS](https://github.com/5G-MAG/open5gs) for the Network Functions AMF,
-MB-SMF and MB-UPF, [rt-srsRAN_Project](https://github.com/5G-MAG/rt-srsRAN_Project) for the gNB
-and [srsRAN_4G](https://github.com/5G-MAG/srsRAN_4G) for the UE, using the `5mbs` branch.
-
-## Installing Dependencies
+# Installing Dependencies
 
 Follow the [steps for your distribution](https://docs.docker.com/engine/install/) and install the docker buildx and
 docker compose plugins
 
-## Downloading
-
-The MBS Docker images can be obtained:
-
-* From the 5G-MAG's GitHub Container Registry and pulled with Docker (`docker pull ghcr.io/NAMESPACE/IMAGE_NAME`). This
-  step is not needed if you run Docker compose as per the [Running](#running) section below.
-* The docker images can also be obtained by cloning the repository:
-
-```bash
-  cd ~
-  git clone --recurse-submodules https://github.com/5G-MAG/rt-mbs-examples.git
-```
-
 ## Building
-
-You can skip this step if you decide to download the images rather than cloning the repository.
 
 > [!NOTE]
 > This method uses the `docker-bake.hcl` file and requires `docker-buildx-plugin`
@@ -89,7 +59,6 @@ From the top level directory of the repository run:
 
 Two different deployments have been created to test this project, `internal` and `external`:
 - The `internal` deployment consists of an end-to-end setup consisting of a 5G Core with MBS features, a gNB and a UE. Everything ready to be tested on the *internal* network using only the components deployed.
-- The `external` deployment consists of only the 5G Core with MBS features. It is configured to accept connections of *external* gNBs.
 
 First modify the `.env` file. Change the `DOCKER_HOST_IP=<your_host_ip_address>` with your machine's IP address, like
 this `DOCKER_HOST_IP=192.168.1.2`. This lets the UPF + MB-UPF use your machine's Internet connection to route the
@@ -109,15 +78,25 @@ docker compose -f compose-files/internal/docker-compose.yaml --env-file=.env up 
 # to tear down the internal deployment
 docker compose -f compose-files/internal/docker-compose.yaml --env-file=.env down
 ```
+### Establishing a 5G-MBS Broadcast session and sending video
 
-### External Deployment
-
-```bash
-# to use the external deployment
-docker compose -f compose-files/external/docker-compose.yaml --env-file=.env up -d
-```
+To create a 5G-MBS Broadcast session we need to execute the following command
 
 ```bash
-# to tear down the external deployment
-docker compose -f compose-files/external/docker-compose.yaml --env-file=.env down
+docker exec -it test_mbs_af_as sendrequest
 ```
+With this command the AF (application function) sends a request to the UPF. 
+
+After sending the request we can put the UE to receive the content in a different terminal with the following command:
+
+```bash
+docker exec -it ue_with_mbs receivevideo
+```
+
+Then we can start sending the video from the AF:
+
+```bash
+docker exec -it test_mbs_af_as sendvideo
+```
+This will use a sample video that is inside the AF container. If everything works we should see in the terminal executing the UE an ASCII representation of the video.
+

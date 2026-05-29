@@ -1,0 +1,4 @@
+#!/bin/bash
+set -x
+
+iptables -I INPUT -i eth0 -d 239.0.0.25/32 -j DROP

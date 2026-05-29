@@ -1,0 +1,16 @@
+#!/bin/bash
+
+set -m
+
+video="${1:-test}"
+shift
+if [[ "${video}" == test ]]; then
+    path_to_video=/test.mp4
+else
+    path_to_video="/${video}"
+    echo $video
+    echo $path_to_video
+fi
+ffmpeg -re -i "${path_to_video}" -c copy -map 0 -f rtp_mpegts rtp://239.0.0.25:9988
+
+

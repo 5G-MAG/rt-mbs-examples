@@ -11,7 +11,7 @@ source "helper_functions.sh"
 setup_container_interfaces "${@}"
 
 # start smcroute (after configuring the interfaces)
-smcroute -d
+#smcroute -d
 
 # container entrypoint receiving arguments from Docker CMD
 open5gs-upfd "${@}"

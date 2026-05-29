@@ -52,8 +52,9 @@ expert_execution:
       nof_non_rt_threads: 2
 
 log:
-  filename: /tmp/gnb_with_mbs.log
-  all_level: info
+  filename: stdout #/tmp/gnb_with_mbs.log
+  all_level: none
+  rlc_level: none
   hex_max_size: 0
 
 pcap:
