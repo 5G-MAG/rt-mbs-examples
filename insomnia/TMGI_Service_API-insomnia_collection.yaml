@@ -1,0 +1,203 @@
+type: collection.insomnia.rest/5.0
+schema_version: "5.1"
+name: TMGI_Service_API
+meta:
+  id: wrk_1ae18e710d0347868ad53ed62231d8c5
+  created: 1771856972768
+  modified: 1771856972768
+  description: ""
+collection:
+  - name: TMGI_Service_API
+    meta:
+      id: fld_57323fac00394fc8ade70c774b3fdbe2
+      created: 1771856972771
+      modified: 1771856972771
+      sortKey: -1771856971433
+      description: |-
+        Following 3GPP TS 29.532 - Release 17.4.0
+
+        - TMGI Allocate Service operation
+            
+        - TMGI Deallocate Service operation
+    children:
+      - url: http://{{_['smf_mb_smf_url']}}/nmbsmf-tmgi/v1/tmgi
+        name: TMGI_allocate
+        meta:
+          id: req_4595d4f1370142d2b53432945e6e4b49
+          created: 1771856972772
+          modified: 1771856972772
+          isPrivate: false
+          description: ""
+          sortKey: -1771856971432
+        method: POST
+        body:
+          mimeType: application/json
+          text: '{ "tmgiNumber": 1 }'
+        headers:
+          - name: Content-Type
+            value: application/json
+        scripts:
+          afterResponse: "// Test 1: Check status code 200\r
+
+            insomnia.test(\"Status code is 200\", function () {\r
+
+            \    insomnia.response.to.have.status(200);\r
+
+            });\r
+
+            \r
+
+            // Test 2: Check data types of the allocated TMGI (response)\r
+
+            const responseData = insomnia.response.json();\r
+
+            insomnia.test(\"Check data types of the response\", () => {\r
+
+            \    insomnia.expect(responseData.tmgiList).to.be.an(\"array\");\r
+
+            \    insomnia.expect(responseData.tmgiList).to.not.be.empty;\r
+
+            \    insomnia.expect(responseData.expirationTime).to.be.a(\"string\
+            \");\r
+
+            });\r
+
+            \r
+
+            // Save the response as variables\r
+
+            insomnia.environment.set(\"tmgiAllocated\",
+            JSON.stringify(responseData.tmgiList[0]))\r
+
+            insomnia.environment.set(\"tmgiAllocatedExpiration\",
+            responseData.expirationTime)\r\n"
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: http://{{_['smf_mb_smf_url']}}/nmbsmf-tmgi/v1/tmgi
+        name: TMGI_refresh
+        meta:
+          id: req_757c77012fe34b4ea10ccb09d80ffaf7
+          created: 1771856972772
+          modified: 1771856972772
+          isPrivate: false
+          description: ""
+          sortKey: -1771856971431
+        method: POST
+        body:
+          mimeType: application/json
+          text: '{ "tmgiList": [ {{tmgiAllocated}} ] }'
+        headers:
+          - name: Content-Type
+            value: application/json
+        scripts:
+          afterResponse: "// Test 1: Check status code 200\r
+
+            insomnia.test(\"Status code is 200\", function () {\r
+
+            \    insomnia.response.to.have.status(200);\r
+
+            });\r
+
+            \r
+
+            // Test 2: Check data types of the refreshed TMGI (response)\r
+
+            const responseData = insomnia.response.json();\r
+
+            insomnia.test(\"Check data types of the response\", () => {\r
+
+            \    insomnia.expect(responseData.tmgiList).to.be.an(\"array\");\r
+
+            \    insomnia.expect(responseData.tmgiList).to.be.empty;\r
+
+            \    insomnia.expect(responseData.expirationTime).to.be.a(\"string\
+            \");\r
+
+            });\r
+
+            \r
+
+            // Save the response as variables\r
+
+            insomnia.environment.set(\"tmgiRefreshedExpiration\",
+            responseData.expirationTime);\r
+
+            \r
+
+            // Test 3: Check the expiration time\r
+
+            insomnia.test(\"Compare expirationTime between tmgiAllocated and
+            tmgiRefreshed\", () => {\r
+
+            \    const tmgiAllocatedExpiration = new
+            Date(insomnia.environment.get(\"tmgiAllocatedExpiration\"));\r
+
+            \    const tmgiRefreshedExpiration = new
+            Date(insomnia.environment.get(\"tmgiRefreshedExpiration\"));\r
+
+            \r
+
+            \    // Compare expiration times between the allocated TMGI and the
+            refreshed TMGI\r
+
+            \    insomnia.expect(tmgiRefreshedExpiration).to.be.above(tmgiAlloc\
+            atedExpiration);\r
+
+            });\r\n"
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: http://{{_['smf_mb_smf_url']}}/nmbsmf-tmgi/v1/tmgi
+        name: TMGI_deallocate
+        meta:
+          id: req_2fbed678b65c4f0f91fe80e04f115ac4
+          created: 1771856972773
+          modified: 1771856972773
+          isPrivate: false
+          description: ""
+          sortKey: -1771856971430
+        method: DELETE
+        parameters:
+          - name: tmgi-list
+            value: "[{{tmgiAllocated}}]"
+            disabled: false
+        scripts:
+          afterResponse: "// Test 1: Check status code 204\r
+
+            insomnia.test(\"Status code is 204\", function () {\r
+
+            \    insomnia.response.to.have.status(204);\r
+
+            });\r\n"
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+cookieJar:
+  name: Default Jar
+  meta:
+    id: jar_a408df6270cd5412dd5ef2702a7bc6e4e62ca785
+    created: 1771856972775
+    modified: 1771856972775
+environments:
+  name: Base Environment
+  meta:
+    id: env_a408df6270cd5412dd5ef2702a7bc6e4e62ca785
+    created: 1771856972774
+    modified: 1771856972774
+    isPrivate: false
