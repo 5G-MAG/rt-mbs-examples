@@ -1,0 +1,16 @@
+db_uri: mongodb://db.5g-mag.org/open5gs
+
+logger:
+  file:
+    path: /var/log/open5gs/pcf.log
+
+global:
+
+pcf:
+  sbi:
+    server:
+      - address: pcf.5g-mag.org
+        port: 80
+    client:
+      nrf:
+        - uri: http://nrf_5gmag.5g-mag.org:80

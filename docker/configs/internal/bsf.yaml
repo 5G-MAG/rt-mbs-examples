@@ -1,0 +1,14 @@
+logger:
+  file:
+    path: /var/log/open5gs/bsf.log
+
+global:
+
+bsf:
+  sbi:
+    server:
+      - address: bsf.5g-mag.org
+        port: 80
+    client:
+      nrf:
+        - uri: http://nrf_5gmag.5g-mag.org:80
