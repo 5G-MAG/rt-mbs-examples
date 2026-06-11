@@ -6,6 +6,8 @@
 
 ## Introduction
 
+Example projects that make use of other 5G-MAG repositories or provide additional functionality to test and implement new features for MBS.
+
 Additional information can be found at: https://5g-mag.github.io/Getting-Started/pages/5g-multicast-broadcast-services/
 
 ## Docker Setup
