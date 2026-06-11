@@ -15,11 +15,11 @@ variable "NODE_VERSION" {
 }
 
 variable "GITHUB_USER" {
-  default = "PLEASE CHANGE"
+  default = "YOUR_USER"
 }
 
 variable "GITHUB_TOKEN" {
-  default = "PLEASE CHANGE"
+  default = "YOUR_PAT"
 }
 
 variable "GITHUB_REGISTRY" {
@@ -49,7 +49,7 @@ variable "UBUNTU_VERSION" {
 group "default" {
   targets = [
     // Core Platform Base Layers
-    "base-mbs-open5gs", "base-mbs-srsran-project", "base-mbs-srsran-4g",
+    "base-open5gs", "base-mbs-open5gs", "base-mbs-srsran-project", "base-mbs-srsran-4g",
     
     // Individual Baseline Open5GS Functions
     "amf", "ausf", "bsf", "nrf", "nssf", "pcf", "scp", "sepp", "smf", "udm", "udr", "upf", "webui",
@@ -65,15 +65,26 @@ group "default" {
 // -----------------------------------------------------------------------------
 // BASE COMPILATION PLATFORMS
 // -----------------------------------------------------------------------------
-target "base-mbs-open5gs" {
+target "base-open5gs" {
   args = {
     UBUNTU_VERSION = "${UBUNTU_VERSION}"
     OPEN5GS_BRANCH = "${OPEN5GS_BRANCH}"
   }
+  context = "./images/base-open5gs"
+  tags = [
+    "${GITHUB_REGISTRY}/base-open5gs:${OPEN5GS_VERSION}"
+  ]
+  output = ["type=image"]
+}
+
+target "base-mbs-open5gs" {
+  args = {
+    UBUNTU_VERSION = "${UBUNTU_VERSION}"
+    OPEN5GS_MBS_BRANCH = "${OPEN5GS_MBS_BRANCH}"
+  }
   context = "./images/base-mbs-open5gs"
   tags = [
     "${GITHUB_REGISTRY}/base-mbs-open5gs:${FIVEG_MAG_MBS_VERSION}",
-    "${GITHUB_REGISTRY}/base-mbs-open5gs:${OPEN5GS_VERSION}"
   ]
   output = ["type=image"]
 }
@@ -116,7 +127,7 @@ target "amf" {
   }
   context = "./images/amf"
   contexts = {
-    "base-mbs-open5gs:${OPEN5GS_VERSION}" = "target:base-mbs-open5gs"
+    "base-open5gs:${OPEN5GS_VERSION}" = "target:base-open5gs"
   }
   tags   = ["${GITHUB_REGISTRY}/amf:${OPEN5GS_VERSION}"]
   output = ["type=image"]
@@ -129,7 +140,7 @@ target "ausf" {
   }
   context = "./images/ausf"
   contexts = {
-    "base-mbs-open5gs:${OPEN5GS_VERSION}" = "target:base-mbs-open5gs"
+    "base-open5gs:${OPEN5GS_VERSION}" = "target:base-open5gs"
   }
   tags   = ["${GITHUB_REGISTRY}/ausf:${OPEN5GS_VERSION}"]
   output = ["type=image"]
@@ -142,7 +153,7 @@ target "bsf" {
   }
   context = "./images/bsf"
   contexts = {
-    "base-mbs-open5gs:${OPEN5GS_VERSION}" = "target:base-mbs-open5gs"
+    "base-open5gs:${OPEN5GS_VERSION}" = "target:base-open5gs"
   }
   tags   = ["${GITHUB_REGISTRY}/bsf:${OPEN5GS_VERSION}"]
   output = ["type=image"]
@@ -155,7 +166,7 @@ target "nrf" {
   }
   context = "./images/nrf"
   contexts = {
-    "base-mbs-open5gs:${OPEN5GS_VERSION}" = "target:base-mbs-open5gs"
+    "base-open5gs:${OPEN5GS_VERSION}" = "target:base-open5gs"
   }
   tags   = ["${GITHUB_REGISTRY}/nrf:${OPEN5GS_VERSION}"]
   output = ["type=image"]
@@ -168,7 +179,7 @@ target "nssf" {
   }
   context = "./images/nssf"
   contexts = {
-    "base-mbs-open5gs:${OPEN5GS_VERSION}" = "target:base-mbs-open5gs"
+    "base-open5gs:${OPEN5GS_VERSION}" = "target:base-open5gs"
   }
   tags   = ["${GITHUB_REGISTRY}/nssf:${OPEN5GS_VERSION}"]
   output = ["type=image"]
@@ -181,7 +192,7 @@ target "pcf" {
   }
   context = "./images/pcf"
   contexts = {
-    "base-mbs-open5gs:${OPEN5GS_VERSION}" = "target:base-mbs-open5gs"
+    "base-open5gs:${OPEN5GS_VERSION}" = "target:base-open5gs"
   }
   tags   = ["${GITHUB_REGISTRY}/pcf:${OPEN5GS_VERSION}"]
   output = ["type=image"]
@@ -194,7 +205,7 @@ target "scp" {
   }
   context = "./images/scp"
   contexts = {
-    "base-mbs-open5gs:${OPEN5GS_VERSION}" = "target:base-mbs-open5gs"
+    "base-open5gs:${OPEN5GS_VERSION}" = "target:base-open5gs"
   }
   tags   = ["${GITHUB_REGISTRY}/scp:${OPEN5GS_VERSION}"]
   output = ["type=image"]
@@ -207,7 +218,7 @@ target "sepp" {
   }
   context = "./images/sepp"
   contexts = {
-    "base-mbs-open5gs:${OPEN5GS_VERSION}" = "target:base-mbs-open5gs"
+    "base-open5gs:${OPEN5GS_VERSION}" = "target:base-open5gs"
   }
   tags   = ["${GITHUB_REGISTRY}/sepp:${OPEN5GS_VERSION}"]
   output = ["type=image"]
@@ -220,7 +231,7 @@ target "smf" {
   }
   context = "./images/smf"
   contexts = {
-    "base-mbs-open5gs:${OPEN5GS_VERSION}" = "target:base-mbs-open5gs"
+    "base-open5gs:${OPEN5GS_VERSION}" = "target:base-open5gs"
   }
   tags   = ["${GITHUB_REGISTRY}/smf:${OPEN5GS_VERSION}"]
   output = ["type=image"]
@@ -233,7 +244,7 @@ target "udm" {
   }
   context = "./images/udm"
   contexts = {
-    "base-mbs-open5gs:${OPEN5GS_VERSION}" = "target:base-mbs-open5gs"
+    "base-open5gs:${OPEN5GS_VERSION}" = "target:base-open5gs"
   }
   tags   = ["${GITHUB_REGISTRY}/udm:${OPEN5GS_VERSION}"]
   output = ["type=image"]
@@ -246,7 +257,7 @@ target "udr" {
   }
   context = "./images/udr"
   contexts = {
-    "base-mbs-open5gs:${OPEN5GS_VERSION}" = "target:base-mbs-open5gs"
+    "base-open5gs:${OPEN5GS_VERSION}" = "target:base-open5gs"
   }
   tags   = ["${GITHUB_REGISTRY}/udr:${OPEN5GS_VERSION}"]
   output = ["type=image"]
@@ -259,7 +270,7 @@ target "upf" {
   }
   context = "./images/upf"
   contexts = {
-    "base-mbs-open5gs:${OPEN5GS_VERSION}" = "target:base-mbs-open5gs"
+    "base-open5gs:${OPEN5GS_VERSION}" = "target:base-open5gs"
   }
   tags   = ["${GITHUB_REGISTRY}/upf:${OPEN5GS_VERSION}"]
   output = ["type=image"]
@@ -273,7 +284,7 @@ target "webui" {
   }
   context = "./images/webui"
   contexts = {
-    "base-mbs-open5gs:${OPEN5GS_VERSION}" = "target:base-mbs-open5gs"
+    "base-open5gs:${OPEN5GS_VERSION}" = "target:base-open5gs"
   }
   tags   = ["${GITHUB_REGISTRY}/webui:${OPEN5GS_VERSION}"]
   output = ["type=image"]
