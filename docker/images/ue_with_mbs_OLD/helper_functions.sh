@@ -20,7 +20,7 @@ function setup_config_file(){
     # docker_cmd is "${@}"
     ue_config_file_path="${@}"
 
-    ue_mod_config_file_path="/etc/srsRAN_4G_mbs/custom/mod_ue_with_mbs.conf"
+    ue_mod_config_file_path="/etc/srsRAN_4G/custom/mod_ue_with_mbs.conf"
 
     cp "${ue_config_file_path}" "${ue_mod_config_file_path}"
 

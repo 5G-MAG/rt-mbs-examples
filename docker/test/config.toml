@@ -1,0 +1,7 @@
+[DEFAULT]
+log_level = "DEBUG"
+
+[mb_smf]
+address = "smf-mb-smf.5g-mag.org"
+protocol = "http"
+port = 80

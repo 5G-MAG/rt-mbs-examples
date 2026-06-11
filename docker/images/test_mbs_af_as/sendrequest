@@ -1,0 +1,15 @@
+#!/bin/bash
+ip_af=$(ip -json address show eth0 | jq --raw-output '.[0].addr_info[0].local')
+
+request='{ "mbsSession": { "ssm": { "sourceIpAddr": { "ipv4Addr": "'"${ip_af}"'" }, "destIpAddr": { "ipv4Addr": "239.0.0.25" } },"tmgiAllocReq": true, "serviceType":"BROADCAST" }}'
+
+echo "Request:"
+echo "${request}"
+
+echo "Response:"
+curl --silent --http2-prior-knowledge --request POST --header "Content-Type: application/json" \
+    --data "${request}" \
+    smf-mb-smf.5g-mag.org:80/nmbsmf-mbssession/v1/mbs-sessions
+
+#newline
+echo

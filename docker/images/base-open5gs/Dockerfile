@@ -8,7 +8,7 @@ ARG UBUNTU_VERSION
 FROM ubuntu:${UBUNTU_VERSION}
 
 # build-time arguments
-ARG OPEN5GS_MBS_BRANCH
+ARG OPEN5GS_BRANCH
 ARG DEBIAN_FRONTEND="noninteractive"
 
 # install dependencies
@@ -20,7 +20,7 @@ RUN apt-get update && apt-get install python3-pip python3-setuptools python3-whe
 RUN pip3 install --upgrade meson
 
 # clone the specific open5gs version
-RUN git clone --recurse-submodules --depth 1 --branch=${OPEN5GS_MBS_BRANCH} https://github.com/5G-MAG/open5gs
+RUN git clone --recurse-submodules --depth 1 --branch=${OPEN5GS_BRANCH} https://github.com/open5gs/open5gs
 
 # install open5gs
 RUN cd open5gs && meson build --prefix=`pwd`/install && ninja -j `nproc` -C build \
