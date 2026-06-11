@@ -35,11 +35,11 @@ variable "OPEN5GS_MBS_BRANCH" {
 }
 
 variable "SRSRAN_MBS_PROJECT_BRANCH" {
-  default = "5mbs-development"
+  default = "5mbs"
 }
 
 variable "SRSRAN_4G_MBS_BRANCH" {
-  default = "5mbs-development"
+  default = "5mbs"
 }
 
 variable "UBUNTU_VERSION" {
