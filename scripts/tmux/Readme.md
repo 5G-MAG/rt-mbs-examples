@@ -1,11 +1,13 @@
-# Description
+# TMUX setup
+
+## Description
 
 This folder contains scripts for [tmux](https://github.com/tmux/tmux) an open-source terminal multiplexer that allows
 users to manage multiple terminal sessions, windows, and panes from a single screen or terminal window.
 
-# Usage
+## Usage
 
-## Starting
+### Starting
 
 In general, to use the tmux scripts, run the following command:
 
@@ -13,7 +15,7 @@ In general, to use the tmux scripts, run the following command:
 bash ./<script-name>.sh
 ```
 
-## Stopping
+### Stopping
 
 In general, to stop the tmux session started by the scripts, attach to the tmux session and stop processes. In the tmux
 session, press `Ctrl+b` and then type `:kill-session` and hit Enter.
@@ -21,11 +23,11 @@ session, press `Ctrl+b` and then type `:kill-session` and hit Enter.
 As an alternative kill the tmux session from a normal session with `tmux kill-session -t <session-name>`. For instance:
 `tmux kill-session -t mbsf-tutorial`.
 
-# Scripts
+## Scripts
 
 In the following the different scripts available are described.
 
-## MBSF Tutorial Startup script
+### MBSF Tutorial Startup script
 
 The `mbs-function-tutorial-startup.sh` script located in `mbs-function-tutorial` starts the tmux session for
 the [MBSF Tutorial](https://hub.5g-mag.com/Getting-Started/pages/5g-multicast-broadcast-services/tutorials/mbsf.html).
@@ -69,7 +71,7 @@ As an alternative, in a normal shell run `tmux kill-session -t mbsf-tutorial`.
 In case there are still Open5GS processes running you can terminate them with
 `sudo pkill -TERM -f 'open5gs-(nrfd|scpd|smfd|upfd|amfd|udmd|mbstfd|mbsfd)'`
 
-## MBSTF Tutorial Startup script
+### MBSTF Tutorial Startup script
 
 The `mbs-transport-function-testing-tutorial.sh` script located in `mbs-transport-function-tutorial` starts
 an automated tmux session for MBSTF transport-function API example runs. It makes it easier to start all required
