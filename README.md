@@ -10,7 +10,7 @@ Example projects that make use of other 5G-MAG repositories or provide additiona
 
 Additional information can be found at: https://5g-mag.github.io/Getting-Started/pages/5g-multicast-broadcast-services/
 
-## Docker Setup
+## 5G Multicast Broadcast Services - Docker Compose Setu
 
 This folder provides a docker setup to build and run MBS-related 5GC network functions, an MBS-enabled gNB, an MBS-enabled UE and a test AF/AS. In addition, it includes a Docker Compose file to deploy all these components. The configuration files included in this project can be edited on the host machine and are mounted to the respective Docker container during runtime.
 
