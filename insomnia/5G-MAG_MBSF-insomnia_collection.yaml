@@ -1344,7 +1344,7 @@ environments:
         isPrivate: false
         sortKey: 1767956472475
       data:
-        mbsf_base_url: http://127.0.0.68:7777
+        mbsf_base_url: http://127.0.0.67:7777
         mbs_user_service_id: 4f7483f6-52ea-41f1-a7dd-d3ace11bd655
         mbs_user_data_ing_session_id: 67665e62-4fca-41f1-85a3-3d6520c2c990
         mbs_user_data_ing_session_id_area1: 5771942e-4f0f-41f1-b33c-6f675f7386ce
