@@ -1,15 +1,18 @@
-# Docker setup
+# 5G MBS System: Docker setup
 
 ## About the implementation
 
-This repository contains Docker Compose components to deploy several network functions related to MBS.
-The detailed usage instructions are available at
+This repository contains Docker Compose components to deploy several 5G Core Network Functions (NFs) related to the 5G MBS System.
+
+Detailed usage instructions are available at
 the [Getting Started guides](https://5g-mag.github.io/Getting-Started/pages/5g-multicast-broadcast-services/tutorials/mbs-in-5gc.html).
 
 > [!NOTE]
-> Docker images are available for `amd64/x86-64` and `arm64` based systems.
+> Docker images are available for `amd64/x86-64`- and `arm64`-based systems.
 
-Some of the components are unmodified Open5GS Network Functions, those are marked with the regular Network Function's name and follow Open5GS' versioning. The latest version available is the `v2.7.7`.
+### 5G Core
+
+Some of the components are unmodified [Open5GS](https://github.com/5G-MAG/open5gs) Network Functions; these are marked with the regular Network Function's name and follow Open5GS versioning.
 
 | Network Function | Image name          | Version |
 |------------------|---------------------|---------|
@@ -21,24 +24,34 @@ Some of the components are unmodified Open5GS Network Functions, those are marke
 | UDM              | ghcr.io/5g-mag/udm  | v2.7.7  |
 | UDR              | ghcr.io/5g-mag/udr  | v2.7.7  |
 
-The following NFs are customized by 5G-MAG contributors. In this case `ǹrf_5gmag` enhances Open5GS's `ǹrf` to enable co-location of NFs.
+The following Open5GS NFs are customised by 5G-MAG contributors to support MBS. These follow 5G-MAG versioning.
 
-| Network Function | Image name               | Version |
-|------------------|--------------------------|---------|
-| NRF (5G-MAG)     | ghcr.io/5g-mag/nrf_5gmag | 0.1.4   |
+| Network Function   | Image name                    | Version | Remarks                                  |
+|--------------------|-------------------------------|---------| ---------------------------------------- |
+| NRF (5G-MAG)       | ghcr.io/5g-mag/nrf_5gmag      | 0.1.4   | Enhanced support for co-location of NFs. |
+| SMF + MB-SMF       | ghcr.io/5g-mag/smf_mb-smf     | 0.1.4   | Rel-17 MB-SMF co-located with SMF.       |
+| UPF + MB-UPF       | ghcr.io/5g-mag/upf_mb-upf     | 0.1.4   | Rel-17 MB-UPF co-located with UPF.       |
+| AMF (MBS-enhanced) | ghcr.io/5g-mag/amf_with_mbs   | 0.1.4   | Additional Rel-17 MBS feature support.   |
 
-The following components are developed for MBS and the latest version available is the `0.1.4`.
 
-| Network Function               | image name                    | version |
-|--------------------------------|-------------------------------|---------|
-| AMF (with Rel-17 MBS features) | ghcr.io/5g-mag/amf_with_mbs   | 0.1.4   |
-| SMF + MB-SMF                   | ghcr.io/5g-mag/smf_mb-smf     | 0.1.4   |
-| UPF + MB-UPF                   | ghcr.io/5g-mag/upf_mb-upf     | 0.1.4   |
-| Test MBS AF/AS                 | ghcr.io/5g-mag/test_mbs_af_as | 0.1.4   |
-| gNB (with Rel-17 MBS features) | ghcr.io/5g-mag/gnb_with_mbs   | 0.1.4   |
-| UE (with Rel-17 MBS features)  | ghcr.io/5g-mag/ue_with_mbs    | 0.1.4   |
+### 5G NR RAN
 
-Those components are being developed using [Open5GS](https://github.com/5G-MAG/open5gs) for the Network Functions AMF, MB-SMF and MB-UPF, [srsRAN_Project_mbs](https://github.com/5G-MAG/srsRAN_Project_mbs) for the gNB and [srsRAN_4G_mbs](https://github.com/5G-MAG/srsRAN_4G_mbs) for the UE, using the `5mbs` branch.
+The following RAN components are provided by 5G-MAG contributors. These also follow 5G-MAG versioning.
+
+| Component        | Image name                    | Version | Remarks |
+|------------------|-------------------------------|---------| ------- |
+| gNodeB           | ghcr.io/5g-mag/gnb_with_mbs   | 0.1.4   | srsRAN gNodeB enhanced with Rel-17 MBS support (built from [srsRAN_Project_mbs](https://github.com/5G-MAG/srsRAN_Project_mbs)). |
+| UE               | ghcr.io/5g-mag/ue_with_mbs    | 0.1.4   | srsRAN UE ehnanced with Rel-17 MBS support (built from `mbs` branch of [srsRAN_4G_mbs](https://github.com/5G-MAG/srsRAN_4G_mbs)). |
+
+
+### Test applications
+
+The following containers are provided by 5G-MAG contributors. These also follow 5G-MAG versioning.
+
+| Application      | Image name                    | Version | Remarks
+|------------------|-------------------------------|---------| ---------------------------------------
+| Test MBS AF/AS   | ghcr.io/5g-mag/test_mbs_af_as | 0.1.4   | Test application for MB-SMF and MB-UPF.
+
 
 ## Installing Dependencies
 
@@ -49,7 +62,7 @@ Follow the [steps for your distribution](https://docs.docker.com/engine/install/
 The MBS Docker images can be obtained:
 
 * From the 5G-MAG's GitHub Container Registry and pulled with Docker (`docker pull ghcr.io/NAMESPACE/IMAGE_NAME`). This step is not needed if you run Docker compose as per the [Running](#running) section below.
-* The docker images can also be obtained by cloning the repository:
+* The Docker images can also be obtained by cloning the repository:
 
 ```bash
   cd ~
@@ -92,22 +105,22 @@ docker compose -f compose-files/internal/docker-compose.yaml --env-file=.env dow
 ```
 ### Establishing a 5G-MBS Broadcast session and sending video
 
-To create a 5G-MBS Broadcast session we need to execute the following command
+To create a 5G-MBS Broadcast session:
 
 ```bash
 docker exec -it test_mbs_af_as sendrequest
 ```
-With this command the AF (application function) sends a request to the UPF. 
+With this command the *Test AF/AS* sends a request to the MB-SMF. 
 
-After sending the request we can put the UE to receive the content in a different terminal with the following command:
+After sending the request the UE can be started in another termninal to receive the content:
 
 ```bash
 docker exec -it ue_with_mbs receivevideo
 ```
 
-Then we can start sending the video from the AF:
+To start sending a sample MPEH-2 Transport Stream from the *Test AF/AS*:
 
 ```bash
 docker exec -it test_mbs_af_as sendvideo
 ```
-This will use a sample video that is inside the AF container. If everything works we should see in the terminal executing the UE an ASCII representation of the video.
+This will use a sample MPEG-2 Transport Stream that is inside the AF container. If everything works, the UE terminal should display as ASCII representation of the decoded video component in the MPEG-2 Transport Stream.
