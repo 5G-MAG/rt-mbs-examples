@@ -39,3 +39,7 @@ Information can be found [here](./insomnia/).
 This folder contains scripts for tmux an open-source terminal multiplexer that allows users to manage multiple terminal sessions, windows, and panes from a single screen or terminal window.
 
 Information can be found [here](./scripts/tmux/).
+
+## Acknowledgements
+
+The reference implementation of the MBS features was partially funded by the European Union through the project 6G-SANDBOX (Grant Agreement 101096328) and by the European Space Agency (ESA) through the project "Requirements consolidation and design concepts for future NTN MBS systems" (ESA Contract No. 5001042231).
