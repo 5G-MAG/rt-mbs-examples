@@ -5,7 +5,7 @@ services:
     build:
       context: .
     ports:
-      - "0.0.0.0:9000:9000/tcp"
+      - "0.0.0.0:3002:3002/tcp"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     environment:

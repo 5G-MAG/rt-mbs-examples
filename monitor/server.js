@@ -160,4 +160,4 @@ app.get('/api/containers/:id/logs', async (req, res) => {
   }
 });
 
-app.listen(9000, () => console.log('5G-MAG Monitor running on port 9000'));
+app.listen(3002, () => console.log('5G-MAG Monitor running on port 3002'));

@@ -79,6 +79,16 @@ You can skip this step if you decide to download the images rather than cloning 
 > [!IMPORTANT]
 > When building the images, modify the relevant variables in the `.env` file to use a specific version.
 
+Some images are pulled from the GitHub Container Registry during the build. You need to provide your GitHub username and a Personal Access Token (PAT) with `read:packages` scope. Set them as environment variables before building:
+
+```bash
+export GITHUB_USER=your_github_username
+export GITHUB_TOKEN=your_personal_access_token
+```
+
+> [!WARNING]
+> Never hardcode your `GITHUB_USER` or `GITHUB_TOKEN` in any file. Always pass them as environment variables. They are not stored in the `.env` file.
+
 From the top level directory of the repository run:
 
 ```bash
@@ -96,12 +106,12 @@ To run the Docker images follow these steps:
 
 ```bash
 # to use the internal deployment
-docker compose -f compose-files/internal/docker-compose.yaml --env-file=.env up -d
+docker compose -f compose-files/internal/docker-compose-mbs.yml --env-file=.env up -d
 ```
 
 ```bash
 # to tear down the internal deployment
-docker compose -f compose-files/internal/docker-compose.yaml --env-file=.env down
+docker compose -f compose-files/internal/docker-compose-mbs.yml --env-file=.env down
 ```
 ### Establishing a 5G-MBS Broadcast session and sending video
 
@@ -124,3 +134,18 @@ To start sending a sample MPEH-2 Transport Stream from the *Test AF/AS*:
 docker exec -it test_mbs_af_as sendvideo
 ```
 This will use a sample MPEG-2 Transport Stream that is inside the AF container. If everything works, the UE terminal should display as ASCII representation of the decoded video component in the MPEG-2 Transport Stream.
+
+## Docker Monitor
+
+A lightweight web-based monitor is available to inspect the status of all running containers grouped by service. It connects to the Docker socket and exposes a UI on port 3002.
+
+To start the monitor alongside the MBS setup:
+
+```bash
+docker compose -f ../monitor/docker-compose-monitor.yml --env-file=.env up -d
+```
+
+Then open **http://localhost:3002** in your browser.
+
+> [!NOTE]
+> The monitor requires the `5g-mag` Docker network to exist. Start the MBS setup first before launching the monitor.
