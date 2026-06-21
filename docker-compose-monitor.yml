@@ -1,0 +1,23 @@
+services:
+
+  monitor:
+    container_name: monitor
+    build:
+      context: ./monitor
+    ports:
+      - "0.0.0.0:9000:9000/tcp"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - OPEN5GS_VERSION=${OPEN5GS_VERSION}
+      - FIVEG_MAG_MBS_VERSION=${FIVEG_MAG_MBS_VERSION}
+      - MONGODB_VERSION=${MONGODB_VERSION}
+    networks:
+      5g-mag:
+        aliases:
+          - monitor.5g-mag.org
+    restart: unless-stopped
+
+networks:
+  5g-mag:
+    external: true

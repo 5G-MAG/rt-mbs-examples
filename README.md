@@ -14,7 +14,13 @@ Additional information can be found at: https://5g-mag.github.io/Getting-Started
 
 This folder provides a docker setup to build and run MBS-related 5GC network functions, an MBS-enabled gNB, an MBS-enabled UE and a test AF/AS. In addition, it includes a Docker Compose file to deploy all these components. The configuration files included in this project can be edited on the host machine and are mounted to the respective Docker container during runtime.
 
-Information can be found [here](./docker/).
+Information can be found [here](./mbs-docker-setup/).
+
+## Docker Monitor
+
+This folder provides a lightweight web-based monitor for the Docker containers in the MBS setup. It connects to the Docker socket and displays the status of all running containers grouped by service. A dedicated Docker Compose file (`docker-compose-monitor.yml`) is provided to deploy the monitor alongside the MBS setup.
+
+Information can be found [here](./monitor/).
 
 ## Express Mock AF
 

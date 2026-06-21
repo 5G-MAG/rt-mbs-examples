@@ -1,0 +1,302 @@
+services:
+  db:
+    container_name: db
+    labels:
+      monitor.group: "5GC NFs"
+    image: "mongo:${MONGODB_VERSION}"
+    command: "mongod --bind_ip 0.0.0.0 --port 27017"
+    networks:
+      5g-mag:
+        aliases:
+          - db.5g-mag.org
+    volumes:
+      - db_data:/data/db
+      - db_config:/data/configdb
+
+  nrf_5gmag:
+    container_name: nrf_5gmag
+    labels:
+      monitor.group: "5GC NFs"
+    image: "ghcr.io/5g-mag/nrf_5gmag:${FIVEG_MAG_MBS_VERSION}"
+    command: "-c /etc/open5gs/custom/nrf.yaml"
+    networks:
+      5g-mag:
+        aliases:
+          - nrf_5gmag.5g-mag.org
+    configs:
+      - source: nrf_config
+        target: /etc/open5gs/custom/nrf.yaml
+
+  ausf:
+    container_name: ausf
+    labels:
+      monitor.group: "5GC NFs"
+    image: "ghcr.io/5g-mag/ausf:${OPEN5GS_VERSION}"
+    command: "-c /etc/open5gs/custom/ausf.yaml"
+    networks:
+      5g-mag:
+        aliases:
+          - ausf.5g-mag.org
+    configs:
+      - source: ausf_config
+        target: /etc/open5gs/custom/ausf.yaml
+    depends_on:
+      - nrf_5gmag
+
+  udm:
+    container_name: udm
+    labels:
+      monitor.group: "5GC NFs"
+    image: "ghcr.io/5g-mag/udm:${OPEN5GS_VERSION}"
+    command: "-c /etc/open5gs/custom/udm.yaml"
+    networks:
+      5g-mag:
+        aliases:
+          - udm.5g-mag.org
+    configs:
+      - source: udm_config
+        target: /etc/open5gs/custom/udm.yaml
+    depends_on:
+      - nrf_5gmag
+
+  udr:
+    container_name: udr
+    labels:
+      monitor.group: "5GC NFs"
+    image: "ghcr.io/5g-mag/udr:${OPEN5GS_VERSION}"
+    command: "-c /etc/open5gs/custom/udr.yaml"
+    restart: unless-stopped
+    networks:
+      5g-mag:
+        aliases:
+          - udr.5g-mag.org
+    configs:
+      - source: udr_config
+        target: /etc/open5gs/custom/udr.yaml
+    depends_on:
+      - db
+      - nrf_5gmag
+
+  nssf:
+    container_name: nssf
+    labels:
+      monitor.group: "5GC NFs"
+    image: "ghcr.io/5g-mag/nssf:${OPEN5GS_VERSION}"
+    command: "-c /etc/open5gs/custom/nssf.yaml"
+    networks:
+      5g-mag:
+        aliases:
+          - nssf.5g-mag.org
+    configs:
+      - source: nssf_config
+        target: /etc/open5gs/custom/nssf.yaml
+    depends_on:
+      - nrf_5gmag
+
+  bsf:
+    container_name: bsf
+    labels:
+      monitor.group: "5GC NFs"
+    image: "ghcr.io/5g-mag/bsf:${OPEN5GS_VERSION}"
+    command: "-c /open5gs/config/bsf.yaml"
+    networks:
+      5g-mag:
+        aliases:
+          - bsf.5g-mag.org
+    configs:
+      - source: bsf_config
+        target: /open5gs/config/bsf.yaml
+    depends_on:
+      - nrf_5gmag
+
+  pcf:
+    container_name: pcf
+    labels:
+      monitor.group: "5GC NFs"
+    image: "ghcr.io/5g-mag/pcf:${OPEN5GS_VERSION}"
+    command: "-c /etc/open5gs/custom/pcf.yaml"
+    restart: unless-stopped
+    networks:
+      5g-mag:
+        aliases:
+          - pcf.5g-mag.org
+    configs:
+      - source: pcf_config
+        target: /etc/open5gs/custom/pcf.yaml
+    depends_on:
+      - db
+      - nrf_5gmag
+
+  webui:
+    container_name: webui
+    labels:
+      monitor.group: "5GC NFs"
+    image: "ghcr.io/5g-mag/webui:${OPEN5GS_VERSION}"
+    environment:
+      - DB_URI=mongodb://db.5g-mag.org/open5gs
+      - PORT=9999
+      - HOSTNAME=0.0.0.0
+      - NODE_ENV=dev
+    command: "run dev"
+    networks:
+      5g-mag:
+        aliases:
+          - webui.5g-mag.org
+    depends_on:
+      - db
+    ports:
+      - "0.0.0.0:9999:9999/tcp"
+
+  amf_with_mbs:
+    container_name: amf_with_mbs
+    labels:
+      monitor.group: "5G Multicast Broadcast Services"
+    image: "ghcr.io/5g-mag/amf_with_mbs:${FIVEG_MAG_MBS_VERSION}"
+    command: "-c /etc/open5gs/custom/amf_with_mbs.yaml"
+    networks:
+      5g-mag:
+        aliases:
+          - amf-with-mbs.5g-mag.org
+    configs:
+      - source: amf_with_mbs_config
+        target: /etc/open5gs/custom/amf_with_mbs.yaml
+    depends_on:
+      - nrf_5gmag
+
+  smf_mb-smf:
+    container_name: smf_mb-smf
+    labels:
+      monitor.group: "5G Multicast Broadcast Services"
+    image: "ghcr.io/5g-mag/smf_mb-smf:${FIVEG_MAG_MBS_VERSION}"
+    command: "-c /etc/open5gs/custom/smf_mb-smf.yaml"
+    networks:
+      5g-mag:
+        aliases:
+          - smf-mb-smf.5g-mag.org
+    configs:
+      - source: smf_mb-smf_config
+        target: /etc/open5gs/custom/smf_mb-smf.yaml
+    depends_on:
+      - nrf_5gmag
+      - upf_mb-upf
+
+  upf_mb-upf:
+    container_name: upf_mb-upf
+    labels:
+      monitor.group: "5G Multicast Broadcast Services"
+    image: "ghcr.io/5g-mag/upf_mb-upf:${FIVEG_MAG_MBS_VERSION}"
+    command: "-c /etc/open5gs/custom/upf_mb-upf.yaml"
+    networks:
+      5g-mag:
+        aliases:
+          - upf-mb-upf.5g-mag.org
+    configs:
+      - source: upf_mb-upf_config
+        target: /etc/open5gs/custom/upf_mb-upf.yaml
+    privileged: true
+    cap_add:
+      - NET_ADMIN
+
+  test_mbs_af_as:
+    container_name: test_mbs_af_as
+    labels:
+      monitor.group: "5G Multicast Broadcast Services"
+    image: "ghcr.io/5g-mag/test_mbs_af_as:${FIVEG_MAG_MBS_VERSION}"
+    networks:
+      5g-mag:
+        aliases:
+          - test-mbs-af-as.5g-mag.org
+    volumes:
+      - ../../test:/test:ro
+        #    cap_add:
+        #      - NET_ADMIN
+
+  gnb_with_mbs:
+    container_name: gnb_with_mbs
+    labels:
+      monitor.group: "5G Multicast Broadcast Services"
+    image: "ghcr.io/5g-mag/gnb_with_mbs:${FIVEG_MAG_MBS_VERSION}"
+    environment:
+      - GNB_FQDN=gnb-with-mbs.5g-mag.org
+      - UE_FQDN=ue-with-mbs.5g-mag.org
+    command: "-c /etc/srsRAN_Project_mbs/custom/gnb_with_mbs.yaml"
+    networks:
+      5g-mag:
+        aliases:
+          - gnb-with-mbs.5g-mag.org
+    configs:
+      - source: gnb_with_mbs_config
+        target: /etc/srsRAN_Project_mbs/custom/gnb_with_mbs.yaml
+    privileged: true
+    cap_add:
+      - NET_ADMIN
+    depends_on:
+      - amf_with_mbs
+
+  ue_with_mbs:
+    container_name: ue_with_mbs
+    labels:
+      monitor.group: "5G Multicast Broadcast Services"
+    image: "ghcr.io/5g-mag/ue_with_mbs:${FIVEG_MAG_MBS_VERSION}"
+    environment:
+      - UE_FQDN=ue-with-mbs.5g-mag.org
+      - GNB_FQDN=gnb-with-mbs.5g-mag.org
+    command: "/etc/srsRAN_4G_mbs/custom/ue_with_mbs.conf"
+    networks:
+      5g-mag:
+        aliases:
+          - ue-with-mbs.5g-mag.org
+    configs:
+      - source: ue_with_mbs_config
+        target: /etc/srsRAN_4G_mbs/custom/ue_with_mbs.conf
+    privileged: true
+    cap_add:
+      - NET_ADMIN
+    depends_on:
+      - gnb_with_mbs
+
+networks:
+  5g-mag:
+    name: 5g-mag
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.name: br-5g-mag
+    ipam:
+      config:
+        - subnet: 10.33.33.0/24
+
+volumes:
+  db_data:
+    name: open5gs_db_data
+    labels:
+      org.open5gs.mongodb_version: ${MONGODB_VERSION}
+  db_config:
+    name: open5gs_db_config
+    labels:
+      org.open5gs.mongodb_version: ${MONGODB_VERSION}
+
+configs:
+  nrf_config:
+    file: ../../configs/internal/nrf.yaml
+  ausf_config:
+    file: ../../configs/internal/ausf.yaml
+  udm_config:
+    file: ../../configs/internal/udm.yaml
+  udr_config:
+    file: ../../configs/internal/udr.yaml
+  nssf_config:
+    file: ../../configs/internal/nssf.yaml
+  bsf_config:
+    file: ../../configs/internal/bsf.yaml
+  pcf_config:
+    file: ../../configs/internal/pcf.yaml
+  amf_with_mbs_config:
+    file: ../../configs/internal/amf_with_mbs.yaml
+  smf_mb-smf_config:
+    file: ../../configs/internal/smf_mb-smf.yaml
+  upf_mb-upf_config:
+    file: ../../configs/internal/upf_mb-upf.yaml
+  gnb_with_mbs_config:
+    file: ../../configs/internal/gnb_with_mbs.yaml
+  ue_with_mbs_config:
+    file: ../../configs/internal/ue_with_mbs.conf
