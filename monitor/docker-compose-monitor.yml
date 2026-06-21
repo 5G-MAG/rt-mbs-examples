@@ -3,7 +3,7 @@ services:
   monitor:
     container_name: monitor
     build:
-      context: ./monitor
+      context: .
     ports:
       - "0.0.0.0:9000:9000/tcp"
     volumes:

@@ -18,7 +18,7 @@ Information can be found [here](./mbs-docker-setup/).
 
 ## Docker Monitor
 
-This folder provides a lightweight web-based monitor for the Docker containers in the MBS setup. It connects to the Docker socket and displays the status of all running containers grouped by service. A dedicated Docker Compose file (`docker-compose-monitor.yml`) is provided to deploy the monitor alongside the MBS setup.
+This folder provides a lightweight web-based monitor for the Docker containers in the MBS setup. It connects to the Docker socket and displays the status of all running containers grouped by service. A dedicated Docker Compose file (`monitor/docker-compose-monitor.yml`) is provided to deploy the monitor alongside the MBS setup.
 
 Information can be found [here](./monitor/).
 
