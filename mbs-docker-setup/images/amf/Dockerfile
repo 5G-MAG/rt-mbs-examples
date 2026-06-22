@@ -35,7 +35,7 @@ COPY ./entrypoint.sh /usr/local/bin/entrypoint.sh
 # create directory to store the logs
 RUN mkdir -p /var/log/open5gs/
 
-ENTRYPOINT [ "entrypoint.sh" ]
+ENTRYPOINT [ "/usr/local/bin/entrypoint.sh" ]
 
 # use CMD to provide arguments to ENTRYPOINT (can be overridden by user)
 CMD [ "-c", "/etc/open5gs/default/amf.yaml" ]
