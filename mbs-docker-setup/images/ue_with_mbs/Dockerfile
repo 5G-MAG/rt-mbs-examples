@@ -36,7 +36,11 @@ COPY ./savevideo /usr/local/bin/savevideo
 COPY ./forwardtraffic /usr/local/bin/forwardtraffic
 COPY ./dropeth0 /usr/local/bin/dropeth0
 
-
+RUN chmod +x /usr/local/bin/receivevideo
+RUN chmod +x /usr/local/bin/savevideo
+RUN chmod +x /usr/local/bin/forwardtraffic
+RUN chmod +x /usr/local/bin/dropeth0
+ 
 # output logs to stdout
 RUN ln -sf /dev/stdout /tmp/ue_with_mbs.log
 
