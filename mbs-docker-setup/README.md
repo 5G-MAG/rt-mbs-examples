@@ -104,6 +104,15 @@ First modify the `.env` file. Change the `DOCKER_HOST_IP=<your_host_ip_address>`
 
 To run the Docker images follow these steps:
 
+First, create the persistent volumes for the subscriber database (only needed once):
+
+```bash
+docker volume create open5gs_db_data
+docker volume create open5gs_db_config
+```
+
+Then start the stack:
+
 ```bash
 # to use the internal deployment
 docker compose -f compose-files/internal/docker-compose-mbs.yml --env-file=.env up -d

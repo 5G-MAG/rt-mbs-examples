@@ -268,12 +268,10 @@ networks:
 volumes:
   db_data:
     name: open5gs_db_data
-    labels:
-      org.open5gs.mongodb_version: ${MONGODB_VERSION}
+    external: true
   db_config:
     name: open5gs_db_config
-    labels:
-      org.open5gs.mongodb_version: ${MONGODB_VERSION}
+    external: true
 
 configs:
   nrf_config:
