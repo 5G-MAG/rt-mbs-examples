@@ -146,12 +146,24 @@ This will use a sample MPEG-2 Transport Stream that is inside the AF container. 
 
 ## Docker Monitor
 
-A lightweight web-based monitor is available to inspect the status of all running containers grouped by service. It connects to the Docker socket and exposes a UI on port 3002.
+A lightweight web-based monitor is available to inspect the status of all running containers grouped by service. It connects to the Docker socket and exposes a UI on port 3002. It is provided by the [rt-common-shared](https://github.com/5G-MAG/rt-common-shared) repository.
 
-To start the monitor alongside the MBS setup:
+Clone it first if you have not already done so:
 
 ```bash
-docker compose -f ../monitor/docker-compose-monitor.yml --env-file=.env up -d
+git clone https://github.com/5G-MAG/rt-common-shared.git
+```
+
+Then set `COMMON_SHARED_PATH` in the `.env` file to the absolute path of the cloned directory:
+
+```
+COMMON_SHARED_PATH=/absolute/path/to/rt-common-shared
+```
+
+Start the monitor from the `mbs-docker-setup` folder:
+
+```bash
+docker compose -f /absolute/path/to/rt-common-shared/docker-monitor/docker-compose-monitor.yml --env-file=.env up -d
 ```
 
 Then open **http://localhost:3002** in your browser.
