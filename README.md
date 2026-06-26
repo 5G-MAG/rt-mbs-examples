@@ -18,9 +18,9 @@ Information can be found [here](./mbs-docker-setup/).
 
 ## Docker Monitor
 
-This folder provides a lightweight web-based monitor for the Docker containers in the MBS setup. It connects to the Docker socket and displays the status of all running containers grouped by service. A dedicated Docker Compose file (`monitor/docker-compose-monitor.yml`) is provided to deploy the monitor alongside the MBS setup.
+A lightweight web-based monitor for inspecting the status of Docker containers grouped by service. It is provided as a shared tool by the [rt-common-shared](https://github.com/5G-MAG/rt-common-shared) repository.
 
-Information can be found [here](./monitor/).
+Information on how to set it up can be found in the [mbs-docker-setup README](./mbs-docker-setup/README.md#docker-monitor).
 
 ## Express Mock AF
 

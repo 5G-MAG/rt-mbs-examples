@@ -131,13 +131,13 @@ docker exec -it test_mbs_af_as sendrequest
 ```
 With this command the *Test AF/AS* sends a request to the MB-SMF. 
 
-After sending the request the UE can be started in another termninal to receive the content:
+After sending the request the UE can be started in another terminal to receive the content:
 
 ```bash
 docker exec -it ue_with_mbs receivevideo
 ```
 
-To start sending a sample MPEH-2 Transport Stream from the *Test AF/AS*:
+To start sending a sample MPEG-2 Transport Stream from the *Test AF/AS*:
 
 ```bash
 docker exec -it test_mbs_af_as sendvideo
