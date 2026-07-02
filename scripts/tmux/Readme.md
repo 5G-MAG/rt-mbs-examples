@@ -49,15 +49,16 @@ step of the tutorial. Namely, it starts the following components:
 2. In `mbs-function-tutorial.sh` adjust the directories of your setup:
 
    ```
-   OPEN5GS_BASE_DIR="/home/fivegmag/Developer/open5gs_mbs/install/bin"
-   OPEN5GS_CONFIG_DIR="/home/fivegmag/Developer/open5gs_mbs/install/etc/open5gs"
-   MBSTF_BASE_DIR="/home/fivegmag/Developer/rt-mbs-transport-function/build/src/mbstf"
-   MBSTF_CONFIG_DIR="/home/fivegmag/Developer/rt-mbs-transport-function/build/src/mbstf"
-   MBSF_BASE_DIR="/home/fivegmag/Developer/rt-mbs-function/build/src/mbsf"
-   MBSF_CONFIG_DIR="/home/fivegmag/Developer/rt-mbs-examples/scripts/tmux/mbs-function-tutorial"
-   MEDIA_SERVER_DIR="/home/fivegmag/Developer/rt-mbs-examples/express-mock-media-server"
-   LOG_DIR="/var/local/log/open5gs"
+OPEN5GS_BASE_DIR="Your path to /open5gs_mbs/install/bin"
+OPEN5GS_CONFIG_DIR="Your path to /open5gs_mbs/install/etc/open5gs"
+MBSTF_BASE_DIR="Your path to /rt-mbs-transport-function/build/src/mbstf"
+MBSTF_CONFIG_DIR="Your path to /rt-mbs-transport-function/build/src/mbstf"
+MBSF_BASE_DIR="Your path to /rt-mbs-function/build/src/mbsf"
+MBSF_CONFIG_DIR="Your path to /rt-mbs-function/build/src/mbsf"
+MEDIA_SERVER_DIR="Your path to /rt-mbs-examples/express-mock-media-server"
+LOG_DIR="/var/local/log/open5gs"
    ```
+
 3. Optional: Adjust the MBSF configuration located in `local-mbsf.yaml` if needed and the file name in "MBSF|$MBSF_BASE_DIR/open5gs-mbsfd -c $MBSF_CONFIG_DIR/local-mbsf.yaml"`
 4. Run `bash ./mbs-function-tutorial.sh` to start the tmux session with all the required components.
 5. Now all processes should be running. You can continue using the components now.
