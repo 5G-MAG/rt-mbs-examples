@@ -4,13 +4,13 @@
 # 1. CONFIGURATION
 # ==============================================================================
 SESSION="mbsf-tutorial"
-OPEN5GS_BASE_DIR="/home/fivegmag/Developer/open5gs_mbs/install/bin"
-OPEN5GS_CONFIG_DIR="/home/fivegmag/Developer/open5gs_mbs/install/etc/open5gs"
-MBSTF_BASE_DIR="/home/fivegmag/Developer/rt-mbs-transport-function/build/src/mbstf"
-MBSTF_CONFIG_DIR="/home/fivegmag/Developer/rt-mbs-transport-function/build/src/mbstf"
-MBSF_BASE_DIR="/home/fivegmag/Developer/rt-mbs-function/build/src/mbsf"
-MBSF_CONFIG_DIR="/home/fivegmag/Developer/rt-mbs-examples/scripts/tmux/mbs-function-tutorial"
-MEDIA_SERVER_DIR="/home/fivegmag/Developer/rt-mbs-examples/express-mock-media-server"
+OPEN5GS_BASE_DIR="Your path to /open5gs_mbs/install/bin"
+OPEN5GS_CONFIG_DIR="Your path to /open5gs_mbs/install/etc/open5gs"
+MBSTF_BASE_DIR="Your path to /rt-mbs-transport-function/build/src/mbstf"
+MBSTF_CONFIG_DIR="Your path to /rt-mbs-transport-function/build/src/mbstf"
+MBSF_BASE_DIR="Your path to /rt-mbs-function/build/src/mbsf"
+MBSF_CONFIG_DIR="Your path to /rt-mbs-function/build/src/mbsf"
+MEDIA_SERVER_DIR="Your path to /rt-mbs-examples/express-mock-media-server"
 LOG_DIR="/var/local/log/open5gs"
 
 # Capture IDs for clean exit
@@ -69,9 +69,17 @@ require_executable "$MBSF_BASE_DIR/open5gs-mbsfd"
 # 3. FUNCTIONS
 # ==============================================================================
 
-# Wraps commands so the tmux window stays open on failure
+# Wraps commands so the tmux window stays open on failure, logs to file, and shows live screen output
 wrap_cmd() {
     local cmd="$1"
+    local log_name="$2"
+    
+    # If a log name is provided, duplicate standard output/error to both screen and file via tee
+    if [[ -n "$log_name" ]]; then
+        # stdbuf -oL -eL prevents logs from delaying due to block buffering
+        cmd="stdbuf -oL -eL $cmd 2>&1 | tee -a \"$LOG_DIR/${log_name}.log\""
+    fi
+    
     echo "bash -c \"$cmd || { echo; echo 'PROCESS FAILED'; read -p 'Press Enter to close...'; }\""
 }
 
@@ -105,7 +113,7 @@ trap cleanup EXIT
 # ==============================================================================
 
 echo "Starting NRF..."
-LAUNCH_NRF=$(wrap_cmd "$OPEN5GS_BASE_DIR/open5gs-nrfd")
+LAUNCH_NRF=$(wrap_cmd "$OPEN5GS_BASE_DIR/open5gs-nrfd" "nrf")
 tmux new-session -d -s "$SESSION" -n "NRF" "$LAUNCH_NRF"
 sleep 1
 
@@ -117,23 +125,35 @@ fi
 
 register_pane_pgid "$SESSION:NRF"
 
-# Define components: "WindowName|Command"
-# Note the UPF uses the SUDO_PASS variable for non-interactive sudo
+# Define components: "WindowName|WorkingDir|Command"
+# If no working directory shift is needed, leave the middle column blank.
 COMPONENTS=(
-"SCP|$OPEN5GS_BASE_DIR/open5gs-scpd -c $OPEN5GS_CONFIG_DIR/scp.yaml"
-    "SMF|$OPEN5GS_BASE_DIR/open5gs-smfd -c $OPEN5GS_CONFIG_DIR/smf.yaml"
-    "UPF|echo '$SUDO_PASS' | sudo -S -E $OPEN5GS_BASE_DIR/open5gs-upfd -c $OPEN5GS_CONFIG_DIR/upf.yaml"
-    "AMF|$OPEN5GS_BASE_DIR/open5gs-amfd -c $OPEN5GS_CONFIG_DIR/amf.yaml"
-    "MBSTF|$MBSTF_BASE_DIR/open5gs-mbstfd -c $MBSTF_CONFIG_DIR/mbstf.yaml"
-    "MBSF|$MBSF_BASE_DIR/open5gs-mbsfd -c $MBSF_CONFIG_DIR/local-mbsf.yaml"
-    "MediaServer|cd $MEDIA_SERVER_DIR && npm start"
+    "SCP||$OPEN5GS_BASE_DIR/open5gs-scpd -c $OPEN5GS_CONFIG_DIR/scp.yaml"
+    "SMF||$OPEN5GS_BASE_DIR/open5gs-smfd -c $OPEN5GS_CONFIG_DIR/smf.yaml"
+    "UPF||echo '$SUDO_PASS' | sudo -S -E $OPEN5GS_BASE_DIR/open5gs-upfd -c $OPEN5GS_CONFIG_DIR/upf.yaml"
+    "AMF||$OPEN5GS_BASE_DIR/open5gs-amfd -c $OPEN5GS_CONFIG_DIR/amf.yaml"
+    "MBSTF||$MBSTF_BASE_DIR/open5gs-mbstfd -c $MBSTF_CONFIG_DIR/mbstf.yaml"
+    "MBSF||$MBSF_BASE_DIR/open5gs-mbsfd -c $MBSF_CONFIG_DIR/mbsf.yaml"
+    "MediaServer|$MEDIA_SERVER_DIR|npm start"
 )
 
 for item in "${COMPONENTS[@]}"; do
-    IFS="|" read -r NAME CMD <<< "$item"
+    IFS="|" read -r NAME WORK_DIR CMD <<< "$item"
     echo "Launching $NAME..."
-    WRAPPED=$(wrap_cmd "$CMD")
-    tmux new-window -t "$SESSION" -n "$NAME" "$WRAPPED"
+    
+    # Convert name to lowercase for the log file name (e.g., MediaServer -> mediaserver)
+    LOG_FILENAME=$(echo "$NAME" | tr '[:upper:]' '[:lower:]')
+    
+    # Apply stdbuf and tee wrapping safely to the clean executable command string
+    WRAPPED=$(wrap_cmd "$CMD" "$LOG_FILENAME")
+    
+    # Use tmux's native -c flag to handle directory switching perfectly at the OS level
+    if [[ -n "$WORK_DIR" ]]; then
+        tmux new-window -c "$WORK_DIR" -t "$SESSION" -n "$NAME" "$WRAPPED"
+    else
+        tmux new-window -t "$SESSION" -n "$NAME" "$WRAPPED"
+    fi
+    
     register_pane_pgid "$SESSION:$NAME"
     sleep 0.5
 done
