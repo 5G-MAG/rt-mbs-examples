@@ -109,7 +109,48 @@ cleanup() {
 trap cleanup EXIT
 
 # ==============================================================================
-# 4. EXECUTION
+# 4. DOCROOT SETUP
+# ==============================================================================
+
+# 4a. Extract docroot from mbsf.yaml
+echo "--- Extracting docroot from mbsf.yaml ---"
+MBSF_YAML="$MBSF_CONFIG_DIR/mbsf.yaml"
+
+if [[ ! -f "$MBSF_YAML" ]]; then
+    echo "Error: mbsf.yaml not found at $MBSF_YAML"
+    exit 1
+fi
+
+# Find the docroot key, strip the key and any trailing comment/whitespace/quotes.
+DOCROOT=$(grep -E '^[[:space:]]*docroot[[:space:]]*:' "$MBSF_YAML" | head -n1 \
+    | sed -E 's/^[[:space:]]*docroot[[:space:]]*:[[:space:]]*//' \
+    | sed -E 's/[[:space:]]*#.*$//' \
+    | sed -E 's/[[:space:]]+$//' \
+    | tr -d "\"'")
+
+if [[ -z "$DOCROOT" ]]; then
+    echo "Error: Could not extract docroot from $MBSF_YAML"
+    exit 1
+fi
+
+echo "Docroot extracted: $DOCROOT"
+
+# 4b. Prepare the docroot directory
+echo "--- Preparing docroot directory ---"
+
+if [[ -d "$DOCROOT" ]]; then
+    echo "Docroot exists. Taking ownership so we can write to it..."
+    echo "$SUDO_PASS" | sudo -S chown -R $(whoami):$(whoami) "$DOCROOT"
+else
+    echo "Docroot does not exist. Creating it..."
+    echo "$SUDO_PASS" | sudo -S mkdir -p "$DOCROOT"
+    echo "$SUDO_PASS" | sudo -S chown -R $(whoami):$(whoami) "$DOCROOT"
+fi
+
+echo "Docroot ready: $DOCROOT"
+
+# ==============================================================================
+# 5. EXECUTION
 # ==============================================================================
 
 echo "Starting NRF..."
