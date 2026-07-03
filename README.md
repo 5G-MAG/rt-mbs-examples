@@ -12,7 +12,7 @@ Additional information can be found at: https://5g-mag.github.io/Getting-Started
 
 ## 5G Multicast Broadcast Services - Docker Compose Setup
 
-This folder provides a docker setup to build and run MBS-related 5GC network functions, an MBS-enabled gNB, an MBS-enabled UE and a test AF/AS. In addition, it includes a Docker Compose file to deploy all these components. The configuration files included in this project can be edited on the host machine and are mounted to the respective Docker container during runtime.
+This is a docker setup to build and run MBS-related 5GC network functions, an MBS-enabled gNB, an MBS-enabled UE and a test AF/AS. In addition, it includes a Docker Compose file to deploy all these components. The configuration files included in this project can be edited on the host machine and are mounted to the respective Docker container during runtime.
 
 Information can be found [here](./mbs-docker-setup/).
 
