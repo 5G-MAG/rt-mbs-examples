@@ -122,8 +122,8 @@ if [[ ! -f "$MBSF_YAML" ]]; then
 fi
 
 # Find the docroot key, strip the key and any trailing comment/whitespace/quotes.
-DOCROOT=$(grep -E '^[[:space:]]*docroot[[:space:]]*:' "$MBSF_YAML" | head -n1 \
-    | sed -E 's/^[[:space:]]*docroot[[:space:]]*:[[:space:]]*//' \
+DOCROOT=$(grep -E '^[[:space:]]*docRoot[[:space:]]*:' "$MBSF_YAML" | head -n1 \
+    | sed -E 's/^[[:space:]]*docRoot[[:space:]]*:[[:space:]]*//' \
     | sed -E 's/[[:space:]]*#.*$//' \
     | sed -E 's/[[:space:]]+$//' \
     | tr -d "\"'")
