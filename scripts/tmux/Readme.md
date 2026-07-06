@@ -1,11 +1,13 @@
-# Description
+# TMUX setup
+
+## Description
 
 This folder contains scripts for [tmux](https://github.com/tmux/tmux) an open-source terminal multiplexer that allows
 users to manage multiple terminal sessions, windows, and panes from a single screen or terminal window.
 
-# Usage
+## Usage
 
-## Starting
+### Starting
 
 In general, to use the tmux scripts, run the following command:
 
@@ -13,7 +15,7 @@ In general, to use the tmux scripts, run the following command:
 bash ./<script-name>.sh
 ```
 
-## Stopping
+### Stopping
 
 In general, to stop the tmux session started by the scripts, attach to the tmux session and stop processes. In the tmux
 session, press `Ctrl+b` and then type `:kill-session` and hit Enter.
@@ -21,11 +23,11 @@ session, press `Ctrl+b` and then type `:kill-session` and hit Enter.
 As an alternative kill the tmux session from a normal session with `tmux kill-session -t <session-name>`. For instance:
 `tmux kill-session -t mbsf-tutorial`.
 
-# Scripts
+## Scripts
 
 In the following the different scripts available are described.
 
-## MBSF Tutorial Startup script
+### MBSF Tutorial Startup script
 
 The `mbs-function-tutorial-startup.sh` script located in `mbs-function-tutorial` starts the tmux session for
 the [MBSF Tutorial](https://hub.5g-mag.com/Getting-Started/pages/5g-multicast-broadcast-services/tutorials/mbsf.html).
@@ -47,15 +49,16 @@ step of the tutorial. Namely, it starts the following components:
 2. In `mbs-function-tutorial.sh` adjust the directories of your setup:
 
    ```
-   OPEN5GS_BASE_DIR="/home/fivegmag/Developer/open5gs_mbs/install/bin"
-   OPEN5GS_CONFIG_DIR="/home/fivegmag/Developer/open5gs_mbs/install/etc/open5gs"
-   MBSTF_BASE_DIR="/home/fivegmag/Developer/rt-mbs-transport-function/build/src/mbstf"
-   MBSTF_CONFIG_DIR="/home/fivegmag/Developer/rt-mbs-transport-function/build/src/mbstf"
-   MBSF_BASE_DIR="/home/fivegmag/Developer/rt-mbs-function/build/src/mbsf"
-   MBSF_CONFIG_DIR="/home/fivegmag/Developer/rt-mbs-examples/scripts/tmux/mbs-function-tutorial"
-   MEDIA_SERVER_DIR="/home/fivegmag/Developer/rt-mbs-examples/express-mock-media-server"
-   LOG_DIR="/var/local/log/open5gs"
+OPEN5GS_BASE_DIR="Your path to /open5gs_mbs/install/bin"
+OPEN5GS_CONFIG_DIR="Your path to /open5gs_mbs/install/etc/open5gs"
+MBSTF_BASE_DIR="Your path to /rt-mbs-transport-function/build/src/mbstf"
+MBSTF_CONFIG_DIR="Your path to /rt-mbs-transport-function/build/src/mbstf"
+MBSF_BASE_DIR="Your path to /rt-mbs-function/build/src/mbsf"
+MBSF_CONFIG_DIR="Your path to /rt-mbs-function/build/src/mbsf"
+MEDIA_SERVER_DIR="Your path to /rt-mbs-examples/express-mock-media-server"
+LOG_DIR="/var/local/log/open5gs"
    ```
+
 3. Optional: Adjust the MBSF configuration located in `local-mbsf.yaml` if needed and the file name in "MBSF|$MBSF_BASE_DIR/open5gs-mbsfd -c $MBSF_CONFIG_DIR/local-mbsf.yaml"`
 4. Run `bash ./mbs-function-tutorial.sh` to start the tmux session with all the required components.
 5. Now all processes should be running. You can continue using the components now.
@@ -69,7 +72,7 @@ As an alternative, in a normal shell run `tmux kill-session -t mbsf-tutorial`.
 In case there are still Open5GS processes running you can terminate them with
 `sudo pkill -TERM -f 'open5gs-(nrfd|scpd|smfd|upfd|amfd|udmd|mbstfd|mbsfd)'`
 
-## MBSTF Tutorial Startup script
+### MBSTF Tutorial Startup script
 
 The `mbs-transport-function-testing-tutorial.sh` script located in `mbs-transport-function-tutorial` starts
 an automated tmux session for MBSTF transport-function API example runs. It makes it easier to start all required

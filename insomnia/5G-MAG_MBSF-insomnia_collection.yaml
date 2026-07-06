@@ -131,7 +131,7 @@ collection:
     meta:
       id: fld_8f1684b495d344ab82d65de46c63aa11
       created: 1767956278437
-      modified: 1779131331356
+      modified: 1783008472291
       sortKey: -1767957915382
       description: ""
     children:
@@ -140,7 +140,7 @@ collection:
         meta:
           id: req_5b59f9f32c1d43adae4c4757791c1cf8
           created: 1767956300178
-          modified: 1777279019704
+          modified: 1782998201824
           isPrivate: false
           description: ""
           sortKey: -1767957515485
@@ -282,7 +282,7 @@ collection:
     meta:
       id: fld_ac220e0a818d41de8d7b761fd39eaa81
       created: 1767957915282
-      modified: 1779131380381
+      modified: 1780574829828
       sortKey: -1767957915282
       description: ""
     children:
@@ -783,7 +783,7 @@ collection:
     meta:
       id: fld_080862f553b74ae5bf66272494a5802b
       created: 1775556973319
-      modified: 1779131328095
+      modified: 1783008715942
       sortKey: -1767957096859.5
       description: ""
     children:
@@ -1303,7 +1303,7 @@ collection:
         meta:
           id: req_0fc3c326f3a749c5abe9acb5d2ba9929
           created: 1775559497754
-          modified: 1775559506093
+          modified: 1783008085390
           isPrivate: false
           description: ""
           sortKey: -1775557016695.125
@@ -1319,18 +1319,127 @@ collection:
             send: true
             store: true
           rebuildPath: true
+      - url: GET http://127.0.0.67:7777/
+        name: Test_SA
+        meta:
+          id: req_0d667e867ee64bcaba9d9c32268fb350
+          created: 1780572865572
+          modified: 1780573006641
+          isPrivate: false
+          description: ""
+          sortKey: -1775557016967
+        method: GET
+        body:
+          mimeType: application/json
+          text: ""
+        headers:
+          - name: Content-Type
+            value: application/json
+          - name: User-Agent
+            value: insomnia/12.2.0
+        scripts:
+          afterResponse: >-
+            const locationHeader = insomnia.response.headers.find(header =>
+            header.key.toLowerCase() === 'location')
+
+
+            if(locationHeader) {
+            	let locationValue = locationHeader.value;
+            	if (locationValue) {
+            			const uuid = locationValue.split('/').pop();
+            			insomnia.environment.set('mbs_user_data_ing_session_id', uuid);
+            	}
+            }
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ _.mbsf_base_url }}/nmbsf-mbs-ud-ingest/v1/sessions"
+        name: Create MBS User Data Ingest Session  (Packet Mode)
+        meta:
+          id: req_00825cc3b0144933b6d8e46c53a4805b
+          created: 1782912103613
+          modified: 1783008585981
+          isPrivate: false
+          description: ""
+          sortKey: -1775557016710.75
+        method: POST
+        body:
+          mimeType: application/json
+          text: |-
+            {
+              "mbsUserServId": "{{ _.mbs_user_service_id }}",
+              "mbsDisSessInfos": {
+                "AP_MBS_SESSION_1": {
+                  "mbsSessionId": {
+                    "ssm": {
+                      "sourceIpAddr": {
+                        "ipv4Addr": "127.0.0.5"
+                      },
+                      "destIpAddr": {
+                        "ipv4Addr": "232.10.0.7"
+                      }
+                    }
+                  },
+                  "mbsDistSessState": "ACTIVE",
+                  "maxContBitRate": "10 Mbps",
+                  "distrMethod": "PACKET",
+                  "pckDistrInfo": {
+                    "operatingMode": "PACKET_FORWARD_ONLY",
+                    "pckIngMethod": "UNICAST",
+                    "ingEndpointAddrs": {
+                      "afEgressTunAddr": {
+                        "ipv4Addr": "127.0.0.1",
+                        "portNumber": 3004
+                      }
+                    }
+                  }
+                }
+              },
+              "suppFeat": "3"
+            }
+        headers:
+          - name: Content-Type
+            value: application/json
+          - name: User-Agent
+            value: insomnia/12.2.0
+        scripts:
+          afterResponse: >-
+            const locationHeader = insomnia.response.headers.find(header =>
+            header.key.toLowerCase() === 'location')
+
+
+            if(locationHeader) {
+            	let locationValue = locationHeader.value;
+            	if (locationValue) {
+            			const uuid = locationValue.split('/').pop();
+            			insomnia.environment.set('mbs_user_data_ing_session_id', uuid);
+            	}
+            }
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
 cookieJar:
   name: Default Jar
   meta:
     id: jar_178dd23547084919a26a554b3678cbb9
     created: 1751561039482
-    modified: 1779130173424
+    modified: 1783008715933
 environments:
   name: Base Environment
   meta:
     id: env_de03d73538fd48698f475e0c74ffb2c0
     created: 1751561039400
-    modified: 1779130173428
+    modified: 1783008715941
     isPrivate: false
   data:
     udp_tunnel_address: 127.0.0.7
@@ -1340,14 +1449,14 @@ environments:
       meta:
         id: env_bcbf4d8d1b18475b8d50ce14dc03c59c
         created: 1767956472475
-        modified: 1779130173427
+        modified: 1783008715940
         isPrivate: false
         sortKey: 1767956472475
       data:
-        mbsf_base_url: http://127.0.0.68:7777
-        mbs_user_service_id: 4f7483f6-52ea-41f1-a7dd-d3ace11bd655
-        mbs_user_data_ing_session_id: 67665e62-4fca-41f1-85a3-3d6520c2c990
-        mbs_user_data_ing_session_id_area1: 5771942e-4f0f-41f1-b33c-6f675f7386ce
+        mbsf_base_url: http://127.0.0.67:7777
+        mbs_user_service_id: 2da41eb2-7630-41f1-81b4-69a5bdd942fc
+        mbs_user_data_ing_session_id: bee1b970-7630-41f1-81b4-69a5bdd942fc
+        mbs_user_data_ing_session_id_area1: 88acc504-762e-41f1-85c3-d57981bbd28c
         mbs_user_data_ing_session_id_area2: 73ec30dc-4f0f-41f1-b33c-6f675f7386ce
         mbs_user_data_ing_session_status_subsc_id: c82feb74-4e43-41f1-b445-8773eed24f24
         udp_tunnel_address: 127.0.0.7

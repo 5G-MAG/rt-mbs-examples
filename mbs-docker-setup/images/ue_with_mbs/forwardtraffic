@@ -1,0 +1,8 @@
+#!/bin/bash
+set -x
+
+#https://blog.danman.eu/using-socat-for-multicast-receiving-and-proxying/
+socat UDP4-RECV:9988,bind=239.0.0.25,ip-add-membership=239.0.0.25:tun_srsue,reuseaddr UDP4-SENDTO:239.0.0.100:9988,ip-multicast-ttl=8 &
+socat UDP4-RECV:9989,bind=239.0.0.25,ip-add-membership=239.0.0.25:tun_srsue,reuseaddr UDP4-SENDTO:239.0.0.100:9989,ip-multicast-ttl=8 &
+
+sleep infinity

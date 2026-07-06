@@ -6,118 +6,40 @@
 
 ## Introduction
 
-3GPP Release 17 brings Multicast–Broadcast Services (MBS) to the 5G System, based on 5G Core and New Radio. MBS allows
-the network to select the most suitable among point-to-multipoint (PTM) or point-to-point (PTP) delivery based on
-requirements set by either service providers or network operators and/or taking into account concurrent user demand.
+Example projects that make use of other 5G-MAG repositories or provide additional functionality to test and implement new features for MBS.
 
 Additional information can be found at: https://5g-mag.github.io/Getting-Started/pages/5g-multicast-broadcast-services/
 
-### About the implementation
+## 5G Multicast Broadcast Services - Docker Compose Setup
 
-This repository contains Docker Compose components to deploy several network functions related to MBS.
-The detailed usage instructions are available at
-the [Getting Started guides](https://5g-mag.github.io/Getting-Started/pages/5g-multicast-broadcast-services/tutorials/mbs-in-5gc.html).
+This is a docker setup to build and run MBS-related 5GC network functions, an MBS-enabled gNB, an MBS-enabled UE and a test AF/AS. In addition, it includes a Docker Compose file to deploy all these components. The configuration files included in this project can be edited on the host machine and are mounted to the respective Docker container during runtime.
 
-> [!NOTE]
-> Docker images are available for `amd64/x86-64` and `arm64` based systems.
+Information can be found [here](./mbs-docker-setup/).
 
-Some of the components are unmodified Open5GS Network Functions, those are marked with the regular Network Function's
-name and follow Open5GS' versioning, the latest version available is the `v2.7.2`.
+## Docker Monitor
 
-| Network Function | image name          | version |
-|------------------|---------------------|---------|
-| AUSF             | ghcr.io/5g-mag/ausf | v2.7.2  |
-| BSF              | ghcr.io/5g-mag/bsf  | v2.7.2  |
-| NRF              | ghcr.io/5g-mag/nrf  | v2.7.2  |
-| NSSF             | ghcr.io/5g-mag/nssf | v2.7.2  |
-| PCF              | ghcr.io/5g-mag/pcf  | v2.7.2  |
-| UDM              | ghcr.io/5g-mag/udm  | v2.7.2  |
-| UDR              | ghcr.io/5g-mag/udr  | v2.7.2  |
+A lightweight web-based monitor for inspecting the status of Docker containers grouped by service. It is provided as a shared tool by the [rt-common-shared](https://github.com/5G-MAG/rt-common-shared) repository.
 
-The following components are being developed for MBS and the latest version available is the `0.1.2`.
+Information on how to set it up can be found in the [mbs-docker-setup README](./mbs-docker-setup/README.md#docker-monitor).
 
-| Network Function               | image name                    | version |
-|--------------------------------|-------------------------------|---------|
-| AMF (with Rel-17 MBS features) | ghcr.io/5g-mag/amf_with_mbs   | 0.1.2   |
-| SMF + MB-SMF                   | ghcr.io/5g-mag/smf_mb-smf     | 0.1.2   |
-| UPF + MB-UPF                   | ghcr.io/5g-mag/upf_mb-upf     | 0.1.2   |
-| Test MBS AF/AS                 | ghcr.io/5g-mag/test_mbs_af_as | 0.1.2   |
-| gNB (with Rel-17 MBS features) | ghcr.io/5g-mag/gnb_with_mbs   | 0.1.2   |
-| UE (with Rel-17 MBS features)  | ghcr.io/5g-mag/ue_with_mbs    | 0.1.2   |
+## Express Mock AF
 
-Those components are being developed using [Open5GS](https://github.com/5G-MAG/open5gs) for the Network Functions AMF,
-MB-SMF and MB-UPF, [rt-srsRAN_Project](https://github.com/5G-MAG/rt-srsRAN_Project) for the gNB
-and [srsRAN_4G](https://github.com/5G-MAG/srsRAN_4G) for the UE, using the `5mbs` branch.
+This folder provides a very simple HTTP server that implements a basic set of object downloads with varying redirections. This server is intended to be used for development when static responses are enough to implement or test a new feature.
 
-## Installing Dependencies
+Information can be found [here](./express-mock-media-server/).
 
-Follow the [steps for your distribution](https://docs.docker.com/engine/install/) and install the docker buildx and
-docker compose plugins
+## Insomnia collection
 
-## Downloading
+This folder contains Insomnia REST API collections for testing and exploring the 5G-MAG MBS network functions. Each collection targets a specific network function and covers the relevant 3GPP service APIs.
 
-The MBS Docker images can be obtained:
+Information can be found [here](./insomnia/).
 
-* From the 5G-MAG's GitHub Container Registry and pulled with Docker (`docker pull ghcr.io/NAMESPACE/IMAGE_NAME`). This
-  step is not needed if you run Docker compose as per the [Running](#running) section below.
-* The docker images can also be obtained by cloning the repository:
+## TMUX Setup
 
-```bash
-  cd ~
-  git clone --recurse-submodules https://github.com/5G-MAG/rt-mbs-examples.git
-```
+This folder contains scripts for tmux an open-source terminal multiplexer that allows users to manage multiple terminal sessions, windows, and panes from a single screen or terminal window.
 
-## Building
+Information can be found [here](./scripts/tmux/).
 
-You can skip this step if you decide to download the images rather than cloning the repository.
+## Acknowledgements
 
-> [!NOTE]
-> This method uses the `docker-bake.hcl` file and requires `docker-buildx-plugin`
-
-> [!IMPORTANT]
-> When building the images, modify the `FIVEG_MAG_MBS_VERSION` and `OPEN5GS_VERSION` variables in the `.env` file to use
-> a specific version.
-
-From the top level directory of the repository run:
-
-```bash
-  cd rt-mbs-examples
-  docker buildx bake
-```
-
-## Running
-
-Two different deployments have been created to test this project, `internal` and `external`:
-- The `internal` deployment consists of an end-to-end setup consisting of a 5G Core with MBS features, a gNB and a UE. Everything ready to be tested on the *internal* network using only the components deployed.
-- The `external` deployment consists of only the 5G Core with MBS features. It is configured to accept connections of *external* gNBs.
-
-First modify the `.env` file. Change the `DOCKER_HOST_IP=<your_host_ip_address>` with your machine's IP address, like
-this `DOCKER_HOST_IP=192.168.1.2`. This lets the UPF + MB-UPF use your machine's Internet connection to route the
-traffic using NAT.
-
-To run the Docker images, select either the `internal` deployment or the `external` deployment and from the top level
-directory of the repository:
-
-### Internal Deployment
-
-```bash
-# to use the internal deployment
-docker compose -f compose-files/internal/docker-compose.yaml --env-file=.env up -d
-```
-
-```bash
-# to tear down the internal deployment
-docker compose -f compose-files/internal/docker-compose.yaml --env-file=.env down
-```
-
-### External Deployment
-
-```bash
-# to use the external deployment
-docker compose -f compose-files/external/docker-compose.yaml --env-file=.env up -d
-```
-
-```bash
-# to tear down the external deployment
-docker compose -f compose-files/external/docker-compose.yaml --env-file=.env down
-```
+The reference implementation of the MBS features was partially funded by the European Union through the project 6G-SANDBOX (Grant Agreement 101096328) and by the European Space Agency (ESA) through the project "Requirements consolidation and design concepts for future NTN MBS systems" (ESA Contract No. 5001042231).

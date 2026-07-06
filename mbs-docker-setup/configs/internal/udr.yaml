@@ -1,0 +1,16 @@
+db_uri: mongodb://db.5g-mag.org/open5gs
+
+logger:
+  file:
+    path: var/log/open5gs/udr.log
+
+global:
+
+udr:
+  sbi:
+    server:
+      - address: udr.5g-mag.org
+        port: 80
+    client:
+      nrf:
+        - uri: http://nrf_5gmag.5g-mag.org:80
