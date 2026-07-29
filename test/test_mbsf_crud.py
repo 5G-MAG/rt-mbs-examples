@@ -16,8 +16,7 @@ https://hub.5g-mag.com/Getting-Started/pages/5g-multicast-broadcast-services/tut
 
 Requirements:
     pytest
-    python3-pycurl
-
+    httpcore
 1. Start all needed NFs with: bash ~/rt-mbs-examples/scripts/tmux/mbs-function-tutorial.sh
 2. Set the MBSF address, protocol, and port in config.toml under [mbsf]
 
@@ -28,21 +27,21 @@ Run:
 from __future__ import annotations
 
 import copy
-import io
 import json
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
-from utils import config
 from uuid import uuid4
 
-import pycurl
+import httpcore
 
+from utils import config
+from utils.http2_prior_knowledge import setup_http2_pool
 
 
 CONFIG = config.config_from_file(Path(__file__).with_name("config.toml"))
 MBSF_BASE_URL = (f"{CONFIG['mbsf']['protocol']}://{CONFIG['mbsf']['address']}:"f"{CONFIG['mbsf']['port']}")
-
+HTTP2_POOL = setup_http2_pool()
 
 USER_SERVICES_URL = f"{MBSF_BASE_URL}/nmbsf-mbs-us/v1/mbs-user-services"
 INGEST_SESSIONS_URL = f"{MBSF_BASE_URL}/nmbsf-mbs-ud-ingest/v1/sessions"
@@ -89,53 +88,36 @@ STREAMING_INGEST_JSON = {
     },
 }
 
+def _decode_headers(raw_headers: list[tuple[bytes, bytes]]) -> dict[str, str]:
+    return {
+        name.decode("iso-8859-1").lower(): value.decode("iso-8859-1")
+        for name, value in raw_headers
+    }
+
+
 def _request(
     method: str,
     url: str,
     payload: dict[str, Any] | None = None,
 ) -> SimpleNamespace:
-    body = io.BytesIO()
-    headers: dict[str, str] = {}
-
-    def receive_header(raw_line: bytes) -> int:
-        line = raw_line.decode("iso-8859-1").strip()
-        if line.startswith("HTTP/"):
-            headers.clear()
-        elif ":" in line:
-            name, value = line.split(":", 1)
-            headers[name.strip().lower()] = value.strip()
-        return len(raw_line)
-
-    curl = pycurl.Curl()
+    headers = {"Content-Type": "application/json"} if payload is not None else None
+    content = json.dumps(payload).encode("utf-8") if payload is not None else None
     try:
-        curl.setopt(pycurl.URL, url)
-        curl.setopt(pycurl.CUSTOMREQUEST, method)
-        curl.setopt(pycurl.HTTP_VERSION, pycurl.CURL_HTTP_VERSION_2_PRIOR_KNOWLEDGE)
-        curl.setopt(pycurl.WRITEDATA, body)
-        curl.setopt(pycurl.HEADERFUNCTION, receive_header)
-
-        if payload is not None:
-            curl.setopt(pycurl.HTTPHEADER, ["Content-Type: application/json"])
-            curl.setopt(pycurl.POSTFIELDS, json.dumps(payload).encode("utf-8"))
-
-        curl.perform()
-        status = curl.getinfo(pycurl.RESPONSE_CODE)
-    except pycurl.error as exc:
+        response = HTTP2_POOL.request(method, url, headers=headers, content=content)
+    except (httpcore.NetworkError, httpcore.ProtocolError) as exc:
         raise AssertionError(
             f"HTTP request failed\nmethod: {method}\nurl: {url}\nerror: {exc}"
         ) from exc
-    finally:
-        curl.close()
 
-    text = body.getvalue().decode("utf-8", errors="replace")
+    text = response.content.decode("utf-8", errors="replace")
     try:
         json_body: Any | None = json.loads(text) if text.strip() else None
     except json.JSONDecodeError:
         json_body = None
 
     return SimpleNamespace(
-        status=status,
-        headers=headers,
+        status=response.status,
+        headers=_decode_headers(response.headers),
         text=text,
         json_body=json_body,
     )
