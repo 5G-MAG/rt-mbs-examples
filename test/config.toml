@@ -5,3 +5,8 @@ log_level = "DEBUG"
 address = "smf-mb-smf.5g-mag.org"
 protocol = "http"
 port = 80
+
+[mbsf]
+address = "127.0.0.67"
+protocol = "http"
+port = 7777

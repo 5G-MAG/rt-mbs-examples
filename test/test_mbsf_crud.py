@@ -1,4 +1,16 @@
 """
+
+
+License: 5G-MAG Public License (v1.0)
+Author: Erik Gaida
+Copyright: (C) 2026 Fraunhofer  FOKUS
+For full license terms please see the LICENSE file distributed with this
+program. If this file is missing then the license can be retrieved from
+https://drive.google.com/file/d/1cinCiA778IErENZ3JN52VFW-1ffHpx7Z/view
+
+
+
+
 this file is a an end-to-end CRUD test for the MBSF APIs and refers to the Tutorial:
 https://hub.5g-mag.com/Getting-Started/pages/5g-multicast-broadcast-services/tutorials/mbsf.html
 
@@ -7,7 +19,7 @@ Requirements:
     python3-pycurl
 
 1. Start all needed NFs with: bash ~/rt-mbs-examples/scripts/tmux/mbs-function-tutorial.sh
-2. Set the MBSF_BASE_URL to the correct IP address
+2. Set the MBSF address, protocol, and port in config.toml under [mbsf]
 
 Run:
     pytest -v -s ~/rt-mbs-examples/test/test_mbsf_crud.py
@@ -18,15 +30,18 @@ from __future__ import annotations
 import copy
 import io
 import json
-import os
+from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
+from utils import config
 from uuid import uuid4
+
 import pycurl
 
 
 
-MBSF_BASE_URL = "Change this to the IP address of your MBSF instance"
+CONFIG = config.config_from_file(Path(__file__).with_name("config.toml"))
+MBSF_BASE_URL = (f"{CONFIG['mbsf']['protocol']}://{CONFIG['mbsf']['address']}:"f"{CONFIG['mbsf']['port']}")
 
 
 USER_SERVICES_URL = f"{MBSF_BASE_URL}/nmbsf-mbs-us/v1/mbs-user-services"
@@ -73,11 +88,6 @@ STREAMING_INGEST_JSON = {
         }
     },
 }
-
-if MBSF_BASE_URL == "Change this to the IP address of your MBSF instance":
-    raise RuntimeError(
-        "Set MBSF_BASE_URL to your MBSF URL, for example http://127.0.0.67:7777"
-    )
 
 def _request(
     method: str,
