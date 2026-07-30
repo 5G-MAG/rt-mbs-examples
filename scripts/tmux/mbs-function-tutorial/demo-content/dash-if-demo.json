@@ -1,0 +1,30 @@
+{
+  "description": "Demo MBS template: broadcast a real live DASH stream (DASH-IF's livesim2 WAVE test vector, 'croatia' 1920x1080@25fps) over 5G MBS. One Ingest Session in PULL/STREAMING mode -- MBSTF fetches the manifest + segments directly from DASH-IF's server and FLUTE-delivers them. Load, then Activate the session in the portal. Verified end-to-end against a real running rt-mbs stack (MBSF, MBSTF, MB-SMF/MB-UPF, rt-mbs-client, rt-mbs-application).",
+
+  "service": {
+    "extServiceIds": ["https://example.broadcaster.com/services/dash-if-demo"],
+    "servType": "MULTICAST",
+    "servClass": "urn:oma:bcast:oma_bsc:st:1.0",
+    "servAnnModes": ["VIA_MBS_5", "VIA_MBS_DISTRIBUTION_SESSION"],
+    "servNameDescs": [
+      { "servName": "DASH-IF Demo", "servDescrip": "Live DASH test stream (croatia, 1920x1080, 25fps)", "language": "eng" }
+    ],
+    "mainServLang": "eng"
+  },
+
+  "sessions": [
+    {
+      "distSessKey": "AP_MBS_SESSION_1",
+      "sourceIp": "127.0.0.50",
+      "destIp": "232.50.0.1",
+      "distSessState": "INACTIVE",
+      "maxBitrate": "10 Mbps",
+      "distrMethod": "OBJECT",
+      "opMode": "STREAMING",
+      "acqMethod": "PULL",
+      "ingUri": "https://livesim2.dashif.org/livesim2/WAVE/vectors/cfhd_sets/12.5_25_50/t1/2022-10-17/",
+      "acqIds": "stream.mpd",
+      "distrUri": "http://127.0.0.2/"
+    }
+  ]
+}
