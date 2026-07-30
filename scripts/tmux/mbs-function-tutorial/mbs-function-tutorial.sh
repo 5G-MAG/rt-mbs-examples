@@ -21,12 +21,22 @@ PANE_PIDS=()
 # 2. PRE-FLIGHT CHECKS & CLEANUP
 # ==============================================================================
 echo "--- Initializing Setup ---"
-# Prompt for sudo password once
-read -s -p "[sudo] password for $(whoami): " SUDO_PASS
-echo ""
+INTERACTIVE=1
+[[ -t 0 ]] || INTERACTIVE=0
 
-# Validate password
-echo "$SUDO_PASS" | sudo -S -v || { echo "Invalid password"; exit 1; }
+if sudo -n true 2>/dev/null; then
+    echo "Passwordless sudo detected; skipping password prompt."
+    SUDO_PASS=""
+elif [[ "$INTERACTIVE" -eq 1 ]]; then
+    # Prompt for sudo password once
+    read -s -p "[sudo] password for $(whoami): " SUDO_PASS
+    echo ""
+    # Validate password
+    echo "$SUDO_PASS" | sudo -S -v || { echo "Invalid password"; exit 1; }
+else
+    echo "sudo requires a password and this is a non-interactive run; aborting."
+    exit 1
+fi
 
 echo "--- Ensuring log directory exists and is writable ---"
 echo "$SUDO_PASS" | sudo -S mkdir -p "$LOG_DIR"
@@ -106,7 +116,9 @@ cleanup() {
     tmux kill-session -t "$SESSION" 2>/dev/null
 }
 
-trap cleanup EXIT
+if [[ "$INTERACTIVE" -eq 1 ]]; then
+    trap cleanup EXIT
+fi
 
 # ==============================================================================
 # 4. DOCROOT SETUP
@@ -202,4 +214,9 @@ done
 echo "--- Environment started successfully ---"
 # Clear the password from memory for safety
 unset SUDO_PASS
-tmux attach -t "$SESSION"
+if [[ "$INTERACTIVE" -eq 1 ]]; then
+    tmux attach -t "$SESSION"
+else
+    echo "Non-interactive run: leaving tmux session '$SESSION' detached and running."
+    echo "Attach later with: tmux attach -t $SESSION"
+fi
