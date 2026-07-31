@@ -12,6 +12,12 @@ MBSF_BASE_DIR="Your path to /rt-mbs-function/build/src/mbsf"
 MBSF_CONFIG_DIR="Your path to /rt-mbs-function/build/src/mbsf"
 MEDIA_SERVER_DIR="Your path to /rt-mbs-examples/express-mock-media-server"
 LOG_DIR="/var/local/log/open5gs"
+# open5gs source tree's misc/netconf.sh (NOT the install tree) -- creates/addresses/brings up
+# the ogstun TUN interface MB-UPF needs. This is a standard, separate open5gs prerequisite,
+# not something this tutorial script has ever set up itself -- leave empty to skip and handle
+# it yourself if you already manage networking another way (e.g. it survives across restarts
+# of this script, but not across a reboot or if something tears ogstun down).
+OPEN5GS_NETCONF_SCRIPT="Your path to /open5gs_mbs/misc/netconf.sh"
 
 # Capture IDs for clean exit
 PANE_PGIDS=()
@@ -160,6 +166,27 @@ else
 fi
 
 echo "Docroot ready: $DOCROOT"
+
+# ==============================================================================
+# 4c. MB-UPF NETWORK SETUP (ogstun)
+# ==============================================================================
+# MB-UPF needs the ogstun TUN interface created, addressed, and up before it starts, or its
+# multicast_router feature initialises against a nonexistent/misconfigured interface. This is
+# a standard open5gs prerequisite (misc/netconf.sh in the open5gs *source* tree, not the
+# install tree), not something specific to MBS -- it's easy to miss if you've never had to run
+# vanilla open5gs before.
+if [[ -n "$OPEN5GS_NETCONF_SCRIPT" && "$OPEN5GS_NETCONF_SCRIPT" != "Your path"* ]]; then
+    if [[ -x "$OPEN5GS_NETCONF_SCRIPT" || -f "$OPEN5GS_NETCONF_SCRIPT" ]]; then
+        echo "--- Configuring ogstun via netconf.sh ---"
+        echo "$SUDO_PASS" | sudo -S "$OPEN5GS_NETCONF_SCRIPT"
+    else
+        echo "Warning: OPEN5GS_NETCONF_SCRIPT is set but not found at $OPEN5GS_NETCONF_SCRIPT -- skipping."
+    fi
+else
+    echo "Note: OPEN5GS_NETCONF_SCRIPT is not configured -- assuming ogstun is already set up."
+    echo "      If MB-UPF's multicast forwarding doesn't work, run open5gs's misc/netconf.sh"
+    echo "      once (as root) before starting this script, or set OPEN5GS_NETCONF_SCRIPT above."
+fi
 
 # ==============================================================================
 # 5. EXECUTION
