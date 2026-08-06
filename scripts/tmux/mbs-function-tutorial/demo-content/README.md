@@ -64,16 +64,41 @@ the DASH/HLS player. If the Play button doesn't do anything, jump straight to
 
 ### How delivery actually reaches the client
 
-MBSTF tunnels content to MB-UPF (`ingressTunAddrReq`, always requested); MB-UPF decapsulates it
-and re-emits it as genuine IP multicast on its own "lower-layer SSM" -- this is the 3GPP-standard
-**FSSM** PFCP Apply Action (TS 29.244, "Forward packets to lower layer SSM"), not a shortcut or
-a bypass of MB-UPF. The *other* standard delivery mode, **MBSU** (unicast replication per gNB via
-GTP-U/the `ogstun` TUN interface), is never used anywhere in this stack -- so `rt-mbs-client`'s
-`flute_iface` should point at whatever interface actually carries that re-emitted multicast (on a
-single-host loopback setup, that's `lo`/`127.0.0.1`, *not* `ogstun` -- `ogstun` is irrelevant to
-this delivery mode). Across real hosts, what matters is that the network between MB-UPF and the
-receiver is genuinely multicast-capable (IGMP allowed through firewalls, a querier present if
-switches do IGMP snooping, correct TTL) -- not anything GTP-U/tunnel-shaped.
+MBSTF tunnels content to MB-UPF (`ingressTunAddrReq`, always requested); MB-UPF forwards it per
+the 3GPP-standard **FSSM** PFCP Apply Action (TS 29.244, "Forward packets to lower layer SSM").
+**Per spec, FSSM output is genuine GTP-U**: MB-UPF wraps the data in a GTP-U header carrying a
+"GTP-U Common TEID" (C-TEID) and sends it to a "Low Layer Source Specific Multicast" (LLSSM)
+address that MB-UPF itself allocates -- deliberately distinct from the multicast address the AF/
+MBSF configured for the FLUTE session. In open5gs this is real code, not a paper mechanism: the
+FSSM Apply Action (`lib/pfcp/handler.c`) calls the exact same GTP-U send path
+(`ogs_pfcp_send_g_pdu` -> `ogs_gtp2_send_user_plane`, `lib/pfcp/path.c`) used for ordinary per-UE
+GTP-U forwarding.
+
+**Verified on the wire in this exact tutorial setup** (unfiltered capture during a live DASH-IF
+session, decoded byte-for-byte): MB-UPF genuinely emits this GTP-U traffic. A packet captured
+going to `239.0.0.5:2152` (source `127.0.0.7`, MB-UPF) decodes as `30 ff <len> <teid>` -- GTPv1,
+message type `0xff` (G-PDU), a real TEID -- with the *entire original multicast datagram*
+(source `127.0.0.50`, dest `232.50.0.1`, the AF/MBSF-configured FLUTE SSM) as its payload. That's
+TS 29.244's FSSM mechanism exactly as specified, running live, not just present in the code.
+
+**`rt-mbs-client` never touches any of that.** It subscribes directly to the FLUTE-layer address
+(`232.50.0.1`, via `flute_iface`) and a plain, unencapsulated copy of the same datagram is also
+observed there independently of the GTP-U/LLSSM stream -- confirmed by decoding the inner payload
+of the GTP-U packet and finding it byte-identical to what arrives on `232.50.0.1` directly. Per
+TS 23.247, decapsulating N3mb's GTP-U is NG-RAN's job (Shared MBS Traffic Delivery terminates at
+NG-RAN, which delivers to the UE over the radio interface) -- the MBS Client (this repo) is a
+UE-side, above-radio component and is never specified to see GTP-U or the LLSSM address at all.
+Exactly which UPF code path re-emits the plain copy (as opposed to routing only through the
+GTP-U/FAR path) wasn't traced further -- it doesn't change what the client needs to do, which is
+simply to keep subscribing to the FLUTE-layer address it always has.
+
+Note also that `flute_iface` is consumed as an **IP address**, not an interface name, despite the
+parameter name (`rt-mbs-client/lib/libflute/src/Receiver.cpp`'s `join_group`/
+`IP_ADD_SOURCE_MEMBERSHIP` calls both run it through `boost::asio::ip::make_address(iface)`) --
+`"lo"` only "works" here because loopback's own address `127.0.0.1` is what's meant, not the
+interface name itself. Across real hosts, what matters is that the network between wherever the
+FLUTE-layer multicast actually originates and the receiver is genuinely multicast-capable (IGMP
+allowed through firewalls, a querier present if switches do IGMP snooping, correct TTL).
 
 ### Known gotchas
 
