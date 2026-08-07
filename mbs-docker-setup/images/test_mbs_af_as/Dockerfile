@@ -17,10 +17,12 @@ COPY ./images/test_mbs_af_as/*.mp4 /
 COPY ./images/test_mbs_af_as/sendtraffic /usr/local/bin/sendtraffic
 COPY ./images/test_mbs_af_as/sendrequest /usr/local/bin/sendrequest
 COPY ./images/test_mbs_af_as/sendvideo /usr/local/bin/sendvideo
+COPY ./images/test_mbs_af_as/manage-mbs-user-service /usr/local/bin/manage-mbs-user-service
 
 RUN chmod +x /usr/local/bin/sendtraffic
 RUN chmod +x /usr/local/bin/sendrequest
 RUN chmod +x /usr/local/bin/sendvideo
+RUN chmod +x /usr/local/bin/manage-mbs-user-service
  
 # copy test requirements.txt file
 COPY ./test/requirements.txt requirements.txt

@@ -1,0 +1,204 @@
+#!/bin/bash
+#
+# 5G-MAG Reference Tools: Script to create and delete MBS User Service
+# ===================================================================
+#
+# Author(s): Dev Audsin <dev.audsin@bbc.co.uk>
+# Copyright: ©2026 British Broadcasting Corporation
+#   License: 5G-MAG Public License v1.0
+#
+# Licensed under the License terms and conditions for use, reproduction, and
+# distribution of 5G-MAG software (the “License”).  You may not use this file
+# except in compliance with the License.  You may obtain a copy of the License at
+# https://www.5g-mag.com/reference-tools.  Unless required by applicable law or
+# agreed to in writing, software distributed under the License is distributed on
+# an “AS IS” BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+# or implied.
+#
+# See the License for the specific language governing permissions and limitations
+# under the License.
+#################################################################################
+#
+# This script will create a MBS User Service, MBS User Data Ingest Session 
+# and delete them after a certain amount of time. 
+
+
+mbs_user_service_api_server="mbsf.5g-mag.org"
+mbs_user_service_api_server_port="7777"
+
+tmp_headers_file=
+
+test_mbs_af_as_ip=$(ip -json address show eth0 | jq --raw-output '.[0].addr_info[0].local')
+
+create_temp_file() {
+
+    tmp_headers_file=$(mktemp)
+
+    if [[ -z "$tmp_headers_file" || ! -f "$tmp_headers_file"  || ! -w "$tmp_headers_file" ]]; then
+        echo "Failed to create file to write response headers."
+	rm -f "$tmp_headers_file"
+	exit 1
+    fi
+
+}
+
+delete_temp_file() {
+    if [[ -e "$tmp_headers_file" ]]; then
+        rm -f "$tmp_headers_file"
+    fi
+}
+
+get_id_from_response_header() {
+    local resp_location
+
+    resp_location=$(grep -i '^location:' "$tmp_headers_file")
+    resp_location="${resp_location#*: }"
+    resp_location="${resp_location//$'\r'/}"
+
+    if [[ -z "$resp_location" ]]; then
+        return 1
+    fi
+
+    echo "${resp_location##*/}"
+}
+
+send_request() {
+    local service="${1:-service}"
+    local endpoint="$2"
+    local request="${3:-""}"
+    local method="${4:-POST}"
+    local id="$5"
+    local base_url=""$mbs_user_service_api_server":"$mbs_user_service_api_server_port"/"
+
+    local curl_args=(
+        --silent
+        --http2-prior-knowledge
+        --request "$method"
+        --header "User-Agent: AF"
+	-D "$tmp_headers_file"
+    )
+
+    if [[ "$method" == "POST" && -n "$request" ]]; then
+        curl_args+=(
+            --header "Content-Type: application/json"
+            --data "$request"
+        )
+    fi
+
+    local url="${mbs_user_service_api_server}:${mbs_user_service_api_server_port}/${service}/v1/${endpoint}"
+
+    if [[ "$method" == "DELETE" && -n "$id" ]]; then
+        url="${url}/${id}"
+    fi
+
+    curl "${curl_args[@]}" \
+        "$url"
+}
+
+create_temp_file
+
+request='{
+  "extServiceIds": [ "https://example.com/service1", "https://example.com/service2", "https://example.com/service3" ],
+  "servType":  "MULTICAST",
+  "servClass": "urn:oma:bcast:oma_bsc:st:1.0",
+  "servAnnModes": ["VIA_MBS_DISTRIBUTION_SESSION"],
+  "servNameDescs": [
+    {
+      "servName": "Example Service",
+      "servDescrip": "This is an example service",
+      "language": "eng"
+    },
+    {
+      "servName": "Exemple de service 2",
+      "servDescrip": "Voici un exemple de service 2",
+      "language": "fra"
+    }
+
+  ]
+
+}'
+
+printf '\n Request to create MBS User Service: \n\n'
+echo "${request}"
+printf '\n Recieved response: \n\n'
+
+response=$(send_request "nmbsf-mbs-us" "mbs-user-services" "$request" "POST")
+printf '%s\n' "$response"
+
+if mbs_user_service_id=$(get_id_from_response_header); then
+   
+   printf '\n MBS User Service created with id: %s\n\n' "$mbs_user_service_id"
+else 
+     	
+   printf '\n Failed to get the MBS User service ID \n\n'
+   delete_temp_file
+   exit 1
+fi   
+
+request_create_mbs_user_data_ing_session='{
+  "mbsUserServId": "",
+  "mbsDisSessInfos": {
+    "AP_MBS_SESSION_1": {
+      "mbsSessionId": {
+        "ssm": {
+          "sourceIpAddr": {
+            "ipv4Addr": "127.0.0.5"
+          },
+          "destIpAddr": {
+            "ipv4Addr": "232.10.0.5"
+          }
+        }
+      },
+      "mbsDistSessState": "ACTIVE",
+      "maxContBitRate": "10 Mbps",
+      "distrMethod": "OBJECT",
+      "objDistrInfo": {
+        "operatingMode": "STREAMING",
+        "objAcqMethod": "PULL",
+        "objIngUri": "https://livesim2.dashif.org/livesim2/WAVE/vectors/cfhd_sets/12.5_25_50/t1/2022-10-17/",
+        "objAcqIds": [
+          "stream.mpd"
+        ],
+        "objDistUri": "http://localhost:8081/"
+      }
+    }
+  } 
+}'
+
+request_create_mbs_user_data_ing_session=$(jq --arg mbs_user_service_id "$mbs_user_service_id" '.mbsUserServId = $mbs_user_service_id' <<< "$request_create_mbs_user_data_ing_session")
+request_create_mbs_user_data_ing_session=$(jq --arg test_mbs_af_as_ip "$test_mbs_af_as_ip" \
+  '(.. | select(has("sourceIpAddr")?) .sourceIpAddr.ipv4Addr) |= $test_mbs_af_as_ip' \
+  <<< "$request_create_mbs_user_data_ing_session")
+
+
+printf '\n Request to create MBS User Data Ingest Session: \n\n'
+echo "${request_create_mbs_user_data_ing_session}"
+response_create_mbs_user_data_ing_session=$(send_request "nmbsf-mbs-ud-ingest" "sessions" "$request_create_mbs_user_data_ing_session" "POST")
+printf '\n Response received: \n\n'
+printf '%s\n' "$response_create_mbs_user_data_ing_session"
+
+if mbs_user_data_ing_session_id=$(get_id_from_response_header); then
+   printf '\n MBS User Data Ing Session created with id: %s\n\n' "$mbs_user_data_ing_session_id"
+else
+   echo "Failed to get the MBS User Data IngSession ID"
+   response_delete_user_service=$(send_request "nmbsf-mbs-us" "mbs-user-services" "" "DELETE" "$mbs_user_service_id")
+   printf '\n Deleted MBS User Service: %s\n\n' "$mbs_user_service_id"
+   delete_temp_file
+   exit 1
+fi
+
+sleep 60
+
+response_delete_mbs_user_data_ing_session=$(send_request "nmbsf-mbs-ud-ingest" "sessions" "" "DELETE" "$mbs_user_data_ing_session_id")
+
+printf '\n Deleted MBS User Data Ing Session: %s\n\n' "$mbs_user_data_ing_session_id"
+
+sleep 30
+
+response_delete_mbs_user_service=$(send_request "nmbsf-mbs-us" "mbs-user-services" "" "DELETE" "$mbs_user_service_id")
+printf '\n Deleted MBS User Service: %s\n\n' "$mbs_user_service_id"
+
+delete_temp_file
+
+#newline
+echo

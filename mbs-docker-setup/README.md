@@ -113,6 +113,20 @@ docker volume create open5gs_db_config
 
 Then start the stack:
 
+### To start and stop MBS User Service (with MBSF and MBSTF)
+
+```bash
+# to use the internal deployment
+docker compose -f compose-files/internal/docker-compose-mbs-user-service.yml --env-file=.env up -d
+```
+
+```bash
+# to tear down the internal deployment
+docker compose -f compose-files/internal/docker-compose-mbs-user-service.yml --env-file=.env down
+```
+
+### To start and stop MBS
+
 ```bash
 # to use the internal deployment
 docker compose -f compose-files/internal/docker-compose-mbs.yml --env-file=.env up -d
@@ -122,6 +136,16 @@ docker compose -f compose-files/internal/docker-compose-mbs.yml --env-file=.env 
 # to tear down the internal deployment
 docker compose -f compose-files/internal/docker-compose-mbs.yml --env-file=.env down
 ```
+
+### Provision MBS User Service
+
+To provision MBS User Service:
+
+```bash
+docker exec -it test_mbs_af_as manage-mbs-user-service
+```
+This creates a MBS User Service, MBS User Data Ingest Session and delete them after a certain amount of time.
+
 ### Establishing a 5G-MBS Broadcast session and sending video
 
 To create a 5G-MBS Broadcast session:

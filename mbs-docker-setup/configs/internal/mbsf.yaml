@@ -1,0 +1,241 @@
+logger:
+  file:
+    path: /var/log/mbsf.log
+  level: debug   # fatal|error|warn|info(default)|debug|trace
+
+global:
+  max:
+    ue: 128  # The number of UE can be increased depending on memory size.
+
+mbsf:
+  sbi:
+    server:
+      - address: mbsf.5g-mag.org
+        port: 80
+    client:
+      nrf:
+        - uri: http://nrf_5gmag.5g-mag.org:80
+
+  mbsUserServices:
+    - addr: mbsf.5g-mag.org
+      port: 7777
+
+  mbsUserDataIngestSession:
+    - addr: mbsf.5g-mag.org
+      port: 7777
+
+  serverResponseCacheControl:
+    - defaultMaxAge: 60
+      mbsUserServiceMaxAge: 60
+      mbsUserDataIngestSessionMaxAge: 60
+
+  userServiceAnnouncement:
+    announcementRepetitionTime: 10000
+    ssmPort: 3000
+    ssmSourceAddress: 127.0.0.67
+    ssmDestinationAddress: 232.0.0.1
+    mbr: 10 Mbps
+    docRoot: /var/cache/mbsf/user-service-announcements
+
+  activeDistributionSessionsSoftLimit: 1000
+  activeUserServicesSoftLimit: 50
+  actPeriodGoToEstablishedState: 60
+  notificationListener:
+    - addr: mbsf.5g-mag.org
+      port: 0
+ 
+
+mbsaf:
+  server:
+    - addr: mbsf.5g-mag.org  # MBS-11 (to MBSTF)
+      port: 8888
+#    - addr: 192.168.0.1 # MBS-1 (to MBS Application Provider)
+#      port: 8888
+#    - addr: 10.0.45.1   # MBS-5 (to MBSF Client in UE)
+#      port: 8888
+
+################################################################################
+# SBI Server
+################################################################################
+#  o Bind to the address on the eth0 and advertise as open5gs-mbsf.svc.local
+#  sbi:
+#    server:
+#      - dev:eth0
+#        advertise: open5gs-mbsf.svc.local
+#
+#  o Specify a custom port number 7777 while binding to the given address
+#  sbi:
+#    server:
+#      - address: mbsf.localdomain
+#        port: 7777
+#
+#  o Bind to 127.0.0.67 and advertise as open5gs-mbsf.svc.local
+#  sbi:
+#    server:
+#      - address: 127.0.0.67
+#        port: 7777
+#        advertise: open5gs-mbsf.svc.local
+#
+#  o Bind to port 7777 but advertise with a different port number 8888
+#  sbi:
+#    server:
+#      - address: 127.0.0.67
+#        port: 7777
+#        advertise: open5gs-mbsf.svc.local:8888
+#
+################################################################################
+# SBI Client
+################################################################################
+#  o Direct Communication with NRF
+#  sbi:
+#    client:
+#      nrf:
+#        - uri: http://127.0.0.10:7777
+#
+#  o Indirect Communication by Delegating to SCP
+#  sbi:
+#    client:
+#      scp:
+#        - uri: http://127.0.0.200:7777
+#
+#  o Indirect Communication without Delegation
+#  sbi:
+#    client:
+#      nrf:
+#        - uri: http://127.0.0.10:7777
+#      scp:
+#        - uri: http://127.0.0.200:7777
+#      delegated:
+#        nrf:
+#          nfm: no    # Directly communicate NRF management functions
+#          disc: no   # Directly communicate NRF discovery
+#        scp:
+#          next: no   # Do not delegate to SCP for next-hop
+#
+#  o Indirect Communication with Delegated Discovery
+#  sbi:
+#    client:
+#      nrf:
+#        - uri: http://127.0.0.10:7777
+#      scp:
+#        - uri: http://127.0.0.200:7777
+#      delegated:
+#        nrf:
+#          nfm: no    # Directly communicate NRF management functions
+#          disc: yes  # Delegate discovery to SCP
+#        scp:
+#          next: yes  # Delegate to SCP for next-hop communications
+#
+#  o Default delegation: all communications are delegated to the SCP
+#  sbi:
+#    client:
+#      nrf:
+#        - uri: http://127.0.0.10:7777
+#      scp:
+#        - uri: http://127.0.0.200:7777
+#      # No 'delegated' section; defaults to AUTO delegation
+#
+################################################################################
+# Metrics
+################################################################################
+#  o Enable Prometheus metrics server (default port 9090)
+#  mbsf:
+#    metrics:
+#      server:
+#        - address: 127.0.0.67
+#          port: 9090
+#
+################################################################################
+# HTTPS scheme with TLS
+################################################################################
+#  o Set as default if not individually set
+#  default:
+#    tls:
+#      server:
+#        scheme: https
+#        private_key: /home/ubuntu/mbs-us/rt-mbs-function/install/etc/open5gs/tls/mbsf.key
+#        cert: /home/ubuntu/mbs-us/rt-mbs-function/install/etc/open5gs/tls/mbsf.crt
+#      client:
+#        scheme: https
+#        cacert: /home/ubuntu/mbs-us/rt-mbs-function/install/etc/open5gs/tls/ca.crt
+#  sbi:
+#    server:
+#      - address: mbsf.localdomain
+#    client:
+#      nrf:
+#        - uri: https://nrf.localdomain
+#
+#  o Enable SSL key logging for Wireshark
+#  default:
+#    tls:
+#      server:
+#        scheme: https
+#        private_key: /home/ubuntu/mbs-us/rt-mbs-function/install/etc/open5gs/tls/mbsf.key
+#        cert: /home/ubuntu/mbs-us/rt-mbs-function/install/etc/open5gs/tls/mbsf.crt
+#        sslkeylogfile: /home/ubuntu/mbs-us/rt-mbs-function/install/var/log/open5gs/tls/mbsf-server-sslkeylog.log
+#      client:
+#        scheme: https
+#        cacert: /home/ubuntu/mbs-us/rt-mbs-function/install/etc/open5gs/tls/ca.crt
+#        client_sslkeylogfile: /home/ubuntu/mbs-us/rt-mbs-function/install/var/log/open5gs/tls/mbsf-client-sslkeylog.log
+#  sbi:
+#    server:
+#      - address: mbsf.localdomain
+#    client:
+#      nrf:
+#        - uri: https://nrf.localdomain
+#
+#  o Add client TLS verification
+#  default:
+#    tls:
+#      server:
+#        scheme: https
+#        private_key: /home/ubuntu/mbs-us/rt-mbs-function/install/etc/open5gs/tls/mbsf.key
+#        cert: /home/ubuntu/mbs-us/rt-mbs-function/install/etc/open5gs/tls/mbsf.crt
+#        verify_client: true
+#        verify_client_cacert: /home/ubuntu/mbs-us/rt-mbs-function/install/etc/open5gs/tls/ca.crt
+#      client:
+#        scheme: https
+#        cacert: /home/ubuntu/mbs-us/rt-mbs-function/install/etc/open5gs/tls/ca.crt
+#        client_private_key: /home/ubuntu/mbs-us/rt-mbs-function/install/etc/open5gs/tls/mbsf.key
+#        client_cert: /home/ubuntu/mbs-us/rt-mbs-function/install/etc/open5gs/tls/mbsf.crt
+#  sbi:
+#    server:
+#      - address: mbsf.localdomain
+#    client:
+#      nrf:
+#        - uri: https://nrf.localdomain
+#
+################################################################################
+# MBSF specific examples
+################################################################################
+#  o Multiple mbsUserServices entries
+#  mbsf:
+#    mbsUserServices:
+#      - addr: 10.0.0.1
+#        port: 7777
+#      - addr: 10.0.0.2
+#        port: 7777
+#
+#  o Multiple mbsUserDataIngestSession entries
+#  mbsf:
+#    mbsUserDataIngestSession:
+#      - addr: 10.0.1.1
+#        port: 7777
+#      - addr: 10.0.1.2
+#        port: 7777
+#
+#  o Server response cache control tuning
+#  mbsf:
+#    serverResponseCacheControl:
+#      - defaultMaxAge: 120
+#        mbsUserServiceMaxAge: 60
+#        mbsUserDataIngestSessionMaxAge: 30
+#
+#  o Soft limits and timers
+#  mbsf:
+#    activeDistributionSessionsSoftLimit: 2000
+#    activeUserServicesSoftLimit: 100
+#    actPeriodGoToEstablishedState: 120
+#
+################################################################################
+
