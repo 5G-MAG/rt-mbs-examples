@@ -4,14 +4,26 @@
 # 1. CONFIGURATION
 # ==============================================================================
 SESSION="mbsf-tutorial"
-OPEN5GS_BASE_DIR="Your path to /open5gs_mbs/install/bin"
-OPEN5GS_CONFIG_DIR="Your path to /open5gs_mbs/install/etc/open5gs"
-MBSTF_BASE_DIR="Your path to /rt-mbs-transport-function/build/src/mbstf"
-MBSTF_CONFIG_DIR="Your path to /rt-mbs-transport-function/build/src/mbstf"
-MBSF_BASE_DIR="Your path to /rt-mbs-function/build/src/mbsf"
-MBSF_CONFIG_DIR="Your path to /rt-mbs-function/build/src/mbsf"
-MEDIA_SERVER_DIR="Your path to /rt-mbs-examples/express-mock-media-server"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Default directories, assuming the sibling repositories are checked out in $HOME.
+# Do not edit these for your local setup: copy scripts/tmux/local.env.example to
+# scripts/tmux/local.env (gitignored) and set your paths there instead.
+OPEN5GS_BASE_DIR="$HOME/open5gs_mbs/install/bin"
+OPEN5GS_CONFIG_DIR="$HOME/open5gs_mbs/install/etc/open5gs"
+MBSTF_BASE_DIR="$HOME/rt-mbs-transport-function/build/src/mbstf"
+MBSTF_CONFIG_DIR="$HOME/rt-mbs-transport-function/build/src/mbstf"
+MBSF_BASE_DIR="$HOME/rt-mbs-function/build/src/mbsf"
+MBSF_CONFIG_DIR="$HOME/rt-mbs-function/build/src/mbsf"
+MEDIA_SERVER_DIR="$SCRIPT_DIR/../../../express-mock-media-server"
 LOG_DIR="/var/local/log/open5gs"
+
+# User-specific overrides
+LOCAL_ENV="$SCRIPT_DIR/../local.env"
+if [[ -f "$LOCAL_ENV" ]]; then
+    echo "Loading local overrides from $LOCAL_ENV"
+    source "$LOCAL_ENV"
+fi
 
 # Capture IDs for clean exit
 PANE_PGIDS=()
