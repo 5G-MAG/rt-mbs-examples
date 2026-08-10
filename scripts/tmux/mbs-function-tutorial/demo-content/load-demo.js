@@ -22,12 +22,22 @@ const tmplPath = process.argv[2] || path.join(__dirname, 'dash-if-demo.json');
 const def = JSON.parse(fs.readFileSync(tmplPath, 'utf8'));
 
 // --- portal connection info from its .env ---
+if (!process.env.PORTAL_ENV && !process.env.HOME) {
+  console.error('Neither PORTAL_ENV nor HOME is set; cannot locate the portal .env file. Set PORTAL_ENV=/path/to/.env explicitly.');
+  process.exit(1);
+}
 const envPath = process.env.PORTAL_ENV || path.join(process.env.HOME, 'rt-mbs-application-provider', '.env');
 const env = {};
 try {
-  for (const line of fs.readFileSync(envPath, 'utf8').split('\n')) {
-    const m = /^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/.exec(line);
-    if (m) env[m[1]] = m[2].replace(/^["']|["']$/g, '');
+  for (const rawLine of fs.readFileSync(envPath, 'utf8').split('\n')) {
+    // Strip a trailing \r explicitly (CRLF-saved .env) before matching: JS's
+    // "." already excludes \r, so a bare trailing \r wouldn't stop (.*)$
+    // from matching at all -- and .trim() the captured value afterwards so
+    // a plain trailing space (not \r) doesn't end up inside it either,
+    // which would otherwise defeat the quote-stripping below.
+    const line = rawLine.replace(/\r$/, '');
+    const m = /^\s*([A-Z0-9_]+)\s*=\s*(.*)$/.exec(line);
+    if (m) env[m[1]] = m[2].trim().replace(/^["']|["']$/g, '');
   }
 } catch (e) {
   console.error(`Could not read portal .env at ${envPath}: ${e.message}`);
@@ -68,23 +78,61 @@ function extractId(resp) {
   return loc ? loc.split('/').filter(Boolean).pop() : undefined;
 }
 
+// Fields buildIngestSessionBody actually reads from a template session entry. Anything else
+// present on the object is almost certainly a typo (wrong case, underscore instead of
+// camelCase, ...) that would otherwise silently fall back to a hardcoded default below.
+const KNOWN_SESSION_FIELDS = new Set([
+  'distSessKey', 'sourceIp', 'destIp', 'distSessState', 'maxBitrate', 'distrMethod',
+  'opMode', 'acqMethod', 'ingUri', 'acqIds', 'distrUri',
+]);
+
+const usedDistSessKeys = new Set();
+
 // Translates one of this template's flat, form-shaped session entries (same field names the
 // portal's own "Load Template" button uses -- distSessKey/sourceIp/destIp/...) into the
-// nested mbsDisSessInfos body /ingest-sessions actually expects. distSessState is always
-// forced to INACTIVE regardless of what the template says.
-function buildIngestSessionBody(mbsUserServId, sess) {
+// nested mbsDisSessInfos body /ingest-sessions actually expects (minus mbsUserServId, filled
+// in by the caller once the service has been created). distSessState is always forced to
+// INACTIVE regardless of what the template says.
+function buildIngestSessionBody(sess) {
+  for (const k of Object.keys(sess)) {
+    if (!KNOWN_SESSION_FIELDS.has(k)) {
+      console.error(`FAILED: session has unrecognised field "${k}" -- check for a typo. Known fields: ${[...KNOWN_SESSION_FIELDS].join(', ')}`);
+      process.exit(1);
+    }
+  }
+
   const key = sess.distSessKey || 'AP_MBS_SESSION_1';
+  if (usedDistSessKeys.has(key)) {
+    console.error(`FAILED: distSessKey "${key}" is used by more than one session in this template (set a distinct distSessKey on each).`);
+    process.exit(1);
+  }
+  usedDistSessKeys.add(key);
+
+  const acqMethod = sess.acqMethod || 'PULL';
   const objDistrInfo = {
     operatingMode: sess.opMode || 'STREAMING',
-    objAcqMethod: sess.acqMethod || 'PULL',
+    objAcqMethod: acqMethod,
     objDistrUri: sess.distrUri || 'http://127.0.0.2/',
   };
-  if ((sess.acqMethod || 'PULL') === 'PULL') {
-    objDistrInfo.objIngUri = sess.ingUri || '';
-    objDistrInfo.objAcqIds = String(sess.acqIds || '').split(',').map((s) => s.trim()).filter(Boolean);
+  if (acqMethod === 'PULL') {
+    // MBSF treats these as mandatory for PULL sessions and, per validate.js, crashes the
+    // entire process (taking every other active session down with it) on a missing
+    // mandatory field that the client didn't catch first -- so refuse to send this at all
+    // rather than silently defaulting to an empty/absent value.
+    if (!sess.ingUri) {
+      console.error('FAILED: session has acqMethod PULL but no ingUri.');
+      process.exit(1);
+    }
+    const acqIds = String(sess.acqIds || '').split(/[,;\s]+/).map((s) => s.trim()).filter(Boolean);
+    if (acqIds.length === 0) {
+      console.error('FAILED: session has acqMethod PULL but no acqIds (comma/space-separated list).');
+      process.exit(1);
+    }
+    objDistrInfo.objIngUri = sess.ingUri;
+    objDistrInfo.objAcqIds = acqIds;
   }
   return {
-    mbsUserServId,
+    // mbsUserServId filled in by the caller once the service has been created.
     mbsDisSessInfos: {
       [key]: {
         mbsSessionId: {
@@ -94,7 +142,7 @@ function buildIngestSessionBody(mbsUserServId, sess) {
           },
         },
         mbsDistSessState: 'INACTIVE',
-        maxContBitRate: sess.maxBitrate || '10 Mbps',
+        maxContBitRate: sess.maxBitrate ?? '10 Mbps',
         distrMethod: sess.distrMethod || 'OBJECT',
         objDistrInfo,
       },
@@ -105,6 +153,16 @@ function buildIngestSessionBody(mbsUserServId, sess) {
 
 (async () => {
   console.log(`Loading "${def.description ? def.description.split('.')[0] : tmplPath}" into the portal at ${HOST}:${PORT}`);
+
+  if (!Array.isArray(def.sessions) || def.sessions.length === 0) {
+    console.error(`FAILED: template has no "sessions" array (or it's empty) -- nothing to ingest. Check the template for a typo'd key.`);
+    process.exit(1);
+  }
+  // Build (and so validate) every session body up front, before creating anything on the
+  // portal -- a bad session further down the template shouldn't leave an orphaned service
+  // (or a partial set of sessions) behind on a real, possibly-shared portal.
+  const bodies = def.sessions.map(buildIngestSessionBody);
+
   const svcResp = await req('POST', '/mbs-user-services', def.service || {});
   const serviceId = extractId(svcResp);
   if (!serviceId) {
@@ -114,10 +172,17 @@ function buildIngestSessionBody(mbsUserServId, sess) {
     process.exit(1);
   }
   console.log(`  service created  id=${serviceId}`);
-  for (const sess of def.sessions || []) {
-    const body = buildIngestSessionBody(serviceId, sess);
-    const sResp = await req('POST', '/ingest-sessions', body);
-    console.log(`  ingest session created  id=${extractId(sResp) || '?'}  (${sess.acqMethod || 'PULL'}, ${sess.ingUri || sess.distrUri})`);
+  let missingLocation = false;
+  for (let i = 0; i < bodies.length; i++) {
+    const sess = def.sessions[i];
+    bodies[i].mbsUserServId = serviceId;
+    const sResp = await req('POST', '/ingest-sessions', bodies[i]);
+    const sessionId = extractId(sResp);
+    if (!sessionId) missingLocation = true;
+    console.log(`  ingest session created  id=${sessionId || '?'}  (${sess.acqMethod || 'PULL'}, ${sess.ingUri || sess.distrUri})`);
+  }
+  if (missingLocation) {
+    console.error('\nWARNING: at least one session response had no Location header -- its id is unknown, find it manually in the portal.');
   }
   console.log('\nLoaded, INACTIVE. Open the portal, review the service/session, and Activate to start broadcasting.');
 })().catch((e) => { console.error('FAILED:', e.message); process.exit(1); });

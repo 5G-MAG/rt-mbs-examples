@@ -30,6 +30,13 @@ echo "--- Initializing Setup ---"
 INTERACTIVE=1
 [[ -t 0 ]] || INTERACTIVE=0
 
+# Drop any cached sudo timestamp first: without this, "sudo -n true" can
+# succeed just because the invoking terminal has a recent cached credential,
+# not because NOPASSWD is actually configured -- and that cached credential
+# is tty-scoped, so it won't carry into the new tmux panes started below
+# (e.g. UPF's sudo call would then fail silently with an empty password).
+sudo -K 2>/dev/null
+
 if sudo -n true 2>/dev/null; then
     echo "Passwordless sudo detected; skipping password prompt."
     SUDO_PASS=""
@@ -114,7 +121,14 @@ register_pane_pgid() {
     fi
 }
 
+KEEP_RUNNING=0
+
 cleanup() {
+    # Set only once everything started successfully in non-interactive mode,
+    # where the session is meant to keep running detached after the script
+    # exits. Any other exit (error/signal during setup, or the interactive
+    # tmux attach returning after the user detaches) still tears down.
+    [[ "$KEEP_RUNNING" -eq 1 ]] && return
     echo -e "\n--- Shutting down MBSTF environment ---"
     for pid in "${PANE_PIDS[@]}"; do kill -TERM "$pid" 2>/dev/null; done
     for pgid in "${PANE_PGIDS[@]}"; do kill -TERM -- "-$pgid" 2>/dev/null; done
@@ -122,9 +136,11 @@ cleanup() {
     tmux kill-session -t "$SESSION" 2>/dev/null
 }
 
-if [[ "$INTERACTIVE" -eq 1 ]]; then
-    trap cleanup EXIT
-fi
+# Installed unconditionally so a signal or error during setup always tears
+# down whatever tmux panes/processes were already started, even for
+# non-interactive runs; only the final "leave it running" path (below) is
+# conditional on INTERACTIVE.
+trap cleanup EXIT
 
 # ==============================================================================
 # 4. DOCROOT SETUP
@@ -176,11 +192,18 @@ echo "Docroot ready: $DOCROOT"
 # install tree), not something specific to MBS -- it's easy to miss if you've never had to run
 # vanilla open5gs before.
 if [[ -n "$OPEN5GS_NETCONF_SCRIPT" && "$OPEN5GS_NETCONF_SCRIPT" != "Your path"* ]]; then
-    if [[ -x "$OPEN5GS_NETCONF_SCRIPT" || -f "$OPEN5GS_NETCONF_SCRIPT" ]]; then
+    if [[ -f "$OPEN5GS_NETCONF_SCRIPT" && -r "$OPEN5GS_NETCONF_SCRIPT" ]]; then
         echo "--- Configuring ogstun via netconf.sh ---"
-        echo "$SUDO_PASS" | sudo -S "$OPEN5GS_NETCONF_SCRIPT"
+        # Run via bash explicitly rather than executing the file directly, so
+        # a missing executable bit doesn't turn into a confusing sudo failure.
+        if echo "$SUDO_PASS" | sudo -S bash "$OPEN5GS_NETCONF_SCRIPT"; then
+            echo "ogstun configured."
+        else
+            echo "Warning: $OPEN5GS_NETCONF_SCRIPT failed (exit $?) -- ogstun may not be set up." >&2
+            echo "         MB-UPF's multicast_router feature will likely fail to initialise." >&2
+        fi
     else
-        echo "Warning: OPEN5GS_NETCONF_SCRIPT is set but not found at $OPEN5GS_NETCONF_SCRIPT -- skipping."
+        echo "Warning: OPEN5GS_NETCONF_SCRIPT is set but not found/readable at $OPEN5GS_NETCONF_SCRIPT -- skipping."
     fi
 else
     echo "Note: OPEN5GS_NETCONF_SCRIPT is not configured -- assuming ogstun is already set up."
@@ -244,6 +267,7 @@ unset SUDO_PASS
 if [[ "$INTERACTIVE" -eq 1 ]]; then
     tmux attach -t "$SESSION"
 else
+    KEEP_RUNNING=1
     echo "Non-interactive run: leaving tmux session '$SESSION' detached and running."
     echo "Attach later with: tmux attach -t $SESSION"
 fi
