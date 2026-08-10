@@ -4,7 +4,7 @@
 # ===================================================================
 #
 # Author(s): Dev Audsin <dev.audsin@bbc.co.uk>
-# Copyright: ©2026 British Broadcasting Corporation
+# Copyright (c) 2026 British Broadcasting Corporation
 #   License: 5G-MAG Public License v1.0
 #
 # Licensed under the License terms and conditions for use, reproduction, and
@@ -68,7 +68,6 @@ send_request() {
     local request="${3:-""}"
     local method="${4:-POST}"
     local id="$5"
-    local base_url=""$mbs_user_service_api_server":"$mbs_user_service_api_server_port"/"
 
     local curl_args=(
         --silent
@@ -96,6 +95,7 @@ send_request() {
 }
 
 create_temp_file
+trap delete_temp_file EXIT
 
 request='{
   "extServiceIds": [ "https://example.com/service1", "https://example.com/service2", "https://example.com/service3" ],
