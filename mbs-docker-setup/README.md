@@ -109,11 +109,11 @@ docker volume create open5gs_db_data
 docker volume create open5gs_db_config
 ```
 
-## Running low-level MBS functionality only
+### Running low-level MBS functionality only
 
 A reference deployment (`internal`) has been created to test this project, which consists of an end-to-end setup with a 5G Core (with low-level MBS features provided by an MB-SMF, and MB-UPF and an enhanced AMF), plus an MBS-enhanced gNodeB and an MBS-capable software UE.
 
-### To start and stop MBS
+#### To start and stop MBS
 
 ```bash
 # to use the internal deployment
@@ -125,7 +125,7 @@ docker compose -f compose-files/internal/docker-compose-mbs.yml --env-file=.env 
 docker compose -f compose-files/internal/docker-compose-mbs.yml --env-file=.env down
 ```
 
-### Establishing a 5G-MBS Broadcast session and sending video
+#### Establishing a 5G-MBS Broadcast session and sending video
 
 To create a 5G-MBS Broadcast session:
 
@@ -147,11 +147,11 @@ docker exec -it test_mbs_af_as sendvideo
 ```
 This will use a sample MPEG-2 Transport Stream that is inside the AF container. If everything works, the UE terminal should display as ASCII representation of the decoded video component in the MPEG-2 Transport Stream.
 
-## Running MBS User Services (low-level MBS functionality plus MBSF and MBSTF)
+### Running MBS User Services (low-level MBS functionality plus MBSF and MBSTF)
 
 An alternative reference deployment (`internal`) adds the MBSF and MBSTF on top of the same low-level 5G Core, gNB and UE, to exercise the MBS User Service layer (Nmb10/xMB) instead of driving the low-level session directly.
 
-### To start and stop MBS User Services
+#### To start and stop MBS User Services
 
 ```bash
 # to use the internal deployment
@@ -163,7 +163,7 @@ docker compose -f compose-files/internal/docker-compose-mbs-user-services.yml --
 docker compose -f compose-files/internal/docker-compose-mbs-user-services.yml --env-file=.env down
 ```
 
-### Provision an MBS User Service
+#### Provision an MBS User Service
 
 To provision a test MBS User Service:
 
