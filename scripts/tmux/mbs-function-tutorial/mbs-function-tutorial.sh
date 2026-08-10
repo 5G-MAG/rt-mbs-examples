@@ -19,7 +19,14 @@ MEDIA_SERVER_DIR="$SCRIPT_DIR/../../../express-mock-media-server"
 LOG_DIR="/var/local/log/open5gs"
 
 # User-specific overrides
-source "$SCRIPT_DIR/../lib.sh"
+LOCAL_ENV="$SCRIPT_DIR/../local.env"
+if [[ -f "$LOCAL_ENV" ]]; then
+    echo "Loading local overrides from $LOCAL_ENV"
+    if ! source "$LOCAL_ENV"; then
+        echo "Error: failed to load $LOCAL_ENV (check it for shell syntax errors)." >&2
+        exit 1
+    fi
+fi
 
 if [[ -z "$LOG_DIR" ]]; then
     echo "Error: LOG_DIR is empty. Check local.env." >&2
