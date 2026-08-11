@@ -159,7 +159,11 @@ start() {
     echo "  WARNING: tun_srsue never appeared -- check UE.log for attach failures before rt-mbs-client starts."
   fi
 
-  nsrun rt-mbs-client "$(dirname "$CLIENT_BIN")" "'$CLIENT_BIN' '$CLIENT_CONF'"
+  # Root, not the unprivileged nsrun(): rt-mbs-client.conf's raw_capture_relay (see
+  # TunRawRelay.h / https://github.com/5G-MAG/rt-libflute/issues/66) opens an AF_PACKET raw
+  # socket on tun_srsue, which needs CAP_NET_RAW -- the same reason the UE itself launches via
+  # nsrun_root above, for its TUN device.
+  nsrun_root rt-mbs-client "$(dirname "$CLIENT_BIN")" "'$CLIENT_BIN' '$CLIENT_CONF'"
   sleep 2
   nsrun rt-mbs-application "$APP_DIR" "node app.js"
 
