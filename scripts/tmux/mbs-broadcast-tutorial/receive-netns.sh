@@ -141,6 +141,29 @@ start() {
   ip netns exec "$NS" ip addr add "$RX_IP/$MASK" dev "$VETH_RX" 2>/dev/null || true
   ip netns exec "$NS" ip link set "$VETH_RX" up
 
+  # BUG FIX: MBSF's Ephemeral server (the announcement docroot HTTP server -- see
+  # UserServiceAnnBundle.cc/Context.cc -- typically bound to a 127.0.0.x SBI-style address,
+  # e.g. 127.0.0.67) runs in the ROOT netns, but the sessionDescriptionLocator MBSF puts in
+  # each announcement bundle uses that same address verbatim. 127.0.0.0/8 is per-netns --
+  # rt-mbs-client, running inside "$NS", cannot reach the root netns's 127.0.0.67 at all by
+  # default, so DistributionSessionReceiver::Activate()'s SDP fetch for a real content
+  # session's sessionDescriptionLocator (used by the "Play"/"Activate" flow in
+  # rt-mbs-application, TS 26.502 MBS-6) fails outright: "Failed to connect to any resolved
+  # endpoint". Confirmed live. This does NOT affect the Service Announcement bundle itself
+  # (delivered directly over FLUTE, no HTTP fetch involved) -- only activating a specific
+  # content session's own distribution afterward.
+  #
+  # Fix: route 127.0.0.67 across the veth pair like an ordinary address instead of NAT'ing
+  # it (NAT would rewrite the destination and misdeliver to whatever's listening on the veth
+  # IP itself, not MBSF). route_localnet must be enabled on BOTH ends of $VETH_ROOT/$VETH_RX
+  # -- the kernel treats 127.0.0.0/8 as loopback-only and drops it off any non-lo interface
+  # otherwise, both when routing it out ($VETH_RX, inside "$NS") and when accepting it back
+  # in ($VETH_ROOT, here in the root netns, where MBSF's 127.0.0.67 is actually reachable via
+  # the real loopback).
+  sysctl -w "net.ipv4.conf.$VETH_ROOT.route_localnet=1" >/dev/null
+  ip netns exec "$NS" sysctl -w "net.ipv4.conf.$VETH_RX.route_localnet=1" >/dev/null
+  ip netns exec "$NS" ip route replace 127.0.0.67/32 via "$ROOT_IP" dev "$VETH_RX" 2>/dev/null || true
+
   echo "Starting receive chain in netns '$NS' (gNB TX expected at ${ROOT_IP}:2000) ..."
   nsrun_root UE "$(dirname "$UE_CONF")" "'$UE_BIN' '$UE_CONF'"
 
