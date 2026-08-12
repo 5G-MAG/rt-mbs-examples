@@ -167,9 +167,33 @@ start() {
   echo "Starting receive chain in netns '$NS' (gNB TX expected at ${ROOT_IP}:2000) ..."
   nsrun_root UE "$(dirname "$UE_CONF")" "'$UE_BIN' '$UE_CONF'"
 
-  # The UE creates tun_srsue on successful registration/PDU session establishment
-  # with a hardcoded 172.16.0.2 address (srsue's gw::add_mbs_port()) -- wait for
-  # it before starting rt-mbs-client, which binds its FLUTE receiver there.
+  # The UE creates tun_srsue on successful registration/PDU session establishment. Wait for it
+  # before starting rt-mbs-client, which binds its FLUTE receiver there.
+  #
+  # KNOWN ISSUE (found live, 2026-08-12, not fixed here): srsue's gw::add_mbs_port() (gw.cc)
+  # races the regular unicast PDU session's own interface setup for who first creates/addresses
+  # this interface -- add_mbs_port() only applies its own hardcoded 172.16.0.2 fallback address
+  # "if (!if_up)", i.e. only if the real PDU session hasn't already brought the interface up
+  # first. Which one wins is a genuine timing race between MCCH decode and NAS attach + PDU
+  # session establishment, confirmed live: consecutive runs of this exact script, unchanged,
+  # produced tun_srsue with 10.45.0.2 (the real SMF-assigned address, matching
+  # rt-mbs-client.conf's flute_iface) on one run and 172.16.0.2 (the hardcoded MBS-only
+  # fallback) on the very next. rt-mbs-client hardcodes the address it expects to bind to
+  # (LibFlute's Receiver needs a literal local address throughout, not an interface name), so a
+  # 172.16.0.2 result leaves it joining a multicast group nothing is listening on -- confirmed
+  # live as "IP_ADD_SOURCE_MEMBERSHIP ... failed: No such device" -- with no content or Service
+  # Announcement ever received, and nothing that looks like a startup failure (UE, gNB and
+  # client all report healthy). A retry-the-UE-until-it-wins mitigation was tried here and
+  # reverted: this environment's gNB<->UE ZMQ RF link is itself fragile against abrupt UE
+  # kills (see transmit.sh's own header comment) -- repeatedly kill/restarting the UE to retry
+  # this race reliably desynced the gNB's ZMQ REQ/REP state instead, which is a *worse* failure
+  # (the UE then never attaches at all, on any address, until the whole transmit-side stack --
+  # not just the UE -- is restarted). The real fix belongs inside srsue's attach/GW bring-up
+  # timing; until then, if you see "could not resolve interface name" / "No such device" in
+  # rt-mbs-client.log despite a clean attach, check tun_srsue's actual address here -- if it
+  # doesn't match rt-mbs-client.conf's flute_iface, that's this race, and a manual
+  # `sudo ./receive-netns.sh stop && sudo ./receive-netns.sh start` retry (accepting the small
+  # risk of the ZMQ desync above) is the only mitigation for now.
   echo "Waiting for tun_srsue (the UE creates it once attach/PDU session completes) ..."
   tun_ok=0
   for _ in $(seq 1 60); do
@@ -177,7 +201,8 @@ start() {
     sleep 1
   done
   if [ "$tun_ok" = 1 ]; then
-    echo "  tun_srsue is up."
+    ue_addr=$(ip netns exec "$NS" ip -4 -o addr show tun_srsue 2>/dev/null | awk '{print $4}' | cut -d/ -f1)
+    echo "  tun_srsue is up${ue_addr:+ with address $ue_addr}."
   else
     echo "  WARNING: tun_srsue never appeared -- check UE.log for attach failures before rt-mbs-client starts."
   fi
