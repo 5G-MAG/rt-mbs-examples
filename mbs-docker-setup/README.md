@@ -98,7 +98,15 @@ From the top level directory of the repository run:
 
 ## Running
 
-Two alternative reference deployments (`internal`) are available to test this project. They share the same 5G Core NFs, gNB and UE, and the same persistent volumes, but only one of them can be running at a time -- both use the same container names, so starting one while the other is still up will fail with Docker "container name already in use" errors.
+Two alternative reference deployments are available to test this project:
+- Low-level MBS functionality only (5G Core plus MB-SMF and MB-UPF).
+- Low-level MBS functionality plus MBS User Services (MBSF and MBSTF).
+
+The alternative reference deployments share the same 5G Core NFs, gNB and UE, and the same persistent volumes, but only one of them can be running at a time -- both use the same container names, so starting one while the other is still up will fail with Docker "container name already in use" errors.
+
+The Docker compose files for both of these deployments are stored in the folder `compose-files/internal` and the corresponding Network Function configuration files are stored in the folder `configs/internal`.
+
+All Docker containers run on the same host system.
 
 First modify the `.env` file. Change the `DOCKER_HOST_IP=<your_host_ip_address>` with your machine's IP address, like this `DOCKER_HOST_IP=192.168.1.2`. This lets the UPF + MB-UPF use your machine's Internet connection to route the traffic using NAT.
 
