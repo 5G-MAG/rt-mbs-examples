@@ -170,7 +170,7 @@ To provision a test MBS User Service:
 ```bash
 docker exec -it test_mbs_af_as manage-mbs-user-service
 ```
-This creates an MBS User Service and an MBS User Data Ingest Session, then destroys them after a certain amount of time.
+This creates an MBS User Service and an MBS User Data Ingest Session, then destroys them after a certain amount of time (60 seconds).
 
 ## Docker Monitor
 
