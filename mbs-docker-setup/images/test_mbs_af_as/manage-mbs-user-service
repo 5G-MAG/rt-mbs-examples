@@ -72,6 +72,7 @@ send_request() {
     local curl_args=(
         --silent
         --http2-prior-knowledge
+	--fail-with-body
         --request "$method"
         --header "User-Agent: AF"
 	-D "$tmp_headers_file"
@@ -92,6 +93,10 @@ send_request() {
 
     curl "${curl_args[@]}" \
         "$url"
+
+    local status=$?
+
+    return "$status"
 }
 
 create_temp_file
@@ -120,10 +125,20 @@ request='{
 
 printf '\n Request to create MBS User Service: \n\n'
 echo "${request}"
-printf '\n Recieved response: \n\n'
 
-response=$(send_request "nmbsf-mbs-us" "mbs-user-services" "$request" "POST")
-printf '%s\n' "$response"
+if response=$(send_request "nmbsf-mbs-us" "mbs-user-services" "$request" "POST"); then
+    printf '\n Recieved response: \n\n'
+    printf '%s\n' "$response"
+
+else
+    status=$?
+
+    echo "send_request to create MBS user Service failed: $status"
+    echo "Error response: $response"
+    delete_temp_file
+    exit 1
+
+fi
 
 if mbs_user_service_id=$(get_id_from_response_header); then
    
@@ -173,9 +188,19 @@ request_create_mbs_user_data_ing_session=$(jq --arg test_mbs_af_as_ip "$test_mbs
 
 printf '\n Request to create MBS User Data Ingest Session: \n\n'
 echo "${request_create_mbs_user_data_ing_session}"
-response_create_mbs_user_data_ing_session=$(send_request "nmbsf-mbs-ud-ingest" "sessions" "$request_create_mbs_user_data_ing_session" "POST")
-printf '\n Response received: \n\n'
-printf '%s\n' "$response_create_mbs_user_data_ing_session"
+if response_create_mbs_user_data_ing_session=$(send_request "nmbsf-mbs-ud-ingest" "sessions" "$request_create_mbs_user_data_ing_session" "POST"); then
+    printf '\n Response received: \n\n'
+    printf '%s\n' "$response_create_mbs_user_data_ing_session"
+else
+    status=$?
+    echo "send_request to create MBS User Data Ing Session failed: $status"
+    echo "Error response: $response_create_mbs_user_data_ing_session"
+    response_delete_user_service=$(send_request "nmbsf-mbs-us" "mbs-user-services" "" "DELETE" "$mbs_user_service_id")
+    printf '\n Deleted MBS User Service: %s\n\n' "$mbs_user_service_id"
+    delete_temp_file
+    exit 1
+
+fi
 
 if mbs_user_data_ing_session_id=$(get_id_from_response_header); then
    printf '\n MBS User Data Ing Session created with id: %s\n\n' "$mbs_user_data_ing_session_id"
@@ -189,14 +214,23 @@ fi
 
 sleep 60
 
-response_delete_mbs_user_data_ing_session=$(send_request "nmbsf-mbs-ud-ingest" "sessions" "" "DELETE" "$mbs_user_data_ing_session_id")
+if response_delete_mbs_user_data_ing_session=$(send_request "nmbsf-mbs-ud-ingest" "sessions" "" "DELETE" "$mbs_user_data_ing_session_id"); then
+    printf '\n Deleted MBS User Data Ing Session: %s\n\n' "$mbs_user_data_ing_session_id"
+    sleep 30
+else
+    status=$?
+    echo "send_request to delete MBS User Data Ing Session failed: $status"
+    echo "Error response: $response_delete_mbs_user_data_ing_session"
 
-printf '\n Deleted MBS User Data Ing Session: %s\n\n' "$mbs_user_data_ing_session_id"
+fi
 
-sleep 30
-
-response_delete_mbs_user_service=$(send_request "nmbsf-mbs-us" "mbs-user-services" "" "DELETE" "$mbs_user_service_id")
-printf '\n Deleted MBS User Service: %s\n\n' "$mbs_user_service_id"
+if response_delete_mbs_user_service=$(send_request "nmbsf-mbs-us" "mbs-user-services" "" "DELETE" "$mbs_user_service_id"); then
+    printf '\n Deleted MBS User Service: %s\n\n' "$mbs_user_service_id"
+else
+    status=$?
+    echo "send_request to delete MBS User Service  failed: $status"
+    echo "Error response: $response_delete_mbs_user_service"
+fi
 
 delete_temp_file
 

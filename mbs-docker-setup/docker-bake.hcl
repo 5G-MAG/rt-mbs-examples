@@ -1,3 +1,11 @@
+variable "FIVEG_MAG_MBS_US_MBSTF_VERSION" {
+  default = "v1.4.0"
+}
+
+variable "FIVEG_MAG_MBS_US_MBSF_VERSION" {
+  default = "v1.1.0"
+}
+
 variable "FIVEG_MAG_MBS_VERSION" {
   default = "0.1.4"
 }
@@ -46,6 +54,10 @@ variable "UBUNTU_VERSION" {
   default = "jammy"
 }
 
+variable "UBUNTU_MBS_USER_SERVICE_VERSION" {
+  default = "24.04"
+}
+
 group "default" {
   targets = [
     // Core Platform Base Layers
@@ -58,7 +70,7 @@ group "default" {
     "nrf_5gmag",
     
     // Custom 5G-MBS Functions & RAN Stacks
-    "amf_with_mbs", "smf_mb-smf", "upf_mb-upf", "test_mbs_af_as", "gnb_with_mbs", "ue_with_mbs"
+    "amf_with_mbs", "smf_mb-smf", "upf_mb-upf", "mbsf", "mbstf", "test_mbs_af_as", "gnb_with_mbs", "ue_with_mbs"
   ]
 }
 
@@ -346,6 +358,28 @@ target "upf_mb-upf" {
     "base-mbs-open5gs:${FIVEG_MAG_MBS_VERSION}" = "target:base-mbs-open5gs"
   }
   tags   = ["${GITHUB_REGISTRY}/upf_mb-upf:${FIVEG_MAG_MBS_VERSION}"]
+  output = ["type=image"]
+}
+
+target "mbsf" {
+  args = {
+    UBUNTU_VERSION = "${UBUNTU_MBS_USER_SERVICE_VERSION}"
+    FIVEG_MAG_MBS_US_MBSF_VERSION = "${FIVEG_MAG_MBS_US_MBSF_VERSION}"
+  }
+  context = "."
+  dockerfile = "./images/mbsf/Dockerfile"
+  tags   = ["${GITHUB_REGISTRY}/mbsf:${FIVEG_MAG_MBS_US_MBSF_VERSION}"]
+  output = ["type=image"]
+}
+
+target "mbstf" {
+  args = {
+    UBUNTU_VERSION = "${UBUNTU_MBS_USER_SERVICE_VERSION}"
+    FIVEG_MAG_MBS_US_MBSTF_VERSION = "${FIVEG_MAG_MBS_US_MBSTF_VERSION}"
+  }
+  context = "."
+  dockerfile = "./images/mbstf/Dockerfile"
+  tags   = ["${GITHUB_REGISTRY}/mbstf:${FIVEG_MAG_MBS_US_MBSTF_VERSION}"]
   output = ["type=image"]
 }
 
