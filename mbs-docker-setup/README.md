@@ -157,7 +157,7 @@ This will use a sample MPEG-2 Transport Stream that is inside the AF container. 
 
 ### Running MBS User Services (low-level MBS functionality plus MBSF and MBSTF)
 
-An alternative reference deployment (`internal`) adds the MBSF and MBSTF on top of the same low-level 5G Core, gNB and UE, to exercise the MBS User Service layer (Nmb10/xMB) instead of driving the low-level session directly.
+This alternative reference deployment adds the MBSF and MBSTF on top of the same low-level 5G Core, gNB and UE, to exercise the MBS User Service layer (Nmb10/xMB) instead of driving the low-level session directly.
 
 #### To start and stop MBS User Services
 
