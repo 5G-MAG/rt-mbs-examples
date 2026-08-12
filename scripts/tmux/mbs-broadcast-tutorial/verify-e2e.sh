@@ -129,7 +129,12 @@ echo "[2/7] Created Ingest Session $ING_ID (Distribution Session $DIST_SESS_ID)"
 # API response field.
 PUSH_PORT=""
 for _ in $(seq 1 50); do
-  PUSH_PORT=$(tail -n "+$((LOG_MARK + 1))" "$LOG_DIR/MBSTF.log" | grep -oP 'PUSH SERVER PORT: \K\d+' | head -1 || true)
+  # -a: MBSTF.log can accumulate binary bytes across a long-lived process's many test runs
+  # (e.g. raw content payloads logged verbatim elsewhere in the file), which makes grep treat
+  # the whole file as binary and print "binary file matches" instead of the actual port number
+  # -- confirmed live, this silently broke every retry of this check for an entire 10s window.
+  # -a forces text-mode matching regardless of what the rest of the file contains.
+  PUSH_PORT=$(tail -n "+$((LOG_MARK + 1))" "$LOG_DIR/MBSTF.log" | grep -aoP 'PUSH SERVER PORT: \K\d+' | head -1 || true)
   [ -n "$PUSH_PORT" ] && break
   sleep 0.2
 done
@@ -204,20 +209,35 @@ echo "[6/7] Service Announcement received: $EXT_SERVICE_ID is listed at $CLIENT_
 # minimal demo). Re-pushing the same content now, after the client has activated reception, gives
 # it a transmission it can actually be listening for -- exactly what a real broadcaster would do
 # for a receiver that might join late, and does not require a manifest.
+#
+# BUG FIX (found live, 2026-08-12): a single re-push still isn't reliable on its own. srsue's
+# get_dl_sched_rnti_nr() checks only one PDCCH candidate per TTI (see mac_nr.h's NOTE on g_rntis)
+# and round-robins across every concurrently-advertised broadcast G-RNTI -- correct behaviour, and
+# confirmed live to work (a content G-RNTI alongside the announcement channel's own DID get a real
+# PDCCH/PDSCH decode, CRC=OK), but with N concurrent sessions a given G-RNTI is only actually
+# checked on roughly 1-in-N TTIs. A single short transmission burst can easily fall entirely within
+# TTIs the round-robin spent on the OTHER G-RNTI and be missed completely -- confirmed live:
+# identical back-to-back runs of this exact script, same binaries, no code changes, PASSED once
+# and then MISSED step 7 the very next time. Not a bug to route around silently: it's the
+# documented cost of this fork's one-candidate-per-TTI PHY model (a real fix needs genuine
+# multi-candidate blind decoding). Given a manifest-driven CAROUSEL session is out of scope here,
+# the practical mitigation is simply more chances to line up with an "on" round-robin slot: keep
+# re-pushing periodically for the whole wait window instead of once.
 # ---------------------------------------------------------------------------
 curl -sS -G "$CLIENT_API/services/activate" --data-urlencode "external-service-id=$EXT_SERVICE_ID" > /dev/null || true
 sleep 3
-RETRY_PUSH_CODE=$(curl -sS -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: text/plain' \
-  --data-binary "@$WORKDIR/$DEMO_FILE" "http://$MBSTF_HOST:$PUSH_PORT/$DEMO_FILE")
-[ "$RETRY_PUSH_CODE" = "200" ] || die "re-push after client activation failed (HTTP $RETRY_PUSH_CODE)"
 
 RECEIVED=""
 for i in $(seq 1 90); do
+  if [ $(( (i - 1) % 10 )) -eq 0 ]; then
+    curl -sS -o /dev/null -X POST -H 'Content-Type: text/plain' \
+      --data-binary "@$WORKDIR/$DEMO_FILE" "http://$MBSTF_HOST:$PUSH_PORT/$DEMO_FILE" 2>/dev/null || true
+  fi
   RECEIVED=$(curl -sS "$CLIENT_API/content/$DEMO_FILE" 2>/dev/null || true)
   [ "$RECEIVED" = "$(cat "$WORKDIR/$DEMO_FILE")" ] && break
   sleep 1
 done
-[ "$RECEIVED" = "$(cat "$WORKDIR/$DEMO_FILE")" ] || die "content never arrived byte-identical at $CLIENT_API/content/$DEMO_FILE after 90s"
+[ "$RECEIVED" = "$(cat "$WORKDIR/$DEMO_FILE")" ] || die "content never arrived byte-identical at $CLIENT_API/content/$DEMO_FILE after 90s (repeated re-pushes every 10s)"
 echo "[7/7] Content received, byte-identical: $CLIENT_API/content/$DEMO_FILE"
 
 echo
