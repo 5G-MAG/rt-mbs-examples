@@ -7,6 +7,21 @@ users to manage multiple terminal sessions, windows, and panes from a single scr
 
 ## Usage
 
+### Configuring your local paths
+
+The scripts need to know where the Open5GS, MBSTF and MBSF installations are located on your machine. By default they
+assume the sibling repositories are checked out in your home directory. To use different paths, copy the example file
+and adjust it:
+
+```bash
+cd scripts/tmux
+cp local.env.example local.env
+# edit local.env and set the paths of your setup
+```
+
+`local.env` is gitignored, so your personal paths are never committed and survive branch switches and pull request
+checkouts. Both tutorial scripts read the same `local.env`.
+
 ### Starting
 
 In general, to use the tmux scripts, run the following command:
@@ -45,20 +60,9 @@ step of the tutorial. Namely, it starts the following components:
 
 #### Starting the MBSF Tutorial tmux session
 
-1. From the root folder of this project navigate to `scripts/tmux`
-2. In `mbs-function-tutorial.sh` adjust the directories of your setup:
-
-   ```
-OPEN5GS_BASE_DIR="Your path to /open5gs_mbs/install/bin"
-OPEN5GS_CONFIG_DIR="Your path to /open5gs_mbs/install/etc/open5gs"
-MBSTF_BASE_DIR="Your path to /rt-mbs-transport-function/build/src/mbstf"
-MBSTF_CONFIG_DIR="Your path to /rt-mbs-transport-function/build/src/mbstf"
-MBSF_BASE_DIR="Your path to /rt-mbs-function/build/src/mbsf"
-MBSF_CONFIG_DIR="Your path to /rt-mbs-function/build/src/mbsf"
-MEDIA_SERVER_DIR="Your path to /rt-mbs-examples/express-mock-media-server"
-LOG_DIR="/var/local/log/open5gs"
-   ```
-
+1. Configure your local paths in `scripts/tmux/local.env` as described in
+   [Configuring your local paths](#configuring-your-local-paths).
+2. From the root folder of this project navigate to `scripts/tmux/mbs-function-tutorial`.
 3. Optional: Adjust the MBSF configuration located in `local-mbsf.yaml` if needed and the file name in "MBSF|$MBSF_BASE_DIR/open5gs-mbsfd -c $MBSF_CONFIG_DIR/local-mbsf.yaml"`
 4. Run `bash ./mbs-function-tutorial.sh` to start the tmux session with all the required components.
 5. Now all processes should be running. You can continue using the components now.
@@ -88,20 +92,11 @@ components in one step instead of launching each process manually. Namely, it st
 
 #### Starting the MBSTF Tutorial tmux session
 
-1. From the root folder of this project navigate to `scripts/tmux/mbs-transport-function-tutorial`.
-2. In `mbs-transport-function-tutorial.sh` adjust the directories of your setup:
-
-   ```
-   OPEN5GS_BASE_DIR="/home/fivegmag/Developer/open5gs_mbs/install/bin"
-   OPEN5GS_CONFIG_DIR="/home/fivegmag/Developer/open5gs_mbs/install/etc/open5gs"
-   MBSTF_BASE_DIR="/home/fivegmag/Developer/rt-mbs-transport-function/build/src/mbstf"
-   MBSTF_CONFIG_DIR="/home/fivegmag/Developer/rt-mbs-transport-function/build/src/mbstf"
-   MEDIA_SERVER_DIR="/home/fivegmag/Developer/rt-mbs-examples/express-mock-media-server"
-   LOG_DIR="/var/local/log/open5gs"
-   ```
-   
-4. Run `bash ./mbs-transport-function-tutorial.sh` to start the tmux session with all required components.
-5. You can navigate between the different panes using `Ctrl+b` followed by the arrow keys or by typing the concrete number of the pane you want to switch to.
+1. Configure your local paths in `scripts/tmux/local.env` as described in
+   [Configuring your local paths](#configuring-your-local-paths).
+2. From the root folder of this project navigate to `scripts/tmux/mbs-transport-function-tutorial`.
+3. Run `bash ./mbs-transport-function-tutorial.sh` to start the tmux session with all required components.
+4. You can navigate between the different panes using `Ctrl+b` followed by the arrow keys or by typing the concrete number of the pane you want to switch to.
 
 #### Stopping the MBSTF Tutorial tmux session
 

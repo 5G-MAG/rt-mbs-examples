@@ -4,12 +4,32 @@
 # 1. CONFIGURATION
 # ==============================================================================
 SESSION="mbstf-tutorial"
-OPEN5GS_BASE_DIR="/home/fivegmag/Developer/open5gs_mbs/install/bin"
-OPEN5GS_CONFIG_DIR="/home/fivegmag/Developer/open5gs_mbs/install/etc/open5gs"
-MBSTF_BASE_DIR="/home/fivegmag/Developer/rt-mbs-transport-function/build/src/mbstf"
-MBSTF_CONFIG_DIR="/home/fivegmag/Developer/rt-mbs-transport-function/build/src/mbstf"
-MEDIA_SERVER_DIR="/home/fivegmag/Developer/rt-mbs-examples/express-mock-media-server"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Default directories, assuming the sibling repositories are checked out in $HOME.
+# Do not edit these for your local setup: copy scripts/tmux/local.env.example to
+# scripts/tmux/local.env (gitignored) and set your paths there instead.
+OPEN5GS_BASE_DIR="$HOME/open5gs_mbs/install/bin"
+OPEN5GS_CONFIG_DIR="$HOME/open5gs_mbs/install/etc/open5gs"
+MBSTF_BASE_DIR="$HOME/rt-mbs-transport-function/build/src/mbstf"
+MBSTF_CONFIG_DIR="$HOME/rt-mbs-transport-function/build/src/mbstf"
+MEDIA_SERVER_DIR="$SCRIPT_DIR/../../../express-mock-media-server"
 LOG_DIR="/var/local/log/open5gs"
+
+# User-specific overrides
+LOCAL_ENV="$SCRIPT_DIR/../local.env"
+if [[ -f "$LOCAL_ENV" ]]; then
+    echo "Loading local overrides from $LOCAL_ENV"
+    if ! source "$LOCAL_ENV"; then
+        echo "Error: failed to load $LOCAL_ENV (check it for shell syntax errors)." >&2
+        exit 1
+    fi
+fi
+
+if [[ -z "$LOG_DIR" ]]; then
+    echo "Error: LOG_DIR is empty. Check local.env." >&2
+    exit 1
+fi
 
 # Capture IDs for clean exit
 PANE_PGIDS=()
@@ -114,22 +134,29 @@ fi
 
 register_pane_pgid "$SESSION:NRF"
 
-# Define components: "WindowName|Command"
+# Define components: "WindowName|WorkingDir|Command"
+# If no working directory shift is needed, leave the middle column blank.
 # Note the UPF uses the SUDO_PASS variable for non-interactive sudo
 COMPONENTS=(
-"SCP|$OPEN5GS_BASE_DIR/open5gs-scpd -c $OPEN5GS_CONFIG_DIR/scp.yaml"
-    "SMF|$OPEN5GS_BASE_DIR/open5gs-smfd -c $OPEN5GS_CONFIG_DIR/smf.yaml"
-    "UPF|echo '$SUDO_PASS' | sudo -S -E $OPEN5GS_BASE_DIR/open5gs-upfd -c $OPEN5GS_CONFIG_DIR/upf.yaml"
-    "AMF|$OPEN5GS_BASE_DIR/open5gs-amfd -c $OPEN5GS_CONFIG_DIR/amf.yaml"
-    "MBSTF|$MBSTF_BASE_DIR/open5gs-mbstfd -c $MBSTF_CONFIG_DIR/mbstf.yaml"
-    "MediaServer|cd $MEDIA_SERVER_DIR && npm start"
+    "SCP||$OPEN5GS_BASE_DIR/open5gs-scpd -c $OPEN5GS_CONFIG_DIR/scp.yaml"
+    "SMF||$OPEN5GS_BASE_DIR/open5gs-smfd -c $OPEN5GS_CONFIG_DIR/smf.yaml"
+    "UPF||echo '$SUDO_PASS' | sudo -S -E $OPEN5GS_BASE_DIR/open5gs-upfd -c $OPEN5GS_CONFIG_DIR/upf.yaml"
+    "AMF||$OPEN5GS_BASE_DIR/open5gs-amfd -c $OPEN5GS_CONFIG_DIR/amf.yaml"
+    "MBSTF||$MBSTF_BASE_DIR/open5gs-mbstfd -c $MBSTF_CONFIG_DIR/mbstf.yaml"
+    "MediaServer|$MEDIA_SERVER_DIR|npm start"
 )
 
 for item in "${COMPONENTS[@]}"; do
-    IFS="|" read -r NAME CMD <<< "$item"
+    IFS="|" read -r NAME WORK_DIR CMD <<< "$item"
     echo "Launching $NAME..."
     WRAPPED=$(wrap_cmd "$CMD")
-    tmux new-window -t "$SESSION" -n "$NAME" "$WRAPPED"
+    # Use tmux's native -c flag rather than "cd $WORK_DIR &&" so a path
+    # containing spaces isn't word-split by the shell.
+    if [[ -n "$WORK_DIR" ]]; then
+        tmux new-window -c "$WORK_DIR" -t "$SESSION" -n "$NAME" "$WRAPPED"
+    else
+        tmux new-window -t "$SESSION" -n "$NAME" "$WRAPPED"
+    fi
     register_pane_pgid "$SESSION:$NAME"
     sleep 0.5
 done

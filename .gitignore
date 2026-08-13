@@ -35,3 +35,6 @@ venv.bak/
 bake-remote.hcl
 
 .idea
+
+# User-specific paths for the tmux tutorial scripts
+scripts/tmux/local.env

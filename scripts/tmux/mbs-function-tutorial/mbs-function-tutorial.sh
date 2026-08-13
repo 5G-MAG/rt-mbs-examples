@@ -4,14 +4,34 @@
 # 1. CONFIGURATION
 # ==============================================================================
 SESSION="mbsf-tutorial"
-OPEN5GS_BASE_DIR="Your path to /open5gs_mbs/install/bin"
-OPEN5GS_CONFIG_DIR="Your path to /open5gs_mbs/install/etc/open5gs"
-MBSTF_BASE_DIR="Your path to /rt-mbs-transport-function/build/src/mbstf"
-MBSTF_CONFIG_DIR="Your path to /rt-mbs-transport-function/build/src/mbstf"
-MBSF_BASE_DIR="Your path to /rt-mbs-function/build/src/mbsf"
-MBSF_CONFIG_DIR="Your path to /rt-mbs-function/build/src/mbsf"
-MEDIA_SERVER_DIR="Your path to /rt-mbs-examples/express-mock-media-server"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Default directories, assuming the sibling repositories are checked out in $HOME.
+# Do not edit these for your local setup: copy scripts/tmux/local.env.example to
+# scripts/tmux/local.env (gitignored) and set your paths there instead.
+OPEN5GS_BASE_DIR="$HOME/open5gs_mbs/install/bin"
+OPEN5GS_CONFIG_DIR="$HOME/open5gs_mbs/install/etc/open5gs"
+MBSTF_BASE_DIR="$HOME/rt-mbs-transport-function/build/src/mbstf"
+MBSTF_CONFIG_DIR="$HOME/rt-mbs-transport-function/build/src/mbstf"
+MBSF_BASE_DIR="$HOME/rt-mbs-function/build/src/mbsf"
+MBSF_CONFIG_DIR="$HOME/rt-mbs-function/build/src/mbsf"
+MEDIA_SERVER_DIR="$SCRIPT_DIR/../../../express-mock-media-server"
 LOG_DIR="/var/local/log/open5gs"
+
+# User-specific overrides
+LOCAL_ENV="$SCRIPT_DIR/../local.env"
+if [[ -f "$LOCAL_ENV" ]]; then
+    echo "Loading local overrides from $LOCAL_ENV"
+    if ! source "$LOCAL_ENV"; then
+        echo "Error: failed to load $LOCAL_ENV (check it for shell syntax errors)." >&2
+        exit 1
+    fi
+fi
+
+if [[ -z "$LOG_DIR" ]]; then
+    echo "Error: LOG_DIR is empty. Check local.env." >&2
+    exit 1
+fi
 
 # Capture IDs for clean exit
 PANE_PGIDS=()
@@ -76,8 +96,11 @@ wrap_cmd() {
     
     # If a log name is provided, duplicate standard output/error to both screen and file via tee
     if [[ -n "$log_name" ]]; then
-        # stdbuf -oL -eL prevents logs from delaying due to block buffering
-        cmd="stdbuf -oL -eL $cmd 2>&1 | tee -a \"$LOG_DIR/${log_name}.log\""
+        # stdbuf -oL -eL prevents logs from delaying due to block buffering.
+        # set -o pipefail makes the pane report the real command's exit status
+        # instead of tee's, so a crash isn't masked as success (or vice versa,
+        # a tee failure from a bad LOG_DIR reported as the command failing).
+        cmd="set -o pipefail; stdbuf -oL -eL $cmd 2>&1 | tee -a \"$LOG_DIR/${log_name}.log\""
     fi
     
     echo "bash -c \"$cmd || { echo; echo 'PROCESS FAILED'; read -p 'Press Enter to close...'; }\""
