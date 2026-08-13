@@ -40,6 +40,12 @@ This folder contains scripts for tmux an open-source terminal multiplexer that a
 
 Information can be found [here](./scripts/tmux/).
 
+## Tests
+
+The `test` folder contains API tests for the MBS network functions, covering the CRUD operations of the MBSF service APIs as well as the MB-SMF TMGI and MBS Session service APIs.
+
+Information can be found [here](./test/).
+
 ## Acknowledgements
 
 The reference implementation of the MBS features was partially funded by the European Union through the project 6G-SANDBOX (Grant Agreement 101096328) and by the European Space Agency (ESA) through the project "Requirements consolidation and design concepts for future NTN MBS systems" (ESA Contract No. 5001042231).
