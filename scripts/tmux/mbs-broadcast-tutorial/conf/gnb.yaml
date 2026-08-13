@@ -1,0 +1,154 @@
+gnb_id: 1
+
+# BUG FIX #2 (found live, 2026-08-09): the gNB must run in its OWN network namespace, not the
+# same one as open5gs UPF, even though both are on the "network side" of the topology. Reason:
+# srsRAN_Project's CU-UP NGU/N3 GTP-U gateway always binds the wildcard address (0.0.0.0) on
+# port 2152 regardless of the configured bind_addr -- lib/gateways/udp_network_gateway_impl.cpp's
+# create_and_bind() does this deliberately, to support multicast (N3mb) reception. Confirmed
+# live: with the gNB in the SAME namespace as open5gs, UPF's own GTP-U sockets (already bound to
+# specific addresses on port 2152) block the gNB's later wildcard bind on the same port with
+# "Address already in use" -- a real Linux UDP semantics conflict (specific-address bind + later
+# wildcard bind on the same port collide unless every socket involved opts into SO_REUSEADDR,
+# which neither side does here), not a config mistake. This is exactly why the reference
+# rt-mbs-examples Docker deployment gives the gNB its own container (= its own network
+# namespace) even though it's docker-composed onto the "same" 5g-mag bridge subnet as the 5GC --
+# each NF's netns has an independent port space. Replicated here with a second veth pair
+# (10.91.0.0/24) linking the gNB's own "mbs-gnb" namespace to the root namespace (5GC/MBSF/
+# MBSTF), on top of the first veth pair (10.90.0.0/24, see ru_sdr below) linking the gNB to the
+# UE's "mbs-rx" namespace for the ZMQ RF link. See transmit.sh's setup_veth() for both pairs.
+cu_cp:
+  amf:
+    addr: 10.91.0.1
+    port: 38412
+    bind_addr: 10.91.0.2
+    supported_tracking_areas:
+      - tac: 1
+        plmn_list:
+          - plmn: "99970"
+            tai_slice_support_list:
+              - sst: 1
+  inactivity_timer: 7200
+
+cu_up:
+  ngu:
+    socket:
+      - bind_addr: 10.91.0.2
+
+cell_cfg:
+  dl_arfcn: 368500
+  band: 3
+  channel_bandwidth_MHz: 20
+  common_scs: 15
+  plmn: "99970"
+  tac: 1
+  pci: 1
+  slicing:
+    - sst: 1
+  pdcch:
+    common:
+      ss0_index: 0
+      coreset0_index: 12
+    dedicated:
+      ss2_type: common
+      dci_format_0_1_and_1_1: false
+  prach:
+    prach_config_index: 1
+  pdsch:
+    mcs_table: qam64
+  pusch:
+    mcs_table: qam64
+  sib:
+    si_sched_info:
+      - si_period: 16
+        sib_mapping: 20
+
+mbs:
+  repetition_period: 1
+  repetition_offset: 0
+  window_start_slot: 4
+  window_duration: 4
+  mcch_modification_period: 2
+  use_sib1_conf: "1"
+  # BUG FIX (found live, 2026-08-10): removed bcast_session_tmgi_service_id/bcast_session_g_rnti/
+  # bcast_session_mrb_lcid (g_rnti=100=0x64). These configure a STATIC demo MBS session broadcast
+  # via MCCH immediately at boot, independent of any real NGAP/F1AP-provisioned session. Confirmed
+  # live: the UE's periodic MCCH re-check (see mac_nr.cc) kept re-decoding ONLY this demo session's
+  # g-RNTI=100, never our real session's g-RNTI=0xcaca -- even though the real session's MCCH
+  # content was confirmed correctly built and packed (live JSON dump of the ASN.1 payload showed
+  # g-RNTI-r17=51914=0xcaca). Per du_high_config_translators.cpp's own doc comment on mcch_cfg
+  # (lines ~479-489), mcch_cfg (the MCCH window/periodicity, needed for ANY MCCH scheduling,
+  # including real dynamic sessions) is gated only on the "mbs:" section being present at all, not
+  # on bcast_sessions being non-empty -- so removing just these three lines (keeping the rest of
+  # this "mbs:" section) should not disable MCCH scheduling for real dynamically-provisioned
+  # sessions. An earlier attempt at this same removal appeared to hang real session setup entirely,
+  # but per that same code comment this should not happen -- re-testing now on the theory that was
+  # a transient/unrelated glitch (e.g. an SCP hiccup) rather than caused by this config change.
+  #bcast_session_tmgi_service_id: 1
+  #bcast_session_g_rnti: 100
+  #bcast_session_mrb_lcid: 1
+
+# BUG FIX #1 (found live, 2026-08-09): the gNB and UE ZMQ RF endpoints must NOT share a network
+# namespace with loopback addresses -- confirmed live that this deadlocks (UE transmits PRACH
+# forever, gNB never detects a single preamble) even on an otherwise-unmodified, previously
+# live-verified commit, and even using the pristine pre-built ghcr.io/5g-mag/gnb_with_mbs +
+# ue_with_mbs images (so it's not a code regression). srsRAN_Project's ZMQ TX/RX channels are
+# hardcoded ZMQ_REP/ZMQ_REQ (a strict alternating request-reply pattern -- see
+# lib/radio/zmq/radio_session_zmq_impl.cpp), which is far more scheduling-latency-sensitive than
+# a fire-and-forget PUB/SUB pattern would be. The reference rt-mbs-examples Docker deployment
+# and the rt-mbms-examples tmux tutorial's receive-netns.sh BOTH put the gNB/eNB and the UE/modem
+# in *separate* network namespaces connected by a veth pair, with the transmit side's tx_port
+# bound to `*` (all interfaces, reachable via the veth) rather than specifically 127.0.0.1 --
+# replicate that here. See receive-netns.sh's own comment for the other side of this pair.
+ru_sdr:
+  device_driver: zmq
+  device_args: verbose,tx_port=tcp://*:2000,rx_port=tcp://10.90.0.3:2001,base_srate=23.04e6
+  srate: 23.04
+  tx_gain: 75
+  rx_gain: 75
+
+expert_execution:
+  threads:
+    non_rt:
+      nof_non_rt_threads: 2
+
+log:
+  filename: @@LOG_DIR@@/gnb-internal.log
+  all_level: warning
+  # Dialed back to warning (2026-08-10, final pass): the MTCH content-delivery bug chain (scheduler
+  # pending-bytes gate, then assemble_dl_data_request()'s missing MBS PDU-assembly branch) is now
+  # fixed and verified end-to-end -- debug-level MAC/SCHED/RLC logging is no longer needed for this
+  # and was driving gNB CPU to ~185%, which itself risked masking/causing SBI-side timeouts
+  # elsewhere (SCP/SMF).
+  mac_level: info
+  phy_level: info
+  radio_level: info
+  rlc_level: info
+  sdap_level: info
+  pdcp_level: info
+  # Raised (2026-08-10) to diagnose why RRC Setup never seems to follow a successfully-decoded
+  # Msg3 CCCH message -- all_level: warning was silently hiding all RRC/F1AP/CU-CP/DU-manager
+  # activity, making it impossible to tell "not happening" from "happening but not logged".
+  du_level: info
+  cu_level: info
+  rrc_level: info
+  f1ap_level: info
+  # Raised (2026-08-10, second pass) to diagnose why a real NGAP Broadcast Session Setup Request
+  # -- confirmed sent by the AMF ("Sending N2 MBS SM info to gNB 1") after fixing three separate
+  # BROADCAST-vs-MULTICAST propagation bugs upstream -- produces no visible F1AP/E1AP follow-up
+  # (no new MRB, no CU-UP/DU config) and no NGAP Setup Response/Failure back to the AMF. ngap_level
+  # and e1ap_level were both implicitly "warning" (via all_level) and hiding all of
+  # ngap_broadcast_session_setup_procedure's and broadcast_session_setup_routine's own
+  # debug/info-level logging, making it impossible to tell where in that chain it's actually
+  # stalling or silently failing.
+  ngap_level: info
+  e1ap_level: info
+  # Raised (2026-08-10, third pass): gtpu_level was implicitly "warning" (via all_level), hiding
+  # gtpu_demux_impl's own "Tunnel added"/"Dropped GTP-U PDU, tunnel not found" info-level lines and
+  # gtpu_tunnel_ngu_rx_impl's "RX SDU" line -- the exact evidence needed to tell whether N3mb GTP-U
+  # PDUs for a real MBS session ever reach the demux/tunnel at all, versus never being registered.
+  gtpu_level: info
+  hex_max_size: 0
+
+pcap:
+  mac_enable: false
+  ngap_enable: false

@@ -17,6 +17,12 @@ MBSF_BASE_DIR="$HOME/rt-mbs-function/build/src/mbsf"
 MBSF_CONFIG_DIR="$HOME/rt-mbs-function/build/src/mbsf"
 MEDIA_SERVER_DIR="$SCRIPT_DIR/../../../express-mock-media-server"
 LOG_DIR="/var/local/log/open5gs"
+# open5gs source tree's misc/netconf.sh (NOT the install tree) -- creates/addresses/brings up
+# the ogstun TUN interface MB-UPF needs. This is a standard, separate open5gs prerequisite,
+# not something this tutorial script has ever set up itself -- leave empty to skip and handle
+# it yourself if you already manage networking another way (e.g. it survives across restarts
+# of this script, but not across a reboot or if something tears ogstun down).
+OPEN5GS_NETCONF_SCRIPT="Your path to /open5gs_mbs/misc/netconf.sh"
 
 # User-specific overrides
 LOCAL_ENV="$SCRIPT_DIR/../local.env"
@@ -41,12 +47,29 @@ PANE_PIDS=()
 # 2. PRE-FLIGHT CHECKS & CLEANUP
 # ==============================================================================
 echo "--- Initializing Setup ---"
-# Prompt for sudo password once
-read -s -p "[sudo] password for $(whoami): " SUDO_PASS
-echo ""
+INTERACTIVE=1
+[[ -t 0 ]] || INTERACTIVE=0
 
-# Validate password
-echo "$SUDO_PASS" | sudo -S -v || { echo "Invalid password"; exit 1; }
+# Drop any cached sudo timestamp first: without this, "sudo -n true" can
+# succeed just because the invoking terminal has a recent cached credential,
+# not because NOPASSWD is actually configured -- and that cached credential
+# is tty-scoped, so it won't carry into the new tmux panes started below
+# (e.g. UPF's sudo call would then fail silently with an empty password).
+sudo -K 2>/dev/null
+
+if sudo -n true 2>/dev/null; then
+    echo "Passwordless sudo detected; skipping password prompt."
+    SUDO_PASS=""
+elif [[ "$INTERACTIVE" -eq 1 ]]; then
+    # Prompt for sudo password once
+    read -s -p "[sudo] password for $(whoami): " SUDO_PASS
+    echo ""
+    # Validate password
+    echo "$SUDO_PASS" | sudo -S -v || { echo "Invalid password"; exit 1; }
+else
+    echo "sudo requires a password and this is a non-interactive run; aborting."
+    exit 1
+fi
 
 echo "--- Ensuring log directory exists and is writable ---"
 echo "$SUDO_PASS" | sudo -S mkdir -p "$LOG_DIR"
@@ -121,7 +144,14 @@ register_pane_pgid() {
     fi
 }
 
+KEEP_RUNNING=0
+
 cleanup() {
+    # Set only once everything started successfully in non-interactive mode,
+    # where the session is meant to keep running detached after the script
+    # exits. Any other exit (error/signal during setup, or the interactive
+    # tmux attach returning after the user detaches) still tears down.
+    [[ "$KEEP_RUNNING" -eq 1 ]] && return
     echo -e "\n--- Shutting down MBSTF environment ---"
     for pid in "${PANE_PIDS[@]}"; do kill -TERM "$pid" 2>/dev/null; done
     for pgid in "${PANE_PGIDS[@]}"; do kill -TERM -- "-$pgid" 2>/dev/null; done
@@ -129,6 +159,10 @@ cleanup() {
     tmux kill-session -t "$SESSION" 2>/dev/null
 }
 
+# Installed unconditionally so a signal or error during setup always tears
+# down whatever tmux panes/processes were already started, even for
+# non-interactive runs; only the final "leave it running" path (below) is
+# conditional on INTERACTIVE.
 trap cleanup EXIT
 
 # ==============================================================================
@@ -171,6 +205,34 @@ else
 fi
 
 echo "Docroot ready: $DOCROOT"
+
+# ==============================================================================
+# 4c. MB-UPF NETWORK SETUP (ogstun)
+# ==============================================================================
+# MB-UPF needs the ogstun TUN interface created, addressed, and up before it starts, or its
+# multicast_router feature initialises against a nonexistent/misconfigured interface. This is
+# a standard open5gs prerequisite (misc/netconf.sh in the open5gs *source* tree, not the
+# install tree), not something specific to MBS -- it's easy to miss if you've never had to run
+# vanilla open5gs before.
+if [[ -n "$OPEN5GS_NETCONF_SCRIPT" && "$OPEN5GS_NETCONF_SCRIPT" != "Your path"* ]]; then
+    if [[ -f "$OPEN5GS_NETCONF_SCRIPT" && -r "$OPEN5GS_NETCONF_SCRIPT" ]]; then
+        echo "--- Configuring ogstun via netconf.sh ---"
+        # Run via bash explicitly rather than executing the file directly, so
+        # a missing executable bit doesn't turn into a confusing sudo failure.
+        if echo "$SUDO_PASS" | sudo -S bash "$OPEN5GS_NETCONF_SCRIPT"; then
+            echo "ogstun configured."
+        else
+            echo "Warning: $OPEN5GS_NETCONF_SCRIPT failed (exit $?) -- ogstun may not be set up." >&2
+            echo "         MB-UPF's multicast_router feature will likely fail to initialise." >&2
+        fi
+    else
+        echo "Warning: OPEN5GS_NETCONF_SCRIPT is set but not found/readable at $OPEN5GS_NETCONF_SCRIPT -- skipping."
+    fi
+else
+    echo "Note: OPEN5GS_NETCONF_SCRIPT is not configured -- assuming ogstun is already set up."
+    echo "      If MB-UPF's multicast forwarding doesn't work, run open5gs's misc/netconf.sh"
+    echo "      once (as root) before starting this script, or set OPEN5GS_NETCONF_SCRIPT above."
+fi
 
 # ==============================================================================
 # 5. EXECUTION
@@ -225,4 +287,10 @@ done
 echo "--- Environment started successfully ---"
 # Clear the password from memory for safety
 unset SUDO_PASS
-tmux attach -t "$SESSION"
+if [[ "$INTERACTIVE" -eq 1 ]]; then
+    tmux attach -t "$SESSION"
+else
+    KEEP_RUNNING=1
+    echo "Non-interactive run: leaving tmux session '$SESSION' detached and running."
+    echo "Attach later with: tmux attach -t $SESSION"
+fi
