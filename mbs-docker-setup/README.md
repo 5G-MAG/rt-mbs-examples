@@ -92,7 +92,7 @@ export GITHUB_TOKEN=your_personal_access_token
 From the top level directory of the repository run:
 
 ```bash
-  cd rt-mbs-examples/mbs-docker-setup
+  cd mbs-docker-setup
   docker buildx bake
 ```
 

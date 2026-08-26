@@ -28,6 +28,8 @@ mbs_user_service_api_server_port="7777"
 
 tmp_headers_file=
 
+cleanup_error=0
+
 test_mbs_af_as_ip=$(ip -json address show eth0 | jq --raw-output '.[0].addr_info[0].local')
 
 create_temp_file() {
@@ -60,6 +62,14 @@ get_id_from_response_header() {
     fi
 
     echo "${resp_location##*/}"
+}
+
+handle_error() {
+    
+    cleanup_error=1
+
+    echo "Request $1 failed with exit code: $2"
+    echo "Error response: $3"
 }
 
 send_request() {
@@ -96,6 +106,10 @@ send_request() {
 
     local status=$?
 
+    if [ "$status" -ne 0 ]; then
+        cleanup_error=1
+    fi
+
     return "$status"
 }
 
@@ -131,12 +145,9 @@ if response=$(send_request "nmbsf-mbs-us" "mbs-user-services" "$request" "POST")
     printf '%s\n' "$response"
 
 else
-    status=$?
-
-    echo "send_request to create MBS user Service failed: $status"
-    echo "Error response: $response"
+    handle_error "to create MBS user Service" "$?" "$response" 
     delete_temp_file
-    exit 1
+    exit "$cleanup_error"
 
 fi
 
@@ -192,13 +203,10 @@ if response_create_mbs_user_data_ing_session=$(send_request "nmbsf-mbs-ud-ingest
     printf '\n Response received: \n\n'
     printf '%s\n' "$response_create_mbs_user_data_ing_session"
 else
-    status=$?
-    echo "send_request to create MBS User Data Ing Session failed: $status"
-    echo "Error response: $response_create_mbs_user_data_ing_session"
+    handle_error "to create MBS User Data Ing Session" "$?" "$response_create_mbs_user_data_ing_session"
     response_delete_user_service=$(send_request "nmbsf-mbs-us" "mbs-user-services" "" "DELETE" "$mbs_user_service_id")
-    printf '\n Deleted MBS User Service: %s\n\n' "$mbs_user_service_id"
     delete_temp_file
-    exit 1
+    exit "$cleanup_error"
 
 fi
 
@@ -207,7 +215,6 @@ if mbs_user_data_ing_session_id=$(get_id_from_response_header); then
 else
    echo "Failed to get the MBS User Data IngSession ID"
    response_delete_user_service=$(send_request "nmbsf-mbs-us" "mbs-user-services" "" "DELETE" "$mbs_user_service_id")
-   printf '\n Deleted MBS User Service: %s\n\n' "$mbs_user_service_id"
    delete_temp_file
    exit 1
 fi
@@ -218,21 +225,18 @@ if response_delete_mbs_user_data_ing_session=$(send_request "nmbsf-mbs-ud-ingest
     printf '\n Deleted MBS User Data Ing Session: %s\n\n' "$mbs_user_data_ing_session_id"
     sleep 30
 else
-    status=$?
-    echo "send_request to delete MBS User Data Ing Session failed: $status"
-    echo "Error response: $response_delete_mbs_user_data_ing_session"
+    handle_error "to delete MBS User Data Ing Session" "$?" "$response_delete_mbs_user_data_ing_session"
 
 fi
 
 if response_delete_mbs_user_service=$(send_request "nmbsf-mbs-us" "mbs-user-services" "" "DELETE" "$mbs_user_service_id"); then
     printf '\n Deleted MBS User Service: %s\n\n' "$mbs_user_service_id"
 else
-    status=$?
-    echo "send_request to delete MBS User Service  failed: $status"
-    echo "Error response: $response_delete_mbs_user_service"
+    handle_error "to delete MBS User Service" "$?" "$response_delete_mbs_user_service"
 fi
 
 delete_temp_file
+exit "$cleanup_error"
 
 #newline
 echo
