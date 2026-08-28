@@ -92,26 +92,36 @@ export GITHUB_TOKEN=your_personal_access_token
 From the top level directory of the repository run:
 
 ```bash
-  cd rt-mbs-examples
+  cd mbs-docker-setup
   docker buildx bake
 ```
 
 ## Running
 
-A reference deployment (`internal`) has been created to test this project, which consists of an end-to-end setup with a 5G Core with MBS features, a gNB and a UE.
+Two alternative reference deployments are available to test this project:
+- Low-level MBS functionality only (5G Core plus MB-SMF and MB-UPF).
+- Low-level MBS functionality plus MBS User Services (MBSF and MBSTF).
+
+The alternative reference deployments share the same 5G Core NFs, gNB and UE, and the same persistent volumes, but only one of them can be running at a time -- both use the same container names, so starting one while the other is still up will fail with Docker "container name already in use" errors.
+
+The Docker compose files for both of these deployments are stored in the folder `compose-files/internal` and the corresponding Network Function configuration files are stored in the folder `configs/internal`.
+
+All Docker containers run on the same host system.
 
 First modify the `.env` file. Change the `DOCKER_HOST_IP=<your_host_ip_address>` with your machine's IP address, like this `DOCKER_HOST_IP=192.168.1.2`. This lets the UPF + MB-UPF use your machine's Internet connection to route the traffic using NAT.
 
-To run the Docker images follow these steps:
-
-First, create the persistent volumes for the subscriber database (only needed once):
+Then, create the persistent volumes for the subscriber database (only needed once, shared by both deployments below):
 
 ```bash
 docker volume create open5gs_db_data
 docker volume create open5gs_db_config
 ```
 
-Then start the stack:
+### Running low-level MBS functionality only
+
+A reference deployment (`internal`) has been created to test this project, which consists of an end-to-end setup with a 5G Core (with low-level MBS features provided by an MB-SMF, and MB-UPF and an enhanced AMF), plus an MBS-enhanced gNodeB and an MBS-capable software UE.
+
+#### To start and stop MBS
 
 ```bash
 # to use the internal deployment
@@ -122,7 +132,8 @@ docker compose -f compose-files/internal/docker-compose-mbs.yml --env-file=.env 
 # to tear down the internal deployment
 docker compose -f compose-files/internal/docker-compose-mbs.yml --env-file=.env down
 ```
-### Establishing a 5G-MBS Broadcast session and sending video
+
+#### Establishing a 5G-MBS Broadcast session and sending video
 
 To create a 5G-MBS Broadcast session:
 
@@ -143,6 +154,31 @@ To start sending a sample MPEG-2 Transport Stream from the *Test AF/AS*:
 docker exec -it test_mbs_af_as sendvideo
 ```
 This will use a sample MPEG-2 Transport Stream that is inside the AF container. If everything works, the UE terminal should display as ASCII representation of the decoded video component in the MPEG-2 Transport Stream.
+
+### Running MBS User Services (low-level MBS functionality plus MBSF and MBSTF)
+
+This alternative reference deployment adds the MBSF and MBSTF on top of the same low-level 5G Core, gNB and UE, to exercise the MBS User Service layer (Nmb10/xMB) instead of driving the low-level session directly.
+
+#### To start and stop MBS User Services
+
+```bash
+# to use the internal deployment
+docker compose -f compose-files/internal/docker-compose-mbs-user-services.yml --env-file=.env up -d
+```
+
+```bash
+# to tear down the internal deployment
+docker compose -f compose-files/internal/docker-compose-mbs-user-services.yml --env-file=.env down
+```
+
+#### Provision an MBS User Service
+
+To provision a test MBS User Service:
+
+```bash
+docker exec -it test_mbs_af_as manage-mbs-user-service
+```
+This creates an MBS User Service and an MBS User Data Ingest Session, then destroys them after a certain amount of time (60 seconds).
 
 ## Docker Monitor
 
