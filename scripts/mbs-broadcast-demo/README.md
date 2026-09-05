@@ -111,15 +111,13 @@ project's own commit discipline on confining a diff to what an item actually nee
 `env.sh`'s `INGEST_MAX_BITRATE` governs the Distribution Session's own real on-air
 transmission rate -- independently of `CAROUSEL_REPETITION_MS`, which only controls how
 often each object gets refetched from the media server, not how fast MBSTF actually hands
-data to the gNB. This was found live, the hard way: at `10 Mbps` (this content's own naive
+data to the gNB. Measured on this rig: at `10 Mbps` (this content's own naive
 "repeat everything every 30s" requirement), the gNB's own RLC queue backed up by several
 megabytes within seconds and PDSCH CRC failures climbed above 90% -- **not because of a
 decode bug, but because this demo's own software-radio loopback (no real RF, ordinary
 development hardware) cannot keep up with that much real-time MBS scheduling.** Lowering
 the cap to `500 Kbps` (and `CAROUSEL_REPETITION_MS` to a matching, much slower refetch
-cadence) eliminated the drops and CRC failures entirely, confirmed live and repeatedly. Full
-account: `Standards2Deployments/projects/rt-mbs/srsRAN_4G_mbs.md`'s and
-`srsRAN_Project_mbs.md`'s own 2026-08-31 entries. If you raise this value for a beefier
+cadence) eliminated the drops and CRC failures entirely, repeatably. If you raise this value for a beefier
 host or real RF hardware, watch `run/logs/gnb.log` for `"Dropped SDU"` and back off if you
 see it.
 

@@ -1,6 +1,6 @@
 #!/bin/bash
 # Regenerates public/carousel-live in a loop, reflecting whatever segments a live
-# ffmpeg encoder (see the live-DASH command in the register's own "looping content" entry,
+# ffmpeg encoder (see live-encoder.sh for the live-DASH command it runs).
 # ported from rt-mbms-examples/flute-ffmpeg/files/ffmpeg-dash.sh's proven pattern:
 # `-stream_loop -1 ... -f dash -use_template 1 -use_timeline 1 -window_size N`) currently has
 # on disk in $DST_DIR. MBSTF's own ObjectManifestHandler already re-fetches a carousel manifest
@@ -29,7 +29,7 @@ OUT_PATH="$MEDIA_DIR/public/carousel-live"
 
 # 3s: fast enough to keep pace with the live encoder's own 2s segment duration (checked live,
 # this session, against the actual ffmpeg -seg_duration value used) without re-fetching on
-# every single new segment. Not a spec value -- see rule 12: this is an engineering choice
+# every single new segment. Not a spec value: this is an engineering choice.
 # tied to a stated basis (the encoder's own segment duration), not an arbitrary number. This is
 # how often MBSTF re-fetches this manifest (via its own "updateInterval" field below); it is
 # deliberately kept separate from repetitionInterval, which is recomputed below from the
@@ -46,7 +46,7 @@ dst_dir, host, port, out_path, update_interval_s, max_bitrate_str = sys.argv[1:7
 update_interval_s = int(update_interval_s)
 stream = os.path.basename(dst_dir)
 
-# BUG FIX: listing a segment the instant it's visible on disk raced ffmpeg's own eviction
+# Listing a segment the instant it's visible on disk raced ffmpeg's own eviction
 # (window_size/extra_window_size) -- a segment snapshotted here could already be deleted by
 # the time MBSTF's PullObjectIngester got to fetching it a cycle or two later. Confirmed live:
 # this produced a tight, unbounded retry loop (MBSTF has no backoff/cap on a single object's
@@ -84,13 +84,13 @@ for name in sorted(os.listdir(dst_dir)):
     files.append(name)
     total_bytes += os.path.getsize(path)
 
-# Same parse/budget pattern as 03-start-media-server.sh's own carousel generator (rule 12: a
-# bound needs a real source, here the window's own actual current byte total, not a guess).
+# Same parse/budget pattern as 03-start-media-server.sh's own carousel generator: the bound comes
+# from the window's own actual current byte total, not a guess.
 m = re.match(r'\s*([\d.]+)\s*([KMG]?)bps\s*$', max_bitrate_str, re.IGNORECASE)
 scale = {"": 1, "K": 1e3, "M": 1e6, "G": 1e9}[m.group(2).upper()]
 max_bps = float(m.group(1)) * scale
 margin = 0.80  # Headroom under the ingest session's declared maxContBitRate. No spec value
-               # governs it (rule 12): this script and MBSTF's PullObjectIngester run on
+                              # governs it: this script and MBSTF's PullObjectIngester run on
                # independent timers against the same growing ffmpeg output, so a window
                # measured here has already grown by the time MBSTF fetches it, and the interval
                # computed from the smaller total then implies a higher rate than intended. The
@@ -101,7 +101,7 @@ margin = 0.80  # Headroom under the ingest session's declared maxContBitRate. No
 rep_s = max(1.0, (total_bytes * 8) / (max_bps * margin)) if total_bytes else float(update_interval_s)
 rep_ms = int(rep_s * 1000)
 
-# BUG FIX, code-derived: every object in this list -- including manifest.mpd itself -- was
+# Code-derived: every object in this list, including manifest.mpd itself,
 # getting the same repetitionInterval, sized for the bulk media segments' own byte budget
 # (several MB every 5-20s at this window size), and no keepUpdatedInterval at all. Confirmed
 # live, this session: the served manifest's own window kept trailing the actual delivered

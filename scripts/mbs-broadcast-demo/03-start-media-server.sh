@@ -3,7 +3,7 @@
 # (re)generates its object-manifest carousel (TS 26.517 Annex D.1 shape: {"objects":
 # [{"locator","repetitionInterval"}, ...]}), and starts the server.
 #
-# The carousel's repetitionInterval is an engineering choice (rule 12: no clause governs
+# The carousel's repetitionInterval is an engineering choice (no clause governs it):
 # it) computed here from this stream's own real byte total against $INGEST_MAX_BITRATE
 # (env.sh) with a stated safety margin -- not a fabricated constant. If the content
 # changes, re-run this script and it recomputes; it does not silently clamp to whatever
@@ -65,7 +65,7 @@ print(f"{len(objects)} objects, {total_bytes} bytes total, "
       f"repetitionInterval={rep_ms}ms -> required bit rate {required_bps/1e6:.2f} Mbps")
 
 if max_bps is not None:
-    margin = 0.92  # headroom under the ingest session's own mbr, not a spec value (rule 12)
+    margin = 0.92  # headroom under the ingest session's own mbr, not a spec value
     if required_bps > max_bps * margin:
         print(f"ERROR: {required_bps/1e6:.2f} Mbps exceeds {margin:.0%} of the configured "
               f"INGEST_MAX_BITRATE ({max_bps/1e6:.2f} Mbps). Raise CAROUSEL_REPETITION_MS in "

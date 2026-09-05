@@ -176,7 +176,7 @@ CAROUSEL_REPETITION_MS="${CAROUSEL_REPETITION_MS:-300000}"
 # Exceeding the declared ceiling makes ObjectCarouselPackager reject each cycle, and the resulting
 # notification rate can exhaust the SBI message pool.
 #
-# No spec clause governs this value (rule 12): it is an engineering choice, set far enough above any
+# No spec clause governs this value: it is an engineering choice, set far enough above any
 # total this encode's window (10+5 segments at ~464 Kbps native) can imply that the drift above
 # cannot reach it, rather than close enough to need re-tuning whenever the window changes shape.
 LIVE_INGEST_MAX_BITRATE="12 Mbps"
