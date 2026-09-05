@@ -38,3 +38,21 @@ bake-remote.hcl
 
 # User-specific paths for the tmux tutorial scripts
 scripts/tmux/local.env
+# mbs-broadcast-demo: generated at runtime (configs/logs/pids/state), not committed
+scripts/mbs-broadcast-demo/run/
+
+# mbs-broadcast-demo: demo content copied in from MWC_CONTENT_ROOT by 03-start-media-server.sh, and the
+# carousel manifest it generates -- both regenerated on each run, not committed
+express-mock-media-server/public/tv_1/
+express-mock-media-server/public/carousel
+
+# mbs-broadcast-demo, looping path: the live DASH window live-encoder.sh writes and the carousel
+# live-carousel.sh generates from it. Both are produced continuously while the demo runs and
+# reach tens of megabytes; neither is content anyone should check in.
+express-mock-media-server/public/tv_1_live/
+express-mock-media-server/public/carousel-live
+
+# Other demo content copied in or derived locally: same reasoning, these are media working
+# copies rather than anything the repository should carry.
+express-mock-media-server/public/tv_1_micro/
+express-mock-media-server/public/tv_1_short/
