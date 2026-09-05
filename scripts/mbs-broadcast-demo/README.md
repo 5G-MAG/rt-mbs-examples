@@ -61,7 +61,8 @@ This runs, in order:
 | 03 | `03-start-media-server.sh` | Copies the demo DASH content into `express-mock-media-server/public/`, (re)generates its object-manifest carousel, starts the server |
 | 04 | `04-start-ran.sh` | gNB and UE, both inside `ns-gnb`, over a ZMQ RF loopback |
 | 05 | `05-start-client-and-app.sh` | rt-mbs-client + rt-mbs-application (both inside `ns-gnb`) + a socat relay so the dashboard is reachable from outside the namespace, and rt-mbs-application-provider on the host |
-| 06 | `06-provision-broadcast-service.sh` | Creates the demo MBS User Service (`servType: BROADCAST`) and its Broadcast Ingest Session (CAROUSEL/PULL from the media server, TMGI auto-allocated), through MBSF's own API |
+| 06 | `06-provision-live-service.sh` | What `start-all.sh` and `start-bypass-live.sh` both call: creates the live DASH MBS User Service and its Ingest Session through the application provider (OBJECT_STREAMING, the presentation manifest as entry point), then asks the MBS Client to join it |
+| 06 | `06-provision-broadcast-service.sh` | The alternative, run on its own: a `servType: BROADCAST` User Service with a CAROUSEL/PULL Ingest Session from the media server, TMGI auto-allocated, through MBSF's own API |
 
 Each script can also be run on its own (e.g. `./04-start-ran.sh` to restart just the RAN
 after editing a config) -- they're idempotent about already-running components and check
@@ -129,6 +130,15 @@ see it.
   `run/logs/gnb.log` for the corresponding cell-side view. A stale gNB or UPF process left
   running from a previous, differently-configured run is the most common cause -- run
   `./stop-all.sh` first.
+- **The UE never reaches random access at all** -- `run/logs/ue_bcast.log` stays empty, the
+  UE's own `run/logs/ue.log` stops at `Attaching UE...`, and `run/logs/gnb.log` shows no RACH:
+  check the machine's load average before looking at anything else. The gNB and UE are joined
+  by a ZMQ virtual radio and both sides must keep up with the sample rate in real time, so on
+  a loaded machine the link simply never carries a preamble. Observed on an 8-core machine: at
+  a load average of 16-21 (a parallel `ninja` build alongside the demo) the UE never attached
+  across three consecutive attempts; with the same binaries at a load average of about 3 it
+  attached first time. Do not build and run the demo at once, and give the machine a moment to
+  settle after a build before starting.
 - **UPF "Maximum number of MBS Sessions[20] reached"** (`run/logs/upf.log`): the UPF was
   never restarted across many test sessions and accumulated stale MBS session contexts.
   `./stop-all.sh` followed by `./start-all.sh` gives it a clean slate; there is no live
