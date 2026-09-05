@@ -28,12 +28,17 @@ UE_DIR="$RAN_ROOT/srsRAN_4G_mbs"
 # Binaries (built positions, not an `install/` staging tree -- matches how every one of
 # these repos is actually built and run in this project today: in-tree `build/`, no `make
 # install` step).
-OPEN5GS_BUILD="$OPEN5GS_DIR/build"
-MBSTF_BUILD="$MBSTF_DIR/build"
-MBSF_BUILD="$MBSF_DIR/build"
-GNB_BIN="$GNB_DIR/build/apps/gnb/gnb"
-UE_BIN="$UE_DIR/build/srsue/src/srsue"
-CLIENT_BIN="$CLIENT_DIR/build/mbs-client"
+#
+# Each is overridable, so an instrumented build can be swapped in for one component without
+# touching the others. To run MBSTF under AddressSanitizer, for example:
+#   MBSTF_BUILD=.../rt-mbs-transport-function/build-asan \
+#   ASAN_OPTIONS=detect_leaks=0:log_path=/tmp/asan ./start-all.sh
+OPEN5GS_BUILD="${OPEN5GS_BUILD:-$OPEN5GS_DIR/build}"
+MBSTF_BUILD="${MBSTF_BUILD:-$MBSTF_DIR/build}"
+MBSF_BUILD="${MBSF_BUILD:-$MBSF_DIR/build}"
+GNB_BIN="${GNB_BIN:-$GNB_DIR/build/apps/gnb/gnb}"
+UE_BIN="${UE_BIN:-$UE_DIR/build/srsue/src/srsue}"
+CLIENT_BIN="${CLIENT_BIN:-$CLIENT_DIR/build/mbs-client}"
 
 # ------------------------------------------------------------------------------------
 # Run-time state: configs, logs, pidfiles, content -- all under this script directory's
