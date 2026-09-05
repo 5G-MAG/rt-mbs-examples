@@ -1,0 +1,74 @@
+{
+  "_comment": [
+    "Template for OBJECT_SINGLE: one object, sent once, for rt-mbs-application-provider.",
+    "Loaded twice, like every template here: once on the MBS User Services card for the 'service'",
+    "block, once on the Ingest Sessions card for the 'sessions' array. See templates/README.md.",
+    "",
+    "Use this for a one-off delivery (a software image, a data file) where every intended receiver",
+    "is already listening. Nothing repeats, so a receiver that is not listening at the time gets",
+    "nothing; where that matters, use OBJECT_CAROUSEL instead, or FEC to survive residual loss."
+  ],
+
+  "service": {
+    "extServiceIds": ["https://mwc-tv-radio.ebu.io/services/single-file"],
+    "servType": "BROADCAST",
+    "servClass": "urn:oma:bcast:oma_bsc:st:1.0",
+    "servNameDescs": [
+      { "servName": "Single file delivery", "servDescrip": "One object, sent once", "language": "eng" }
+    ],
+    "mainServLang": "eng"
+  },
+
+
+  "_subscription": [
+    "Optional. When present, loading this template on the Ingest Sessions card prefills the Status",
+    "Subscription form beneath it -- the notification URI, and the events ticked below. It does not",
+    "subscribe: that stays a deliberate, separate step, like creating the service and the session.",
+    "",
+    "A subscription is per Ingest Session, so it cannot be prepared until the session exists, which",
+    "is why the form only appears once one has been created.",
+    "",
+    "The events below are the ones that tell you whether delivery actually started, plus the two",
+    "failure events that explain a session that never does. Tick more in the form if you want the",
+    "full lifecycle; the running MBSF's own list is what the form offers, and an event named here",
+    "that it does not offer is reported rather than silently dropped."
+  ],
+  "subscription": {
+    "notifUri": "http://127.0.0.1:8000/notifications",
+    "events": [
+      "DIST_SESS_STARTED",
+      "DELIVERY_STARTED",
+      "DIST_SESS_TERMINATED",
+      "DIST_SESS_EST_FAILURE",
+      "DATA_INGEST_FAILURE"
+    ]
+  },
+  "sessions": [
+    {
+      "distSessKey": "AP_MBS_SESSION_1",
+
+      "_opMode": [
+        "TS 26.517 V18.6.0 clause 6.2.3.2 defines OBJECT_SINGLE. Change to COLLECTION (clause",
+        "6.2.3.4) to send several related objects once as one set, listing them all in acqIds."
+      ],
+      "opMode": "SINGLE",
+
+      "acqMethod": "PULL",
+      "ingUri": "http://127.0.0.1:3004/",
+      "acqIds": "downloads/payload.bin",
+
+      "distrMethod": "OBJECT",
+      "distrUri": "http://127.0.0.2/",
+
+      "sourceIp": "127.0.0.68",
+      "destIp": "232.0.0.4",
+      "maxBitrate": "2 Mbps",
+
+      "_fecConfig": [
+        "Worth more here than in a repeating mode: with a single transmission there is no later",
+        "cycle to recover a lost block from. Remove for no FEC."
+      ],
+      "fecConfig": { "fecScheme": "urn:ietf:rmt:fec:encoding:1", "fecOverHead": 20 }
+    }
+  ]
+}

@@ -1,0 +1,87 @@
+{
+  "_comment": [
+    "Template for OBJECT_CAROUSEL: a fixed set of files repeated on a cycle, for",
+    "rt-mbs-application-provider. Loaded twice, like every template here: once on the MBS User",
+    "Services card, which reads the 'service' block, and once on the Ingest Sessions card with",
+    "that service open, which reads the 'sessions' array. See templates/README.md.",
+    "",
+    "Use this mode when every receiver should end up with the same set of files and may join at",
+    "any moment. Because the set repeats, a receiver that misses an object gets it on the next",
+    "cycle; that is what the repetition buys, and it is why the mode costs bearer capacity in",
+    "proportion to how often the set repeats."
+  ],
+
+  "service": {
+    "extServiceIds": ["https://mwc-tv-radio.ebu.io/services/file-carousel"],
+    "servType": "BROADCAST",
+    "servClass": "urn:oma:bcast:oma_bsc:st:1.0",
+    "servNameDescs": [
+      { "servName": "File carousel", "servDescrip": "A fixed file set, repeated", "language": "eng" }
+    ],
+    "mainServLang": "eng"
+  },
+
+
+  "_subscription": [
+    "Optional. When present, loading this template on the Ingest Sessions card prefills the Status",
+    "Subscription form beneath it -- the notification URI, and the events ticked below. It does not",
+    "subscribe: that stays a deliberate, separate step, like creating the service and the session.",
+    "",
+    "A subscription is per Ingest Session, so it cannot be prepared until the session exists, which",
+    "is why the form only appears once one has been created.",
+    "",
+    "The events below are the ones that tell you whether delivery actually started, plus the two",
+    "failure events that explain a session that never does. Tick more in the form if you want the",
+    "full lifecycle; the running MBSF's own list is what the form offers, and an event named here",
+    "that it does not offer is reported rather than silently dropped."
+  ],
+  "subscription": {
+    "notifUri": "http://127.0.0.1:8000/notifications",
+    "events": [
+      "DIST_SESS_STARTED",
+      "DELIVERY_STARTED",
+      "DIST_SESS_TERMINATED",
+      "DIST_SESS_EST_FAILURE",
+      "DATA_INGEST_FAILURE"
+    ]
+  },
+  "sessions": [
+    {
+      "distSessKey": "AP_MBS_SESSION_1",
+
+      "_opMode": [
+        "TS 26.517 V18.6.0 clause 6.2.3.3 defines OBJECT_CAROUSEL. The object list is fixed and",
+        "repeated; contrast OBJECT_STREAMING, which follows a presentation manifest and sends each",
+        "newly published object once."
+      ],
+      "opMode": "CAROUSEL",
+
+      "_acqIds": [
+        "Every object in the carousel, relative to ingUri, comma-separated. Unlike STREAMING this",
+        "is the object list itself, not a manifest to derive one from."
+      ],
+      "acqMethod": "PULL",
+      "ingUri": "http://127.0.0.1:3004/",
+      "acqIds": "carousel/index.html, carousel/logo.png",
+
+      "distrMethod": "OBJECT",
+      "distrUri": "http://127.0.0.2/",
+
+      "sourceIp": "127.0.0.68",
+      "destIp": "232.0.0.3",
+
+      "_maxBitrate": [
+        "A carousel's required rate follows from the set's total size and how often it repeats,",
+        "so this is a ceiling rather than a target."
+      ],
+      "maxBitrate": "2 Mbps",
+
+      "_fecConfig": [
+        "Optional. Broadcast has no retransmission, so an object is recovered only if every one of",
+        "its blocks arrives; FEC adds repair symbols to survive residual loss, at the cost of",
+        "bearer capacity. Remove this block for no FEC (Compact No-Code)."
+      ],
+      "fecConfig": { "fecScheme": "urn:ietf:rmt:fec:encoding:1", "fecOverHead": 20 }
+    }
+  ]
+}
