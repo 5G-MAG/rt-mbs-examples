@@ -130,6 +130,10 @@ see it.
   `run/logs/gnb.log` for the corresponding cell-side view. A stale gNB or UPF process left
   running from a previous, differently-configured run is the most common cause -- run
   `./stop-all.sh` first.
+- **`tun_bcastue got no address within Ns`** but `run/logs/ue.log` shows `PDU Session Establishment
+  successful`: the UE attached, just later than the wait allowed. Raise `UE_TUN_WAIT_SECS` in
+  `env.sh` (default 180) and re-run, or continue from `./05-start-client-and-app.sh` by hand, since
+  the earlier steps are still up.
 - **The UE never reaches random access at all** -- `run/logs/ue_bcast.log` stays empty, the
   UE's own `run/logs/ue.log` stops at `Attaching UE...`, and `run/logs/gnb.log` shows no RACH:
   check the machine's load average before looking at anything else. The gNB and UE are joined

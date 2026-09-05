@@ -16,13 +16,13 @@ sudo -n true || die "passwordless sudo (or a cached sudo timestamp) is required"
 
 log "waiting for the UE's tun_bcastue interface to get an address (PDU session establishment)"
 UE_IP=""
-for _ in $(seq 1 60); do
+for _ in $(seq 1 "$UE_TUN_WAIT_SECS"); do
     UE_IP=$(sudo -n ip netns exec "$NETNS" ip -o -4 addr show tun_bcastue 2>/dev/null \
         | awk '{print $4}' | cut -d/ -f1)
     [[ -n "$UE_IP" ]] && break
     sleep 1
 done
-[[ -n "$UE_IP" ]] || die "tun_bcastue never got an address -- check $LOG_DIR/ue_bcast.log (UE attach failed?)"
+[[ -n "$UE_IP" ]] || die "tun_bcastue got no address within ${UE_TUN_WAIT_SECS}s -- check $LOG_DIR/ue_bcast.log for the attach, and raise UE_TUN_WAIT_SECS in env.sh if the UE is simply slow on this machine"
 log "UE PDU session address: $UE_IP"
 
 # rt-mbs-client.conf: field names/values per rt-mbs-client/run/rt-mbs-client.conf, adapted

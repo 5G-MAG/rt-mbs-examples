@@ -204,6 +204,12 @@ BCAST_SSM_DEST=232.0.0.2
 #   GNB_EXTRA_ARGS="cu_cp test_only_mbs" ./start-all.sh
 GNB_EXTRA_ARGS="${GNB_EXTRA_ARGS:-cu_cp}"
 
+# How long 05-start-client-and-app.sh waits for the UE's tun_bcastue interface to get an address,
+# i.e. for RRC attach plus PDU session establishment. The README quotes 10-30s as typical; a machine
+# that is busy, or one whose ZMQ virtual radio is competing for CPU, can take considerably longer, so
+# this is a configuration option rather than a fixed bound.
+UE_TUN_WAIT_SECS="${UE_TUN_WAIT_SECS:-180}"
+
 # MBS User Service / Ingest Session identity for this demo
 DEMO_SERVICE_EXT_ID="https://mwc-tv-radio.ebu.io/services/${DEMO_STREAM}"
 DEMO_SERVICE_NAME="MWC TV 1"
