@@ -24,6 +24,8 @@ sbi:
     no_tls: true
 
 mbstf:
+    # mbstf.pathMtu is left at its 1500 byte default, which is the MTU of every interface these
+    # packets cross here: veth-h into the core's namespace, and tun_bcastue on the UE side.
     sbi:
       - addr: $MBSTF_SBI_ADDR
         port: $SBI_PORT
