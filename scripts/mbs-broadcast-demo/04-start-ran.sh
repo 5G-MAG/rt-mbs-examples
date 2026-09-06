@@ -214,10 +214,9 @@ log:
   # scheduler shares its logger level with the MAC ("MAC" and "SCHED" are registered together), so
   # this is the key that reaches it. Settable so it can be captured without editing this file.
   mac_level: ${GNB_SCHED_LOG_LEVEL:-info}
-  rlc_level: info
+  rlc_level: ${GNB_RLC_LOG_LEVEL:-info}
   phy_level: warning
   gtpu_level: warning
-  mac_level: info
   pdcp_level: info
   rrc_level: info
   cu_level: info
