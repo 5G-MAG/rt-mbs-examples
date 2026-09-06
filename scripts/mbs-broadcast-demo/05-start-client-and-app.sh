@@ -64,7 +64,97 @@ mbstf_client: {
 mbs_aware_api: {
   listen_uri: "http://127.0.0.1:$MBS_CLIENT_API_PORT/mbs-client-api";
 }
+
+
 EOF
+
+# UE pre-configuration for 5MBS (3GPP TS 24.575), when UE_PRE_CONFIGURATION=1.
+#
+# The specified way for a UE to learn which TMGI carries the Service Announcement, and with what
+# USD, is this object. TS 24.575 clause 4: "If the UE is pre-configured with information related
+# to services using MBS, the UE can discover and receive data for services by using the
+# provisioned configuration." The announcement_channel block above is the deployment-fixed
+# fallback for when no object is provisioned, so the two are alternatives and this removes it.
+#
+# The USD is a User Service Descriptions Bundle Entity: TS 26.517 clause 5.3.1A requires that
+# "The Content-Type header of the entity shall be multipart/related", and the entity carries its
+# own header here so the client can read the type and boundary from it. Its second body part is
+# the SDP for this deployment's own announcement channel -- the same parameters the fallback
+# block uses, expressed the way the specification expects to find them.
+if [ "${UE_PRE_CONFIGURATION:-0}" = "1" ]; then
+  UPC_FILE="$GEN_CONF_DIR/ue-pre-configuration.json"
+  UPC_BOUNDARY="5gmag-demo-ue-pre-config"
+
+  # Written with python3 so the JSON string escaping of a MIME entity (CRLFs, quotes, the
+  # boundary) is done by a JSON encoder rather than by hand in shell.
+  ANN_SRC="$MBSF_ADDR" ANN_ADDR="232.0.0.1" ANN_PORT="3000" ANN_TSI="1" \
+  UPC_BOUNDARY="$UPC_BOUNDARY" UPC_FILE="$UPC_FILE" \
+  python3 - <<'PYEOF'
+import json, os
+src, addr = os.environ["ANN_SRC"], os.environ["ANN_ADDR"]
+port, tsi = os.environ["ANN_PORT"], os.environ["ANN_TSI"]
+b = os.environ["UPC_BOUNDARY"]
+
+# The TMGI recorded in TMGIListForSA. A real deployment fixes this in advance, which is the point
+# of pre-configuration; this demo's MBSF allocates TMGIs when it creates the session, so no fixed
+# value can be the real one and the client acquires the announcement from the USD beside it. It
+# still has the structure TS 23.003 clause 30.2 gives: six hexadecimal digits of MBS Service ID,
+# a three-digit MCC, then a two- or three-digit MNC.
+tmgi = "00000100101"
+
+sdp = ("v=0\r\n"
+       f"o=- 1 1 IN IP4 {src}\r\n"
+       "s=Announcement Channel\r\n"
+       "t=0 0\r\n"
+       f"a=source-filter:incl IN IP4 * {src}\r\n"
+       f"a=flute-tsi:{tsi}\r\n"
+       f"m=application {port} FLUTE/UDP 0\r\n"
+       f"c=IN IP4 {addr}\r\n"
+       "b=10000\r\n")
+
+root = {"version": 1,
+        "userServiceDescriptions": [{
+            "serviceIds": ["urn:5gmag:demo:service-announcement"],
+            "class": "urn:oma:bcast:oma_bsc:st:1.0",
+            "names": [{"lang": "en", "name": "Service Announcement Channel"}],
+            "distributionSessionDescriptions": [
+                {"distributionMethod": "OBJECT",
+                 "sessionDescriptionLocator": "announcement-channel.sdp"}]}]}
+
+entity = (
+  f'Content-Type: multipart/related; type="application/3gpp-mbs-user-service-descriptions+json"; boundary="{b}"\r\n'
+  "\r\n"
+  f"--{b}\r\n"
+  "Content-Type: application/3gpp-mbs-user-service-descriptions+json\r\n"
+  "\r\n"
+  f"{json.dumps(root)}\r\n"
+  f"--{b}\r\n"
+  "Content-Type: application/sdp\r\n"
+  "Content-Location: announcement-channel.sdp\r\n"
+  "\r\n"
+  f"{sdp}\r\n"
+  f"--{b}--\r\n")
+
+obj = {"name": "rt-mbs-examples broadcast demo",
+       "plmnList": [{"plmnId": "00101",
+                     "tmgiListForSA": [{"tmgi": tmgi, "usd": entity}]}]}
+with open(os.environ["UPC_FILE"], "w") as fh:
+    json.dump(obj, fh, indent=2)
+PYEOF
+
+  # Drop the fallback and point the client at the object instead.
+  python3 - "$GEN_CONF_DIR/rt-mbs-client.conf" "$UPC_FILE" <<'PYEOF'
+import re, sys
+conf, upc = sys.argv[1], sys.argv[2]
+s = open(conf).read()
+s = re.sub(r"\n  announcement_channel: \{[^}]*\}\n", "\n", s)
+s += '\nue_pre_configuration: {\n  file: "%s";\n}\n' % upc
+open(conf, "w").write(s)
+PYEOF
+
+  log "UE pre-configuration (TS 24.575) provisioned: $UPC_FILE"
+  log "  the announcement_channel fallback is removed; the client acquires the announcement from the object"
+fi
 
 # Both rt-mbs-client and rt-mbs-application run as root inside $NETNS (run_bg_netns_root),
 # not privilege-dropped -- rt-mbs-client's own raw_capture_relay opens an AF_PACKET raw

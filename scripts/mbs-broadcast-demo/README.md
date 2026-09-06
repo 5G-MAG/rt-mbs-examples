@@ -13,11 +13,32 @@ tutorial. It uses the RAN-free path below so nothing radio-related gets in the w
 | Script | What it does | When |
 |---|---|---|
 | `./start-all.sh` | Everything, gNB and UE included, and provisions a demo service | The full end-to-end |
+| `UE_PRE_CONFIGURATION=1 ./start-all.sh` | The same, but the client finds the Service Announcement through the TS 24.575 pre-configuration object instead of a fixed config block | Showing the specified bootstrap |
 | `./start-bypass-live.sh` | Everything except the RAN, with a looping live DASH service created for you | Watching video without the radio |
 | `./start-systems.sh` | The same bring-up, creating no service at all | Provisioning it yourself from the provider |
 
 All three reset anything already running first, so they are safe to run twice. `./stop-all.sh`
 stops everything, the encoder included. `./status.sh` shows what is up.
+
+### What "it worked" looks like
+
+After `./start-all.sh` returns, give it a minute and check the logs under `run/logs/`. These are the
+numbers from a healthy run; the exact counts grow with how long it has been up.
+
+| Check | Where | Healthy |
+|---|---|---|
+| The UE is receiving MCCH | `grep -c 'MCCH received' run/logs/ue_bcast.log` | grows steadily, 2 sessions advertised |
+| Broadcast radio bearers wired | `grep -oE 'MRB[0-9]+' run/logs/ue_bcast.log \| sort -u` | two MRBs |
+| Transport blocks decoding | `grep -ci 'crc=OK' run/logs/ue_bcast.log` | thousands, and growing |
+| Objects reaching the client | `grep -c completed run/logs/rt-mbs-client.log` | grows with the carousel |
+| Ingest is healthy | `grep -ciE 'fetch fail\|Not refetching' run/logs/mbstf.log` | `0` |
+| The gNB is not starved | `grep -c 'No space in PDCCH' run/logs/gnb.log` | `0`, or a couple at UE attach |
+
+Then open the player at <http://localhost:3050/>.
+
+If the UE never attaches, that is usually machine load rather than a fault: the ZMQ virtual radio
+misses its deadlines when the box is busy. `UE_TUN_WAIT_SECS` (default 180) is how long the scripts
+wait for the UE's PDU session before giving up.
 
 This is **Broadcast only**. Multicast needs a different gNB/UE test-harness configuration
 (dedicated-RRC `test_only_multicast_g_rnti`/`test_only_multicast_mrb_lcid`, not the plain
@@ -97,6 +118,61 @@ watch -n5 'curl -s http://localhost:3050/api/content | python3 -m json.tool'
 ./stop-all.sh    # stop everything (add --netns to also remove the network namespace)
 ```
 
+## UE pre-configuration for 5MBS (TS 24.575)
+
+By default the client learns the Service Announcement channel from a deployment-fixed block in its
+generated config: the address, port and TSI are written straight into `rt-mbs-client.conf`. That
+works, but it is not how a UE is meant to find out.
+
+3GPP TS 24.575 defines a pre-configuration object for exactly this. Clause 4: *"If the UE is
+pre-configured with information related to services using MBS, the UE can discover and receive data
+for services by using the provisioned configuration."* Per PLMN it carries the TMGIs on which the
+service announcement is available, each with its USD, the TMGIs carrying the services themselves,
+NR-ARFCNs, and a default DNN and S-NSSAI pair.
+
+To run the demo that way instead:
+
+```bash
+UE_PRE_CONFIGURATION=1 ./start-all.sh
+```
+
+That makes `05-start-client-and-app.sh` write the object to `run/configs/ue-pre-configuration.json`,
+**remove** the deployment-fixed `announcement_channel` block from the client's config, and point the
+client at the object. The client then acquires the announcement from the object alone. In the log:
+
+```
+rt-mbs-client: UE pre-configuration loaded from .../ue-pre-configuration.json: 1 PLMN(s)
+rt-mbs-client: UE pre-configuration provisions the service announcement on TMGI ... (PLMN 00101)
+DistributionSessionReceiver: announcement-channel.sdp activating FLUTE session 232.0.0.1:3000 tsi=1
+rt-mbs-client: acquired the service announcement for service ... from the UE pre-configuration
+```
+
+Two things about the generated object are worth knowing:
+
+- **The USD is a real bundle entity.** TS 26.517 clause 5.3.1A requires that *"The Content-Type
+  header of the entity shall be multipart/related"*, so the object's `usd` leaf carries a
+  multipart/related entity whose root part is the User Service Descriptions document and whose
+  second part is the SDP for this deployment's announcement channel. That is the same channel the
+  fallback block describes, written the way the specification expects to find it.
+- **The TMGI is illustrative here.** A real deployment fixes the TMGI in advance, which is the whole
+  point of pre-configuration. This demo's MBSF allocates TMGIs when it creates the session, so no
+  fixed value can be the real one, and the client acquires the announcement from the USD beside it.
+  The value is written in `05-start-client-and-app.sh`; it has the structure TS 23.003 clause 30.2
+  gives for an MBS TMGI, six hexadecimal digits of MBS Service ID, a three-digit MCC, then a two- or
+  three-digit MNC.
+
+Both paths are exercised: `./start-all.sh` runs the fallback path, `UE_PRE_CONFIGURATION=1
+./start-all.sh` runs the specified one, and either delivers the same content.
+
+The object can also be read and replaced while the client runs, which is what TS 24.575 clause 6.4's
+*"Access Types: Get, Replace"* on `PLMNList` allows:
+
+```bash
+sudo ip netns exec ns-gnb curl -s http://127.0.0.1:3031/mbs-client-api/x-5gmag-ue-pre-configuration
+```
+
+`rt-mbs-application` shows the same object under its **UE Pre-configuration** tab.
+
 ## Why this exists, not the older `scripts/tmux/` tutorial scripts
 
 `scripts/tmux/mbs-function-tutorial/mbs-function-tutorial.sh` covers only the backend NFs
@@ -122,6 +198,35 @@ host or real RF hardware, watch `run/logs/gnb.log` for `"Dropped SDU"` and back 
 see it.
 
 ## Troubleshooting
+
+- **The radio is fine but the client receives nothing.** The symptom is
+  `run/logs/rt-mbs-client.log` staying short with no `Received new FDT` lines, while
+  `run/logs/ue_bcast.log` shows MCCH receptions and thousands of CRC-OK decodes, and the
+  provisioning step ends with `no cached service with external service id ...`.
+
+  The one diagnostic that settles it is what is actually on the wire:
+
+  ```bash
+  sudo timeout 10 ip netns exec ns-gnb tcpdump -i tun_bcastue -n udp
+  ```
+
+  A healthy run carries traffic to **both** `232.0.0.1:3000`, the Service Announcement, and
+  `232.0.0.2`, the content. Seeing only the content means the announcement channel is not
+  transmitting, so the client has nothing to learn the service from however healthy the radio is.
+  Restart from a clean state:
+
+  ```bash
+  ./stop-all.sh
+  sudo rm -rf run/state run/mbsf-cache
+  ./start-all.sh
+  ```
+
+  Do **not** use `run/logs/mbsf.log`'s `MBS User Data Ingest Session [USER SERVICE ANNOUNCEMENT
+  CHANNEL] does not exist` as the tell. That line appears in healthy runs too, and mistaking it for
+  the cause sends you after the wrong thing.
+
+- **"SSM 232.0.0.2 is already used by another Distribution Session"** during provisioning: a
+  previous run's session is still registered. Same fix as above.
 
 - **"tun_bcastue never got an address"** (`04-start-ran.sh`/`05-start-client-and-app.sh`):
   the UE didn't attach. Check `run/logs/ue_bcast.log` for NAS/RRC failures and

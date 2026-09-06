@@ -16,8 +16,10 @@ Two, and they are the place to start:
 
 - **[The whole MBS Broadcast stack](scripts/mbs-broadcast-demo/README.md)** -- brings up the 5G core,
   MBSF/MBSTF, a gNB and UE pair, the MBS Client and both portals from a cold start, and runs
-  content end to end over the radio interface. Also covers the RAN-free path for when the radio is
-  not what you are testing.
+  content end to end over the radio interface. It also shows what a healthy run looks like, so you
+  can tell whether it worked; how to run the same thing with UE pre-configuration (3GPP TS 24.575),
+  which is the specified way for a UE to find the Service Announcement; and the RAN-free path for
+  when the radio is not what you are testing.
 - **[MBS User Services](templates/README.md)** -- what an MBS User Service and its Ingest Session
   are, what the operating mode changes, and how to provision both from rt-mbs-application-provider
   using a template rather than a script.

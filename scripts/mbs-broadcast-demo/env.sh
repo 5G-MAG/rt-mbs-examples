@@ -215,4 +215,11 @@ DEMO_SERVICE_EXT_ID="https://mwc-tv-radio.ebu.io/services/${DEMO_STREAM}"
 DEMO_SERVICE_NAME="MWC TV 1"
 DEMO_SERVICE_DESC="MWC demo TV channel, carouselled from rt-mbs-examples/express-mock-media-server"
 
+# UE pre-configuration for 5MBS (3GPP TS 24.575). When 1, the client is given the
+# pre-configuration object instead of the deployment-fixed announcement_channel block, and
+# acquires the Service Announcement from it. Clause 4 of that specification makes the object
+# optional, so the default is off and the demo behaves as it always has.
+UE_PRE_CONFIGURATION="${UE_PRE_CONFIGURATION:-0}"
+
 set +a
+
