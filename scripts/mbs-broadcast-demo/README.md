@@ -54,6 +54,9 @@ NGAP Broadcast Session Setup path these scripts drive) and is not covered here.
 - Built binaries for every component listed in `env.sh` (`open5gs`, `rt-mbs-transport-function`,
   `rt-mbs-function`, `rt-mbs-client`, `srsRAN_Project_mbs`, `srsRAN_4G_mbs`) -- these scripts
   run what's already built, they don't build anything.
+- `rt-mbs-client` carries `rt-libflute` as a submodule, tracking `5G-MAG/rt-libflute`
+  `development`. Clone with `--recurse-submodules`, or run
+  `git submodule update --init --recursive` before building it.
 - `node`/`npm`, `python3`, `curl`, `mongod` running (checked/started automatically for
   `mongod` if inactive; NRF/UDR need it).
 - Content is **optional**. `start-all.sh` carousels the DASH package at
