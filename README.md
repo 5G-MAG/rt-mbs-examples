@@ -10,6 +10,20 @@ Example projects that make use of other 5G-MAG repositories or provide additiona
 
 Additional information can be found at: https://5g-mag.github.io/Getting-Started/pages/5g-multicast-broadcast-services/
 
+## Tutorials
+
+Two, and they are the place to start:
+
+- **[The whole MBS Broadcast stack](scripts/mbs-broadcast-demo/README.md)** -- brings up the 5G core,
+  MBSF/MBSTF, a gNB and UE pair, the MBS Client and both portals from a cold start, and runs
+  content end to end over the radio interface. It also shows what a healthy run looks like, so you
+  can tell whether it worked; how to run the same thing with UE pre-configuration (3GPP TS 24.575),
+  which is the specified way for a UE to find the Service Announcement; and the RAN-free path for
+  when the radio is not what you are testing.
+- **[MBS User Services](templates/README.md)** -- what an MBS User Service and its Ingest Session
+  are, what the operating mode changes, and how to provision both from rt-mbs-application-provider
+  using a template rather than a script.
+
 ## 5G Multicast Broadcast Services - Docker Compose Setup
 
 This is a docker setup to build and run MBS-related 5GC network functions, an MBS-enabled gNB, an MBS-enabled UE and a test AF/AS. In addition, it includes a Docker Compose file to deploy all these components. The configuration files included in this project can be edited on the host machine and are mounted to the respective Docker container during runtime.
