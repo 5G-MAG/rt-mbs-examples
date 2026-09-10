@@ -39,6 +39,38 @@ if [[ -z "$LOG_DIR" ]]; then
     exit 1
 fi
 
+print_component_version() {
+    local name="$1"
+    local repository="$2"
+    local binary="$3"
+    local revision="not a git repository"
+    local branch="not a git repository"
+
+    if git -C "$repository" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+        revision=$(git -C "$repository" describe --always --dirty --tags 2>/dev/null)
+        branch=$(git -C "$repository" branch --show-current 2>/dev/null)
+        [[ -n "$branch" ]] || branch="detached HEAD"
+    fi
+
+    echo "$name: $revision"
+    echo "  branch: $branch"
+    echo "  repository: $repository"
+    echo "  binary: $binary"
+}
+
+echo "--- Component versions ---"
+OPEN5GS_REPOSITORY="$(dirname "$(dirname "$OPEN5GS_BASE_DIR")")"
+MBSTF_REPOSITORY="$(dirname "$(dirname "$(dirname "$MBSTF_BASE_DIR")")")"
+MBSF_REPOSITORY="$(dirname "$(dirname "$(dirname "$MBSF_BASE_DIR")")")"
+print_component_version "NRF" "$OPEN5GS_REPOSITORY" "$OPEN5GS_BASE_DIR/open5gs-nrfd"
+print_component_version "SCP" "$OPEN5GS_REPOSITORY" "$OPEN5GS_BASE_DIR/open5gs-scpd"
+print_component_version "MB-SMF" "$OPEN5GS_REPOSITORY" "$OPEN5GS_BASE_DIR/open5gs-smfd"
+print_component_version "MB-UPF" "$OPEN5GS_REPOSITORY" "$OPEN5GS_BASE_DIR/open5gs-upfd"
+print_component_version "MB-AMF" "$OPEN5GS_REPOSITORY" "$OPEN5GS_BASE_DIR/open5gs-amfd"
+print_component_version "MBSTF" "$MBSTF_REPOSITORY" "$MBSTF_BASE_DIR/open5gs-mbstfd"
+print_component_version "MBSF" "$MBSF_REPOSITORY" "$MBSF_BASE_DIR/open5gs-mbsfd"
+print_component_version "Media Server" "$MEDIA_SERVER_DIR" "$(command -v node 2>/dev/null || echo 'node not found')"
+
 # Capture IDs for clean exit
 PANE_PGIDS=()
 PANE_PIDS=()
