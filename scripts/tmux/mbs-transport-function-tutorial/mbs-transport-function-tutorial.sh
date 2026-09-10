@@ -44,15 +44,14 @@ print_component_version() {
         [[ -n "$branch" ]] || branch="detached HEAD"
     fi
 
-    echo "$name: $revision"
-    echo "  branch: $branch"
-    echo "  repository: $repository"
-    echo "  binary: $binary"
+    printf "%-14s  %-48s  %-38s  %s\n" "$name" "$revision" "$branch" "$repository"
 }
 
 echo "--- Component versions ---"
 OPEN5GS_REPOSITORY="$(dirname "$(dirname "$OPEN5GS_BASE_DIR")")"
 MBSTF_REPOSITORY="$(dirname "$(dirname "$(dirname "$MBSTF_BASE_DIR")")")"
+printf "%-14s  %-48s  %-38s  %s\n" "Component" "Source revision" "Branch" "Location"
+printf "%-14s  %-48s  %-38s  %s\n" "---------" "---------------" "------" "--------"
 print_component_version "NRF" "$OPEN5GS_REPOSITORY" "$OPEN5GS_BASE_DIR/open5gs-nrfd"
 print_component_version "SCP" "$OPEN5GS_REPOSITORY" "$OPEN5GS_BASE_DIR/open5gs-scpd"
 print_component_version "MB-SMF" "$OPEN5GS_REPOSITORY" "$OPEN5GS_BASE_DIR/open5gs-smfd"
