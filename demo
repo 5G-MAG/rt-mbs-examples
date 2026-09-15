@@ -1,11 +1,11 @@
 #!/bin/bash
 # One entry point for the demos in this repository.
 #
-#   ./demo up [broadcast|multicast]   start a demo, after checking nothing will collide with it
+#   ./demo up [name] [--force]        start a demo, after checking nothing will collide with it
 #   ./demo down [--all]               stop it, verify nothing is left; --all stops all three demos
-#   ./demo status                     what is up
-#   ./demo doctor                     run the checks only, change nothing
-#   ./demo logs [name]                tail this demo's logs
+#   ./demo status [name]              what is up
+#   ./demo doctor [name]              run the checks only, change nothing
+#   ./demo logs [log]                 list this demo's logs, or tail one of them
 #
 # The per-demo scripts under scripts/ are unchanged and can still be run directly. This wrapper
 # exists for two reasons: so the demo can be started without knowing which directory it lives in,
