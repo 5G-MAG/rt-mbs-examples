@@ -37,7 +37,10 @@ bake-remote.hcl
 .idea
 
 # User-specific paths for the tmux tutorial scripts
+# Machine-specific paths, for the tmux sessions and for each demo. Templates are
+# committed beside them as local.env.example.
 scripts/tmux/local.env
+scripts/*/local.env
 # mbs-broadcast-demo: generated at runtime (configs/logs/pids/state), not committed
 scripts/mbs-broadcast-demo/run/
 
@@ -50,6 +53,9 @@ express-mock-media-server/public/carousel
 # live-carousel.sh generates from it. Both are produced continuously while the demo runs and
 # reach tens of megabytes; neither is content anyone should check in.
 express-mock-media-server/public/tv_1_live/
+express-mock-media-server/public/tv_2_live/
+express-mock-media-server/public/tv_3_live/
+express-mock-media-server/public/radio_live/
 express-mock-media-server/public/carousel-live
 
 # Other demo content copied in or derived locally: same reasoning, these are media working

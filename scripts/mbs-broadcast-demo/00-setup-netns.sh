@@ -35,7 +35,18 @@ else
     sudo -n ip netns add "$NETNS"
 fi
 
-# veth pair: $VETH_ROOT stays in the root namespace, $VETH_NS moves into $NETNS
+# veth pair: $VETH_ROOT stays in the root namespace, $VETH_NS moves into $NETNS.
+#
+# Both ends are checked, not just $VETH_ROOT. Deleting $NETNS takes $VETH_NS with it and leaves
+# $VETH_ROOT behind, so a run after an interrupted teardown finds the root end present, skips
+# creating the pair, and then fails on the next line with "Cannot find device". A root end whose
+# peer is gone is not a pair; delete it and make a real one.
+if ip link show "$VETH_ROOT" >/dev/null 2>&1 && \
+   ! sudo -n ip netns exec "$NETNS" ip link show "$VETH_NS" >/dev/null 2>&1; then
+    log "$VETH_ROOT survived without its peer $VETH_NS; recreating the pair"
+    sudo -n ip link delete "$VETH_ROOT"
+fi
+
 if ! ip link show "$VETH_ROOT" >/dev/null 2>&1; then
     log "creating veth pair $VETH_ROOT <-> $VETH_NS"
     sudo -n ip link add "$VETH_ROOT" type veth peer name "$VETH_NS"
