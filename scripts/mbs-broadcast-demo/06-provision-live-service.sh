@@ -65,7 +65,8 @@ svc_id=$(post_for_id "MBS User Service creation" "$PROVIDER_URL/mbs-user-service
       \"servNameDescs\": [{\"servName\": \"$SERVICE_NAME\", \"servDescrip\": \"$SERVICE_DESC\", \"language\": \"eng\"}],
       \"mainServLang\": \"eng\"
     }")
-echo "$svc_id" > "$STATE_DIR/live_service_id"
+# Named after the presentation, because start-all.sh calls this once per on-air channel.
+echo "$svc_id" > "$STATE_DIR/live_service_id.${PRESENTATION_PATH%%/*}"
 log "MBS User Service: $svc_id"
 
 ing_id=$(post_for_id "Ingest Session creation" "$PROVIDER_URL/ingest-sessions" "$PROVIDER_AUTH" "{
@@ -82,7 +83,7 @@ ing_id=$(post_for_id "Ingest Session creation" "$PROVIDER_URL/ingest-sessions" "
             \"objIngUri\": \"http://$MEDIA_HOST:$MEDIA_PORT/\", \"objAcqIds\": [\"$PRESENTATION_PATH\"] } } },
       \"suppFeat\": \"3\"
     }")
-echo "$ing_id" > "$STATE_DIR/ingest_session_id"
+echo "$ing_id" > "$STATE_DIR/ingest_session_id.${PRESENTATION_PATH%%/*}"
 log "Ingest Session: $ing_id"
 
 # The client learns the service from the announcement channel by itself; this only waits for that

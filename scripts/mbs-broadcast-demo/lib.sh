@@ -176,3 +176,36 @@ reset_demo() {
     rm -f "$PID_DIR"/*.pid
     sleep 1
 }
+
+# The channel line-up, as tab-separated rows so a caller can read it with `while IFS=$'\t' read`.
+# channels.json is the single definition the encoders and the provisioning step both work from,
+# so an encoder and a Distribution Session cannot disagree about which presentation a channel is.
+#
+# DEMO_CHANNELS limits both to the ids it names (space or comma separated), for a machine
+# that cannot encode the whole line-up at once. Unset, the whole line-up runs.
+#
+#   channel_rows   every channel:  id  stream  source  type  videoBitrate
+#   onair_rows     onAir only:     id  name  stream  ssmDest
+channel_rows() {
+    python3 -c '
+import json, os, sys
+only = [x for x in os.environ.get("DEMO_CHANNELS", "").replace(",", " ").split() if x]
+for c in json.load(open(sys.argv[1]))["channels"]:
+    if only and c["id"] not in only: continue
+    print("\t".join([c["id"], c["stream"], c["source"], c.get("type", "linear"),
+                     c.get("videoBitrate", "400k")]))
+' "$CHANNELS_FILE"
+}
+
+onair_rows() {
+    python3 -c '
+import json, os, sys
+only = [x for x in os.environ.get("DEMO_CHANNELS", "").replace(",", " ").split() if x]
+for c in json.load(open(sys.argv[1]))["channels"]:
+    if not c.get("onAir"): continue
+    if only and c["id"] not in only: continue
+    if not c.get("ssmDest"):
+        sys.exit("channels.json: %s is onAir but has no ssmDest" % c["id"])
+    print("\t".join([c["id"], c["name"], c["stream"], c["ssmDest"]]))
+' "$CHANNELS_FILE"
+}

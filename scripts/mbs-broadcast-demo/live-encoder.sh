@@ -14,7 +14,13 @@ SEG="${LIVE_SEG_DURATION:-5}"
 # object after it appears in the manifest, and a short retention lets a segment be deleted
 # before that fetch happens, which shows up as a 404 storm and a sender that never catches up.
 WIN="${LIVE_WINDOW:-24}"
+# Video bit rate for a linear channel. No clause governs it: it is an operator setting, named per
+# channel in channels.json (videoBitrate) and defaulted here, because what fits depends entirely
+# on the bearer the deployment runs over. A channel sharing the radio with another on-air session
+# needs a lower value than one that has it to itself: a broadcast bearer has no retransmission, so
+# an object arrives only if every block does, and larger objects fail disproportionately.
 EXTRA="${LIVE_EXTRA_WINDOW:-48}"
+LIVE_VIDEO_BITRATE="${LIVE_VIDEO_BITRATE:-400k}"
 
 require_cmd ffmpeg
 
@@ -44,10 +50,26 @@ fi
 # DASH_ADAPTATION_SETS overrides the arrangement for a deployment whose packager can do more.
 mkdir -p "$DST"
 rm -f "$DST"/*.m4s "$DST"/*.tmp "$DST"/manifest.mpd 2>/dev/null || true
+# A radio channel is encoded audio-only, with no video track at all. Two reasons, and the first
+# is the one that matters here: a broadcast bearer has no retransmission, so an object is
+# recovered only if every one of its blocks arrives, and a 400 kbit/s video track makes the
+# objects several times larger and correspondingly more fragile. Carrying a radio service's
+# picture over the air also has no purpose. LIVE_TYPE comes from the channel's own "type" in
+# channels.json, using the same vocabulary as the DVB-I demo's: linear or radio.
+if [[ "${LIVE_TYPE:-linear}" == "radio" ]]; then
+    log "encoding -> $DST (audio only, ${SEG}s segments, window $WIN + $EXTRA)"
+    exec ffmpeg -re -fflags +genpts "${input[@]}" \
+      -vn -c:a aac -ar 48000 -b:a 64k \
+      -seg_duration "$SEG" -use_template 1 -use_timeline 1 \
+      -window_size "$WIN" -extra_window_size "$EXTRA" \
+      -adaptation_sets "${DASH_ADAPTATION_SETS:-id=0,streams=a}" \
+      -f dash "$DST/manifest.mpd"
+fi
+
 log "encoding -> $DST (${SEG}s segments, window $WIN + $EXTRA)"
 exec ffmpeg -re -fflags +genpts "${input[@]}" \
   -vf scale=960:540 -c:v libx264 -profile:v main -pix_fmt yuv420p \
-  -b:v 400k -maxrate:v 400k -bufsize:v 800k -g $((SEG*30)) -keyint_min $((SEG*30)) -sc_threshold 0 -r 30 \
+  -b:v "$LIVE_VIDEO_BITRATE" -maxrate:v "$LIVE_VIDEO_BITRATE" -bufsize:v 800k -g $((SEG*30)) -keyint_min $((SEG*30)) -sc_threshold 0 -r 30 \
   -c:a aac -ar 48000 -b:a 64k \
   -seg_duration "$SEG" -use_template 1 -use_timeline 1 \
   -window_size "$WIN" -extra_window_size "$EXTRA" \

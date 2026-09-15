@@ -1,0 +1,38 @@
+{
+  "_comment": [
+    "The channel line-up this demo publishes, kept deliberately identical in name, source clip and",
+    "stream directory to rt-mbms-examples' and rt-dvb-i-examples' own channels.json, so the three",
+    "demos show the same content under the same names.",
+    "",
+    "Per channel:",
+    "  id       stable identifier, used in log lines and in the external service id",
+    "  name     what the service is called wherever a name is shown",
+    "  source   file under $HOME/MWC_TV_RADIO that the looping live encoder plays",
+    "  stream   directory the encoder writes under the media origin's public/ directory",
+    "  type     linear or radio, the DVB-I demo's own vocabulary. A radio channel is encoded",
+    "           audio-only: see live-encoder.sh for why that matters over a broadcast bearer",
+    "  onAir    true if this channel is carried over the radio as its own MBS User Service. The",
+    "           others are still encoded and served by the origin, so every demo offers the same",
+    "           four channels; they are simply not broadcast here.",
+    "  ssmDest  destination of this channel's own source-specific multicast group. Required when",
+    "           onAir, and must be unique: two Distribution Sessions cannot share an SSM, and the",
+    "           MBSF rejects the second with the SSM already in use.",
+    "",
+    "Only one channel is on air. Two MBS Distribution Sessions can be created and both reach the",
+    "UE -- packets for each group arrive on tun_bcastue at a similar rate -- but only the second",
+    "session's objects complete: with two sessions sharing the bearer, the first session's larger",
+    "objects lose enough blocks that they are never recovered, and a broadcast bearer has no",
+    "retransmission. The same channel on its own delivers its segments without trouble. This is a",
+    "limitation of the RAN this demo runs over, not of the line-up, and it is recorded in the",
+    "project's srsRAN_Project_mbs findings register as the MBS scheduling-contention defect.",
+    "",
+    "Set onAir true on a second channel to reproduce it; ssmDest is already assigned for that. The",
+    "rt-mbms-examples demo, on a different radio stack, does carry both of its on-air services."
+  ],
+  "channels": [
+    { "id": "mwc-tv-1",  "name": "5G-MAG.tv 1",  "source": "TV_1.mp4",  "stream": "tv_1_live",  "type": "linear", "onAir": true,  "ssmDest": "232.0.0.2" },
+    { "id": "mwc-tv-2",  "name": "5G-MAG.tv 2",  "source": "TV_2.mp4",  "stream": "tv_2_live",  "type": "linear", "onAir": false },
+    { "id": "mwc-tv-3",  "name": "5G-MAG.tv 3",  "source": "TV_3.mp4",  "stream": "tv_3_live",  "type": "linear", "onAir": false },
+    { "id": "mwc-radio", "name": "5G-MAG.radio", "source": "RADIO.mp4", "stream": "radio_live", "type": "radio",  "onAir": false, "ssmDest": "232.0.0.3" }
+  ]
+}

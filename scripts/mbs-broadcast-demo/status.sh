@@ -35,6 +35,16 @@ check_tcp MBSF "$MBSF_ADDR" "$SBI_PORT"
 
 echo "Media server:"
 check_tcp "media server" "$MEDIA_HOST" "$MEDIA_PORT"
+while IFS=$'\t' read -r ch_id ch_stream ch_source ch_type ch_vbr; do
+    air=$(onair_rows | cut -f3 | grep -qx "$ch_stream" && echo "on air" || echo "origin only")
+    segs=$(ls "$MEDIA_DIR/public/$ch_stream" 2>/dev/null | grep -c '\.m4s$' || echo 0)
+    if pgrep -f "ffmpeg -re .*/$ch_stream" >/dev/null 2>&1 \
+       && curl -s -o /dev/null -m 3 "http://$MEDIA_HOST:$MEDIA_PORT/$ch_stream/manifest.mpd"; then
+        echo "  [up]   $ch_stream  ($air, $segs segments)  http://$MEDIA_HOST:$MEDIA_PORT/$ch_stream/manifest.mpd"
+    else
+        echo "  [down] $ch_stream  ($air)"
+    fi
+done < <(channel_rows)
 
 echo "RAN (inside $NETNS):"
 if netns_exists; then
@@ -46,9 +56,11 @@ echo "Portals:"
 check_tcp "rt-mbs-application (in $NETNS)" "$VETH_NS_ADDR" "$APP_PORT"
 check_tcp "rt-mbs-application-provider" 127.0.0.1 "$PROVIDER_PORT"
 
-if [[ -f "$STATE_DIR/ingest_session_id" ]]; then
-    ING_ID=$(cat "$STATE_DIR/ingest_session_id")
-    echo "Provisioned demo session: $ING_ID"
+# One Ingest Session per on-air channel, each in its own state file.
+while IFS=$'\t' read -r ch_id ch_name ch_stream ch_ssm; do
+    [[ -f "$STATE_DIR/ingest_session_id.$ch_stream" ]] || continue
+    ING_ID=$(cat "$STATE_DIR/ingest_session_id.$ch_stream")
+    echo "Provisioned session, $ch_name ($ch_stream): $ING_ID"
     curl -s -m 3 "http://$MBSF_ADDR:$SBI_PORT/nmbsf-mbs-ud-ingest/v1/sessions/$ING_ID" \
         | python3 -m json.tool 2>/dev/null | sed 's/^/  /' || echo "  (MBSF not reachable)"
-fi
+done < <(onair_rows)

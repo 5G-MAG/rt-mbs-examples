@@ -45,33 +45,47 @@ if [[ -n "${LIVE_PRESENTATION:-}" ]]; then
     [[ -f "$MEDIA_DIR/public/$PRESENTATION_PATH" ]] || \
         die "no presentation at $MEDIA_DIR/public/$PRESENTATION_PATH"
 else
-    log "=== 4/7 looping live encoder ==="
-    if pgrep -f "live-encoder.sh|ffmpeg -re -fflags .*$LIVE_STREAM_NAME" >/dev/null 2>&1; then
-        log "live encoder already running, leaving it alone"
-    else
-        LIVE_SEG_DURATION="$SEG_DURATION_S" nohup ./live-encoder.sh > "$LOG_DIR/live-encoder.log" 2>&1 &
+    log "=== 4/7 looping live encoders, one per channel ==="
+    # Every channel in channels.json is encoded and served by the origin, whether or not it is
+    # carried over the radio, so this demo offers the same four channels under the same names as
+    # the MBMS and DVB-I ones. Which of them go on air is decided in step 7.
+    while IFS=$'\t' read -r ch_id ch_stream ch_source ch_type ch_vbr; do
+        if pgrep -f "ffmpeg -re .*/$ch_stream" >/dev/null 2>&1; then
+            log "  $ch_id: encoder already running, leaving it alone"
+            continue
+        fi
+        log "  $ch_id -> $ch_stream"
+        LIVE_SOURCE_MEDIA="$CONTENT_ROOT/$ch_source" LIVE_STREAM_NAME="$ch_stream" \
+            LIVE_TYPE="$ch_type" LIVE_VIDEO_BITRATE="$ch_vbr" \
+            LIVE_SEG_DURATION="$SEG_DURATION_S" \
+            nohup ./live-encoder.sh > "$LOG_DIR/live-encoder-$ch_id.log" 2>&1 &
         disown
-    fi
-    log "waiting for the encoder's first segments"
-    for _ in $(seq 1 60); do
-        [[ $(ls "$MEDIA_DIR/public/$LIVE_STREAM_NAME"/chunk-stream0-*.m4s 2>/dev/null | wc -l) -ge 2 ]] && break
-        sleep 2
-    done
-    [[ $(ls "$MEDIA_DIR/public/$LIVE_STREAM_NAME"/chunk-stream0-*.m4s 2>/dev/null | wc -l) -ge 2 ]] || \
-        die "the encoder produced no segments in 120s; see $LOG_DIR/live-encoder.log"
+    done < <(channel_rows)
+
+    log "waiting for each encoder's first segments"
+    while IFS=$'\t' read -r ch_id ch_stream ch_source ch_type ch_vbr; do
+        for _ in $(seq 1 90); do
+            [[ $(ls "$MEDIA_DIR/public/$ch_stream"/chunk-stream0-*.m4s 2>/dev/null | wc -l) -ge 2 ]] && break
+            sleep 2
+        done
+        [[ $(ls "$MEDIA_DIR/public/$ch_stream"/chunk-stream0-*.m4s 2>/dev/null | wc -l) -ge 2 ]] || \
+            die "no segments for $ch_id in 180s; see $LOG_DIR/live-encoder-$ch_id.log"
+    done < <(channel_rows)
 fi
 
 # The entry point must be servable before the session is created: the MBSTF fetches it once and
 # does not retry, so a session created too early comes up healthy and then delivers nothing.
-log "waiting for $PRESENTATION_PATH to be servable"
-manifest_ready=0
-for _ in $(seq 1 60); do
-    body=$(curl -s -m 5 "http://$MEDIA_HOST:$MEDIA_PORT/$PRESENTATION_PATH" 2>/dev/null || true)
-    if [[ "$body" == *"<MPD"* && "$body" == *"<S "* ]]; then manifest_ready=1; break; fi
-    sleep 2
-done
-[[ $manifest_ready -eq 1 ]] || die "the media server never served a usable manifest at
-  http://$MEDIA_HOST:$MEDIA_PORT/$PRESENTATION_PATH"
+while IFS=$'\t' read -r ch_id ch_name ch_stream ch_ssm; do
+    log "waiting for $ch_stream/manifest.mpd to be servable"
+    manifest_ready=0
+    for _ in $(seq 1 60); do
+        body=$(curl -s -m 5 "http://$MEDIA_HOST:$MEDIA_PORT/$ch_stream/manifest.mpd" 2>/dev/null || true)
+        if [[ "$body" == *"<MPD"* && "$body" == *"<S "* ]]; then manifest_ready=1; break; fi
+        sleep 2
+    done
+    [[ $manifest_ready -eq 1 ]] || die "the media server never served a usable manifest at
+  http://$MEDIA_HOST:$MEDIA_PORT/$ch_stream/manifest.mpd"
+done < <(onair_rows)
 
 log "=== 5/7 gNB and UE ==="
 ./04-start-ran.sh
@@ -79,12 +93,21 @@ log "=== 5/7 gNB and UE ==="
 log "=== 6/7 MBS client (in $NETNS, on the UE's PDU session), application and provider ==="
 ./05-start-client-and-app.sh
 
-log "=== 7/7 service and ingest session, via the provider ==="
+log "=== 7/7 MBS User Services for the on-air channels, via the provider ==="
+# One MBS User Service and one Distribution Session per on-air channel, each on its own SSM.
 # The client's API lives inside the network namespace here, so reach it from there.
-PRESENTATION_PATH="$PRESENTATION_PATH" SESSION_MAX_BITRATE="$SESSION_MAX_BITRATE" \
-    CLIENT_API="http://127.0.0.1:$MBS_CLIENT_API_PORT/mbs-client-api" \
-    CLIENT_CURL="sudo -n ip netns exec $NETNS curl" \
-    ./06-provision-live-service.sh
+while IFS=$'\t' read -r ch_id ch_name ch_stream ch_ssm; do
+    log "  $ch_name ($ch_stream) on $ch_ssm"
+    BYPASS_SERVICE_ID="https://mwc-tv-radio.ebu.io/services/$ch_stream" \
+        BYPASS_SERVICE_NAME="$ch_name" \
+        BYPASS_SERVICE_DESC="Looping live DASH" \
+        BCAST_SSM_DEST="$ch_ssm" \
+        PRESENTATION_PATH="$ch_stream/manifest.mpd" \
+        SESSION_MAX_BITRATE="$SESSION_MAX_BITRATE" \
+        CLIENT_API="http://127.0.0.1:$MBS_CLIENT_API_PORT/mbs-client-api" \
+        CLIENT_CURL="sudo -n ip netns exec $NETNS curl" \
+        ./06-provision-live-service.sh
+done < <(onair_rows)
 
 log ""
 log "=== all up (gNB + UE) ==="
