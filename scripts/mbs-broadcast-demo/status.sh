@@ -61,6 +61,8 @@ while IFS=$'\t' read -r ch_id ch_name ch_stream ch_ssm; do
     [[ -f "$STATE_DIR/ingest_session_id.$ch_stream" ]] || continue
     ING_ID=$(cat "$STATE_DIR/ingest_session_id.$ch_stream")
     echo "Provisioned session, $ch_name ($ch_stream): $ING_ID"
-    curl -s -m 3 "http://$MBSF_ADDR:$SBI_PORT/nmbsf-mbs-ud-ingest/v1/sessions/$ING_ID" \
+    # The SBI speaks HTTP/2 with no upgrade from HTTP/1.1, so a plain curl never gets a
+    # response and this reported "(MBSF not reachable)" against a healthy, reachable MBSF.
+    curl -s -m 3 --http2-prior-knowledge "http://$MBSF_ADDR:$SBI_PORT/nmbsf-mbs-ud-ingest/v1/sessions/$ING_ID" \
         | python3 -m json.tool 2>/dev/null | sed 's/^/  /' || echo "  (MBSF not reachable)"
 done < <(onair_rows)
