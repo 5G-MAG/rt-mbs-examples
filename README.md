@@ -52,7 +52,7 @@ command for each component, is in
 [the Broadcast demo's Prerequisites](scripts/mbs-broadcast-demo/README.md#prerequisites).
 
 In short: a distribution with GCC 14 or later, Node.js 18 or later, MongoDB from MongoDB's own
-repository, and the source clips the channel line-up names.
+repository, and the four source clips the channel line-up names.
 
 ## Downloading
 
@@ -133,12 +133,15 @@ The per-demo scripts under `scripts/` are unchanged and can still be run directl
 
 ### Demo content
 
-Content starts with the demo. `./demo up` launches a looping ffmpeg encoder that publishes a live
-presentation into the media server, so there is nothing extra to run.
+Content starts with the demo. `./demo up` launches one looping ffmpeg encoder per channel, each
+publishing a live presentation into the media server, so there is nothing extra to run.
 
-The source clips live in `~/MWC_TV_RADIO/` (`TV_1.mp4`, `RADIO.mp4` and their logos). That
-directory is required: without it the encoder has nothing to loop and the demo comes up with an
-empty origin.
+The line-up is `scripts/mbs-broadcast-demo/channels.json`: four channels, `5G-MAG.tv 1`, `2`, `3`
+and `5G-MAG.radio`, the same four names the MBMS and DVB-I demos publish. All four are encoded and
+served by the origin; one of them is carried over the radio, which is the `onAir` flag in that
+file. The source clips live in `CONTENT_ROOT` (default `~/MWC_TV_RADIO/`), which must hold the
+four files the line-up names: `TV_1.mp4`, `TV_2.mp4`, `TV_3.mp4` and `RADIO.mp4`. That directory is
+required: without it the encoders have nothing to loop and the demo comes up with an empty origin.
 
 ```bash
 # check content is actually flowing, once the demo is up
@@ -146,15 +149,17 @@ curl -s http://127.0.0.1:3004/tv_1_live/manifest.mpd | head
 ./demo status                       # shows the presentation and whether it is advancing
 ```
 
-To play something else, set these before `./demo up`:
+To play something else, edit `channels.json`, or point `CONTENT_ROOT` at a directory holding files
+of those names. Setting `LIVE_SOURCE_MEDIA` or `LIVE_STREAM_NAME` does **not** change what `./demo
+up` plays: `start-all.sh` sets both per channel from `channels.json` as it starts each encoder.
+They apply only when a script such as `live-encoder.sh` is run directly.
 
-| variable | default | what it does |
-|---|---|---|
-| `LIVE_SOURCE_MEDIA` | `~/MWC_TV_RADIO/TV_1.mp4` | the clip the encoder loops |
-| `LIVE_STREAM_NAME` | `tv_1_live` | the path it publishes under, so the manifest URL follows it |
+On a machine that cannot encode four channels at once, `DEMO_CHANNELS` limits the run to the
+channel ids it names (space or comma separated), which is the knob to reach for when the UE fails
+to attach under load:
 
 ```bash
-LIVE_SOURCE_MEDIA=~/MWC_TV_RADIO/RADIO.mp4 LIVE_STREAM_NAME=radio_live ./demo up
+DEMO_CHANNELS=mwc-tv-1 ./demo up
 ```
 
 For the file-carousel case rather than a live stream, `scripts/mbs-*-demo/07-live-carousel-regen.sh`

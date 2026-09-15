@@ -146,6 +146,19 @@ the channel line-up names, `TV_1.mp4`, `TV_2.mp4`, `TV_3.mp4` and `RADIO.mp4`. T
 edit `channels.json` in this directory, or point `CONTENT_ROOT` at a directory holding files of
 those names.
 
+`channels.json` is the line-up itself: four channels, all of them encoded and served by the
+origin, and the `onAir` flag decides which are carried over the radio as their own MBS User
+Service. One is on air here; `channels.json`'s own comment records why, and what happens if you
+set a second.
+
+Encoding four channels at once is the demo's heaviest steady-state cost. `DEMO_CHANNELS` limits
+the run to the channel ids it names, space or comma separated, which is worth doing on a machine
+where the UE struggles to attach:
+
+```bash
+DEMO_CHANNELS=mwc-tv-1 ./start-all.sh      # or: DEMO_CHANNELS=mwc-tv-1 ./demo up
+```
+
 ## Running it
 
 ```bash
@@ -326,7 +339,8 @@ see it.
   a load average of 16-21 (a parallel `ninja` build alongside the demo) the UE never attached
   across three consecutive attempts; with the same binaries at a load average of about 3 it
   attached first time. Do not build and run the demo at once, and give the machine a moment to
-  settle after a build before starting.
+  settle after a build before starting. If the machine is simply small, cut the encoder load with
+  `DEMO_CHANNELS` (see Content above) rather than retrying.
 - **UPF "Maximum number of MBS Sessions[20] reached"** (`run/logs/upf.log`): the UPF was
   never restarted across many test sessions and accumulated stale MBS session contexts.
   `./stop-all.sh` followed by `./start-all.sh` gives it a clean slate; there is no live
