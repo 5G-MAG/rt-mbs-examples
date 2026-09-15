@@ -46,27 +46,105 @@ NGAP Broadcast Session Setup path these scripts drive) and is not covered here.
 
 ## Prerequisites
 
-- `tmux` is **not** required (unlike `scripts/tmux/mbs-function-tutorial/`) -- everything
-  here runs as background processes with per-component log files, so you can watch any one
-  of them with `tail -f run/logs/<name>.log`.
-- Passwordless (or cached) `sudo` -- needed for network-namespace management and the UPF's
-  TUN device. The scripts call `sudo -v` up front so you're prompted once if needed.
-- Built binaries for every component listed in `env.sh` (`open5gs`, `rt-mbs-transport-function`,
-  `rt-mbs-function`, `rt-mbs-client`, `srsRAN_Project_mbs`, `srsRAN_4G_mbs`) -- these scripts
-  run what's already built, they don't build anything.
-- `rt-mbs-client` carries `rt-libflute` as a submodule, tracking `5G-MAG/rt-libflute`
-  `development`. Clone with `--recurse-submodules`, or run
-  `git submodule update --init --recursive` before building it.
-- `node`/`npm`, `python3`, `curl`, `mongod` running (checked/started automatically for
-  `mongod` if inactive; NRF/UDR need it).
-- Content is **optional**. `start-all.sh` carousels the DASH package at
-  `~/MWC_TV_RADIO/dash/<stream>/` (change `MWC_CONTENT_ROOT`/`DEMO_STREAM` in `env.sh`). The
-  live paths encode a looping stream instead, and if no source file is present they generate a
-  test pattern, so a fresh checkout runs with no content at all. Point `LIVE_SOURCE_MEDIA` at
-  your own file, or `LIVE_PRESENTATION` at a DASH presentation already under the media server.
+These scripts **run** a deployment; they build nothing. Everything below has to exist before
+`./demo up` will get anywhere, and `./demo doctor` checks each one and names what is missing.
 
-If your checkout layout differs from `$HOME/Repos/...`, edit `REPOS_ROOT`/`RAN_ROOT` at the
-top of `env.sh` -- every other path is derived from those two.
+### 1. System packages
+
+Use a distribution with GCC 14 or later (Ubuntu 24.04 or later), which the MBSF and MBSTF
+require. Then:
+
+```bash
+sudo apt install git ninja-build build-essential meson cmake pkg-config \
+  flex bison libsctp-dev libgnutls28-dev libgcrypt-dev libssl-dev libidn11-dev \
+  libmongoc-dev libbson-dev libyaml-dev libnghttp2-dev libmicrohttpd-dev \
+  libcurl4-gnutls-dev libtins-dev libtalloc-dev libpcre2-dev uuid-dev \
+  libcpprest-dev libfftw3-dev libmbedtls-dev libboost-program-options-dev \
+  libconfig++-dev libzmq3-dev \
+  default-jdk curl wget jq util-linux-extra socat iproute2 ffmpeg python3
+```
+
+`libcpprest-dev` (with `libssl-dev`, already above) is for `srsRAN_4G_mbs`, whose `srsue` carries the radio status
+API this demo's dashboard reads; it is built by default and fails to link without them. The
+`libfftw3-dev`, `libmbedtls-dev`, `libboost-program-options-dev`, `libconfig++-dev` and
+`libzmq3-dev` packages are the two srsRAN builds' own, `libzmq3-dev` in particular because both
+the gNB and the UE run over the ZeroMQ software radio here rather than real hardware.
+
+You also need **Node.js 18 or later** (`node --version`). The distribution package is often
+older; use [NodeSource](https://github.com/nodesource/distributions) or
+[nvm](https://github.com/nvm-sh/nvm) if it is.
+
+**MongoDB** is needed separately: the NRF and UDR store their state in it. Ubuntu's own
+`mongodb` package is not what Open5GS expects; install from
+[MongoDB's repository](https://www.mongodb.com/docs/manual/administration/install-on-linux/),
+which provides `mongod` via `mongodb-org-server`. The scripts start `mongod` if it is installed
+but inactive, and fail with a clear message if it is absent.
+
+Passwordless or cached `sudo` is required, for network-namespace management and the UPF's TUN
+device. The scripts call `sudo -v` once up front.
+
+### 2. The components
+
+Clone and build each of these. They are independent repositories with their own READMEs; the
+build command is repeated here only so you can see the whole job at once.
+
+| Component | Repository | Build |
+|---|---|---|
+| 5G Core (MB-SMF, MB-UPF, AMF, NRF, …) | `open5gs` | `meson setup build && ninja -C build` |
+| MBSF | `rt-mbs-function` | `meson setup build && ninja -C build` |
+| MBSTF | `rt-mbs-transport-function` | `meson setup build && ninja -C build` |
+| MBS Client | `rt-mbs-client` | `mkdir build && cd build && cmake -GNinja .. && ninja` |
+| MBS-Aware Application | `rt-mbs-application` | `npm install` |
+| Application Provider | `rt-mbs-application-provider` | `npm install` |
+| gNB | `rt-srsRAN_Project_mbs` | `cmake -S . -B build && cmake --build build -j$(nproc)` |
+| UE | `srsRAN_4G_mbs` | `cmake -DENABLE_WERROR=OFF -S . -B build && cmake --build build -j$(nproc)` |
+
+`ENABLE_WERROR=OFF` on the UE is required with GCC 14 or later: upstream's `pusch_test` trips
+`-Werror=stringop-overflow=` on a write that is in fact in bounds, and the file is upstream test
+code this fork does not modify. `srsRAN_4G_mbs`'s own README covers that and its two extra
+dependencies in more detail.
+
+Clone each from its default branch, with submodules, which the MBSF, MBSTF and MBS Client all
+need:
+
+```bash
+git clone --recurse-submodules https://github.com/5G-MAG/<repository>.git
+```
+
+If you already cloned without `--recurse-submodules`, run
+`git submodule update --init --recursive` before building.
+
+The two Node components also need their configuration in place: `cp .env.example .env` in each,
+and set `AUTH_TOKEN` in the provider's, which refuses to start without one. `05-start-client-and-app.sh`
+writes both `.env` files itself when it runs, so for the demo alone `npm install` is enough.
+
+### 3. Telling the scripts where everything is
+
+The defaults assume the repositories are checked out under `$HOME/Repos`, with the MBS ones
+grouped in `rt-mbs/`. That is one machine's habit, not a requirement. If yours are elsewhere:
+
+```bash
+cp local.env.example local.env     # in this directory; it is gitignored
+```
+
+and set what differs. `REPOS_ROOT` alone is enough when they are grouped; individual variables
+(`MBSF_DIR`, `GNB_BIN`, and so on) cover a component that sits somewhere the roots do not
+explain. Environment variables work too, and win over `local.env`:
+
+```bash
+REPOS_ROOT=/srv/code ./demo up
+```
+
+`./demo doctor` lists every checkout and binary it cannot find, and names the variable that moves
+each one, so a wrong layout is caught before anything starts.
+
+### 4. Content
+
+Source clips are **required**: without them the encoders have nothing to loop and the demo comes
+up with an empty origin. `CONTENT_ROOT` (default `$HOME/MWC_TV_RADIO`) must hold the four files
+the channel line-up names, `TV_1.mp4`, `TV_2.mp4`, `TV_3.mp4` and `RADIO.mp4`. To use your own,
+edit `channels.json` in this directory, or point `CONTENT_ROOT` at a directory holding files of
+those names.
 
 ## Running it
 
