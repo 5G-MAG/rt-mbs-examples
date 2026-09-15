@@ -2,11 +2,28 @@
 # Shared configuration for the MBS Broadcast end-to-end demo scripts (00-09 below).
 # Source this file, don't execute it: `source env.sh`.
 #
-# All paths default to this development machine's actual checkout layout. If you clone
-# these repositories somewhere else, edit REPOS_ROOT/RAN_ROOT (and RTMBS_ROOT if it moves
-# out from under REPOS_ROOT) below -- everything else is derived from those two.
+# Every path below is a default, and every one can be overridden. Three ways, in the order
+# they are applied:
+#
+#   1. local.env beside this file, if it exists. Gitignored, so machine-specific paths live
+#      there rather than in a tracked script. Copy local.env.example and edit. This is the
+#      same convention as scripts/tmux/local.env, which this repository already uses.
+#   2. Environment variables, which win over local.env: REPOS_ROOT=/srv/code ./demo up
+#   3. Editing the defaults here, which is the option that makes your checkout diverge.
+#
+# The layout assumed by the defaults is one this project's own development machine happens
+# to use ($HOME/Repos, with the MBS repositories grouped under rt-mbs/). Nothing requires
+# it: if your checkouts are somewhere else, or scattered, set the roots or the individual
+# directories. `./demo doctor` reports which of them it cannot find and names the variable
+# that moves each one, so a wrong layout is caught before anything starts rather than deep
+# inside a script.
 
 set -a
+
+# Machine-specific overrides, if the operator has written any. Read before every default
+# below, so it can set the roots as well as individual directories. Gitignored on purpose.
+_DEMO_ENV_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+[ -f "$_DEMO_ENV_DIR/local.env" ] && . "$_DEMO_ENV_DIR/local.env"
 
 # ------------------------------------------------------------------------------------
 # Repository locations
@@ -15,15 +32,28 @@ REPOS_ROOT="${REPOS_ROOT:-$HOME/Repos}"
 RTMBS_ROOT="${RTMBS_ROOT:-$REPOS_ROOT/rt-mbs}"
 RAN_ROOT="${RAN_ROOT:-$REPOS_ROOT}"                 # parent of srsRAN_Project_mbs / srsRAN_4G_mbs
 
-OPEN5GS_DIR="$REPOS_ROOT/open5gs"
-MBSTF_DIR="$RTMBS_ROOT/rt-mbs-transport-function"
-MBSF_DIR="$RTMBS_ROOT/rt-mbs-function"
-CLIENT_DIR="$RTMBS_ROOT/rt-mbs-client"
-APP_DIR="$RTMBS_ROOT/rt-mbs-application"
-PROVIDER_DIR="$RTMBS_ROOT/rt-mbs-application-provider"
-MEDIA_DIR="$RTMBS_ROOT/rt-mbs-examples/express-mock-media-server"
-GNB_DIR="$RAN_ROOT/srsRAN_Project_mbs"
-UE_DIR="$RAN_ROOT/srsRAN_4G_mbs"
+# Each is overridable on its own, not only through the roots: checkouts are not always all
+# in one place, and a contributor working on one component often has that one elsewhere.
+OPEN5GS_DIR="${OPEN5GS_DIR:-$REPOS_ROOT/open5gs}"
+MBSTF_DIR="${MBSTF_DIR:-$RTMBS_ROOT/rt-mbs-transport-function}"
+MBSF_DIR="${MBSF_DIR:-$RTMBS_ROOT/rt-mbs-function}"
+CLIENT_DIR="${CLIENT_DIR:-$RTMBS_ROOT/rt-mbs-client}"
+APP_DIR="${APP_DIR:-$RTMBS_ROOT/rt-mbs-application}"
+PROVIDER_DIR="${PROVIDER_DIR:-$RTMBS_ROOT/rt-mbs-application-provider}"
+MEDIA_DIR="${MEDIA_DIR:-$RTMBS_ROOT/rt-mbs-examples/express-mock-media-server}"
+# The gNB repository is 5G-MAG/rt-srsRAN_Project_mbs, so that is the directory a plain `git clone`
+# produces and the default here. A checkout made before the rt- prefix, or from the
+# srsRAN_Project_mbs mirror of the same branches, is accepted too rather than silently not found.
+if [ -n "${GNB_DIR:-}" ]; then
+    :
+elif [ -d "$RAN_ROOT/rt-srsRAN_Project_mbs" ]; then
+    GNB_DIR="$RAN_ROOT/rt-srsRAN_Project_mbs"
+elif [ -d "$RAN_ROOT/srsRAN_Project_mbs" ]; then
+    GNB_DIR="$RAN_ROOT/srsRAN_Project_mbs"
+else
+    GNB_DIR="$RAN_ROOT/rt-srsRAN_Project_mbs"
+fi
+UE_DIR="${UE_DIR:-$RAN_ROOT/srsRAN_4G_mbs}"
 
 # Binaries (built positions, not an `install/` staging tree -- matches how every one of
 # these repos is actually built and run in this project today: in-tree `build/`, no `make
@@ -119,6 +149,12 @@ MWC_CONTENT_ROOT="$HOME/MWC_TV_RADIO/dash"
 # one variable instead of editing a script.
 LIVE_SOURCE_MEDIA="${LIVE_SOURCE_MEDIA:-$HOME/MWC_TV_RADIO/TV_1.mp4}"
 LIVE_STREAM_NAME="${LIVE_STREAM_NAME:-tv_1_live}"
+# Directory holding the source clips the channel line-up names, and the line-up itself. Every
+# channel in it is encoded and served by the origin; the ones marked onAir are also carried over
+# the radio as their own MBS User Service. The same four channels, under the same names, are in
+# rt-mbms-examples' and rt-dvb-i-examples' own channels.json.
+CONTENT_ROOT="${CONTENT_ROOT:-$HOME/MWC_TV_RADIO}"
+CHANNELS_FILE="${CHANNELS_FILE:-$DEMO_ROOT/channels.json}"
 # The demo distributes the full tv_1 package: 157 objects, ~33 MB.
 #
 # Trimmed variants (tv_1_short, tv_1_micro) previously stood in for it because the full package
@@ -189,7 +225,9 @@ LIVE_INGEST_MAX_BITRATE="12 Mbps"
 # to serialise while MB-SMF still allocates a genuine TMGI for over-the-air delivery (see
 # that script's own header comment for the full explanation).
 BCAST_SSM_SOURCE=127.0.0.68
-BCAST_SSM_DEST=232.0.0.2
+# Overridable because start-all.sh provisions one Distribution Session per on-air channel in
+# channels.json and each needs its own group; the value here is the first channel's.
+BCAST_SSM_DEST="${BCAST_SSM_DEST:-232.0.0.2}"
 
 # Extra gNB CLI arguments. `cu_cp` selects the CU-CP subcommand.
 #
@@ -212,8 +250,8 @@ UE_TUN_WAIT_SECS="${UE_TUN_WAIT_SECS:-180}"
 
 # MBS User Service / Ingest Session identity for this demo
 DEMO_SERVICE_EXT_ID="https://mwc-tv-radio.ebu.io/services/${DEMO_STREAM}"
-DEMO_SERVICE_NAME="MWC TV 1"
-DEMO_SERVICE_DESC="MWC demo TV channel, carouselled from rt-mbs-examples/express-mock-media-server"
+DEMO_SERVICE_NAME="5G-MAG.tv 1"
+DEMO_SERVICE_DESC="5G-MAG demo TV channel, carouselled from rt-mbs-examples/express-mock-media-server"
 
 # UE pre-configuration for 5MBS (3GPP TS 24.575). When 1, the client is given the
 # pre-configuration object instead of the deployment-fixed announcement_channel block, and
