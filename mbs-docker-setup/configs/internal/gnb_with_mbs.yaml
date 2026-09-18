@@ -15,6 +15,10 @@ cu_cp:
   inactivity_timer: 7200
 
 cell_cfg:
+  sib:
+    si_sched_info:
+      - si_period: 32
+        sib_mapping: 20
   dl_arfcn: 368500
   band: 3
   channel_bandwidth_MHz: 20

@@ -1,0 +1,90 @@
+{
+  "_comment": [
+    "Template for the RAN-free (bypass) live DASH demo, for rt-mbs-application-provider.",
+    "One file, loaded twice: once on the MBS User Services card, which reads the 'service'",
+    "block, and once on the Ingest Sessions card with that service open, which reads the",
+    "'sessions' array. See templates/README.md for the walkthrough.",
+    "Start the systems first with scripts/mbs-broadcast-demo/start-systems.sh: the presentation",
+    "this points at is produced by that script's own encoder."
+  ],
+
+  "service": {
+    "extServiceIds": ["https://mwc-tv-radio.ebu.io/services/tv_1_live"],
+    "servType": "BROADCAST",
+    "servClass": "urn:oma:bcast:oma_bsc:st:1.0",
+    "servAnnModes": ["VIA_MBS_DISTRIBUTION_SESSION"],
+    "servNameDescs": [
+      { "servName": "MWC TV 1 live loop", "servDescrip": "Looping live DASH", "language": "eng" }
+    ],
+    "mainServLang": "eng"
+  },
+
+
+  "_subscription": [
+    "Optional. When present, loading this template on the Ingest Sessions card prefills the Status",
+    "Subscription form beneath it -- the notification URI, and the events ticked below. It does not",
+    "subscribe: that stays a deliberate, separate step, like creating the service and the session.",
+    "",
+    "A subscription is per Ingest Session, so it cannot be prepared until the session exists, which",
+    "is why the form only appears once one has been created.",
+    "",
+    "The events below are the ones that tell you whether delivery actually started, plus the two",
+    "failure events that explain a session that never does. Tick more in the form if you want the",
+    "full lifecycle; the running MBSF's own list is what the form offers, and an event named here",
+    "that it does not offer is reported rather than silently dropped."
+  ],
+  "subscription": {
+    "notifUri": "http://127.0.0.1:8000/notifications",
+    "events": [
+      "DIST_SESS_STARTED",
+      "DELIVERY_STARTED",
+      "DIST_SESS_TERMINATED",
+      "DIST_SESS_EST_FAILURE",
+      "DATA_INGEST_FAILURE"
+    ]
+  },
+  "sessions": [
+    {
+      "distSessKey": "AP_MBS_SESSION_1",
+
+      "_opMode": [
+        "OBJECT_STREAMING is the mode 3GPP recommends for DASH. TS 26.517 V18.6.0 clause 6.2.3.5:",
+        "'This operating mode is recommended for streaming DASH or HLS content to a Media Player",
+        "in the UE using MBS User Services.' It follows the presentation manifest, so newly",
+        "published segments are picked up and each is sent once, timed against its own",
+        "availability. CAROUSEL repeats a fixed object list instead and is the wrong mode here;",
+        "it is the right mode for the User Service Announcement Channel, which the MBSF runs",
+        "itself and which is not configured from this template."
+      ],
+      "opMode": "STREAMING",
+
+      "_acqIds": [
+        "The Application Service Entry Point document, relative to ingUri. For OBJECT_STREAMING",
+        "this is the presentation manifest itself, not a list of segments: the MBSTF derives the",
+        "object list from it and keeps it updated as the manifest changes."
+      ],
+      "acqMethod": "PULL",
+      "ingUri": "http://127.0.0.1:3004/",
+      "acqIds": "tv_1_live/manifest.mpd",
+
+      "distrMethod": "OBJECT",
+      "distrUri": "http://127.0.0.2/",
+
+      "_ssm": [
+        "Source-specific multicast address pair for this Distribution Session. These must match",
+        "the client's own view: scripts/mbs-broadcast-demo/env.sh sets BCAST_SSM_SOURCE and",
+        "BCAST_SSM_DEST to these values, and the MBS Client learns them from the service",
+        "announcement rather than from configuration."
+      ],
+      "sourceIp": "127.0.0.68",
+      "destIp": "232.0.0.2",
+
+      "_maxBitrate": [
+        "The presentation is about 0.5 Mbps (400 kbps video plus 64 kbps audio). In",
+        "OBJECT_STREAMING each object is sent once rather than repeatedly, so this is headroom,",
+        "not a figure to tune."
+      ],
+      "maxBitrate": "6 Mbps"
+    }
+  ]
+}
