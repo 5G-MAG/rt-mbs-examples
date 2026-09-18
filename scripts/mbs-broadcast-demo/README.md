@@ -329,10 +329,16 @@ the old revision silently stays. The build commands in section 2 already begin w
 exactly why. Use them rather than calling `meson setup` directly:
 
 ```bash
-cd ~/Repos/rt-mbs/rt-mbs-function
-git submodule update --init --recursive && meson subprojects update
+cd ~/Repos/rt-mbs/rt-mbs-function && \
+git submodule update --init --recursive && \
+meson subprojects update && \
 rm -rf build && meson setup build && ninja -C build
 ```
+
+Every line is chained with `&&` on purpose. Pasted as separate lines, a shell can run some and not
+others, and the failure is easy to miss: if `ninja` begins part-way through, at something like
+`[4057/4342]` rather than near `[1/...]`, then `rm -rf build` did not take effect and the build will
+reproduce whatever it failed on before.
 
 Skipping it produces errors that look like a broken component and are not. A real example: MBSF on
 `feature/mbs-compliance-fixes` with `subprojects/open5gs` left on `5mbs` fails with
@@ -347,9 +353,9 @@ wrap subprojects makes meson clone them again at the revision the wrap names, wh
 the state they were in:
 
 ```bash
-cd ~/Repos/rt-mbs/rt-mbs-function
-git submodule update --init --recursive
-rm -rf build subprojects/open5gs subprojects/rt-5gc-service-consumers
+cd ~/Repos/rt-mbs/rt-mbs-function && \
+git submodule update --init --recursive && \
+rm -rf build subprojects/open5gs subprojects/rt-5gc-service-consumers && \
 meson setup build && ninja -C build
 ```
 
@@ -357,8 +363,6 @@ Only the wrap subprojects are deleted. `subprojects/rt-common-shared` is a git s
 wrap, so the first line is what handles it and it must not be removed. This costs a re-clone of
 open5gs, which is why it is the fallback rather than the everyday command.
 
-Check that `rm -rf build` actually took effect: a rebuild that begins part-way through, at something
-like `[4057/4342]`, is reusing the old build directory and will reproduce the same failure.
 
 This section exists only while work is outstanding. When the branches merge it should be deleted, not
 updated to name the next one.
