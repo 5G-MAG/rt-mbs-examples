@@ -339,6 +339,27 @@ Skipping it produces errors that look like a broken component and are not. A rea
 `'OpenAPI_ext_mbs_session_t' has no member named 'red_mbs_service_area'`, from
 `rt-5gc-service-consumers` code that is correct against the open5gs revision its wrap names.
 
+**If that error survives the refresh, delete the subprojects instead.** `meson subprojects update`
+only works on a subproject that is still a clean git checkout tracking its wrap. Where one has lost
+that, it prints `Cannot update subproject with no wrap file`, warns that the subproject "could have
+been left in conflict state", changes nothing, and the build fails exactly as before. Deleting the
+wrap subprojects makes meson clone them again at the revision the wrap names, which does not depend on
+the state they were in:
+
+```bash
+cd ~/Repos/rt-mbs/rt-mbs-function
+git submodule update --init --recursive
+rm -rf build subprojects/open5gs subprojects/rt-5gc-service-consumers
+meson setup build && ninja -C build
+```
+
+Only the wrap subprojects are deleted. `subprojects/rt-common-shared` is a git submodule rather than a
+wrap, so the first line is what handles it and it must not be removed. This costs a re-clone of
+open5gs, which is why it is the fallback rather than the everyday command.
+
+Check that `rm -rf build` actually took effect: a rebuild that begins part-way through, at something
+like `[4057/4342]`, is reusing the old build directory and will reproduce the same failure.
+
 This section exists only while work is outstanding. When the branches merge it should be deleted, not
 updated to name the next one.
 
