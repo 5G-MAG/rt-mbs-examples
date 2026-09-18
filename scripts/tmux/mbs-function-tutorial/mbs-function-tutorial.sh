@@ -39,6 +39,23 @@ if [[ -z "$LOG_DIR" ]]; then
     exit 1
 fi
 
+source "$SCRIPT_DIR/../lib-component-versions.sh"
+
+OPEN5GS_REPOSITORY="$(repository_of "$OPEN5GS_BASE_DIR")"
+MBSTF_REPOSITORY="$(repository_of "$MBSTF_BASE_DIR")"
+MBSF_REPOSITORY="$(repository_of "$MBSF_BASE_DIR")"
+MEDIA_REPOSITORY="$(repository_of "$MEDIA_SERVER_DIR")"
+echo "--- Component versions ---"
+print_component_version_header
+print_component_version "NRF" "$OPEN5GS_REPOSITORY" "$OPEN5GS_BASE_DIR/open5gs-nrfd"
+print_component_version "SCP" "$OPEN5GS_REPOSITORY" "$OPEN5GS_BASE_DIR/open5gs-scpd"
+print_component_version "MB-SMF" "$OPEN5GS_REPOSITORY" "$OPEN5GS_BASE_DIR/open5gs-smfd"
+print_component_version "MB-UPF" "$OPEN5GS_REPOSITORY" "$OPEN5GS_BASE_DIR/open5gs-upfd"
+print_component_version "MB-AMF" "$OPEN5GS_REPOSITORY" "$OPEN5GS_BASE_DIR/open5gs-amfd"
+print_component_version "MBSTF" "$MBSTF_REPOSITORY" "$MBSTF_BASE_DIR/open5gs-mbstfd"
+print_component_version "MBSF" "$MBSF_REPOSITORY" "$MBSF_BASE_DIR/open5gs-mbsfd"
+print_component_version "Media Server" "$MEDIA_REPOSITORY" "$(command -v node || true)"
+
 # Capture IDs for clean exit
 PANE_PGIDS=()
 PANE_PIDS=()
