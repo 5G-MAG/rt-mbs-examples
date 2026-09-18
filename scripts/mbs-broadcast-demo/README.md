@@ -145,7 +145,13 @@ each one, so a wrong layout is caught before anything starts.
 
 **Nothing here is downloadable and nothing is assumed to be on the machine already.** The directory
 name is historical, after the event the line-up was first shown at; it does not name a content pack you
-are missing. Two separate things live under it, and only one of them is required.
+are missing.
+
+What matters is what `./demo up` does with it. `up` runs the numbered scripts in order, and content
+enters at two different points: `03-start-media-server.sh` **requires** a DASH package and stops the
+run without one, while the live encoders started later **do not** require anything and generate a test
+pattern if their source is absent. So of the two things under this directory, only the first is a
+prerequisite for `./demo up`.
 
 **Required: a DASH package at `$MWC_CONTENT_ROOT/$DEMO_STREAM`**, which defaults to
 `~/MWC_TV_RADIO/dash/tv_1`. `03-start-media-server.sh` copies it into the origin and builds the
@@ -169,8 +175,9 @@ server expects. Substitute `-i your-file.mp4` for the two `lavfi` inputs to use 
 `TV_2.mp4`, `TV_3.mp4` and `RADIO.mp4` after the `source` fields in `channels.json`. These feed the
 looping live encoder, and **they are genuinely optional**: `live-encoder.sh` falls back to a generated
 test pattern with a tone when the file is absent, logging `source: none at <path>, generating a test
-pattern instead`. Provide them only if you want specific content on the live channels, or point
-`LIVE_SOURCE_MEDIA` at your own file. A radio channel discards the video track either way.
+pattern instead`. `./demo up` therefore starts and runs without them. Provide them only if you want specific content on
+the live channels rather than a test pattern, or point `LIVE_SOURCE_MEDIA` at your own file. A radio
+channel discards the video track either way.
 
 To provide them anyway:
 
