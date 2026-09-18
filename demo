@@ -132,7 +132,8 @@ check_prereqs() {
 check_content() {
     local demo_dir; demo_dir=$(demo_dir "${1:-}")
     [ -f "$demo_dir/channels.json" ] || return 0      # this demo has no line-up
-    local report
+    local report content_root
+    content_root=$(cd "$demo_dir" && set +eu && source ./env.sh 2>/dev/null; printf '%s' "$CONTENT_ROOT")
     report=$(cd "$demo_dir" && set +eu && source ./env.sh 2>/dev/null
     python3 - "$CONTENT_ROOT" <<'EOF'
 import json, os, sys
@@ -150,7 +151,11 @@ EOF
         [ -z "$ch_id" ] && continue
         bad "no source clip for $ch_id: $src"
     done <<< "$report"
-    echo "        put it under CONTENT_ROOT, or edit channels.json to name what you have"
+    echo "        Any MP4 will do and nothing needs downloading: the directory name is historical,"
+    echo "        not a content pack you are missing. Put files of those names in"
+    echo "        $content_root (move it with CONTENT_ROOT), or edit channels.json to name what you"
+    echo "        already have. To generate throwaway clips, see 'Prerequisites, 4. Content' in this"
+    echo "        demo's README."
     return 1
 }
 
