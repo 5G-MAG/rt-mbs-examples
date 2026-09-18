@@ -126,9 +126,9 @@ machine with nothing on it:
 mkdir -p ~/Repos/rt-mbs
 
 cd ~/Repos
-git clone https://github.com/5G-MAG/open5gs.git
-git clone https://github.com/5G-MAG/srsRAN_Project_mbs.git
-git clone https://github.com/5G-MAG/srsRAN_4G_mbs.git
+git clone -b 5mbs https://github.com/5G-MAG/open5gs.git
+git clone -b 5mbs https://github.com/5G-MAG/srsRAN_Project_mbs.git
+git clone -b 5mbs https://github.com/5G-MAG/srsRAN_4G_mbs.git
 
 cd ~/Repos/rt-mbs
 git clone --recurse-submodules https://github.com/5G-MAG/rt-mbs-function.git
@@ -143,9 +143,15 @@ That produces exactly the tree in section 3, so no variable needs setting. Only 
 shown with `--recurse-submodules` have any: MBSF, MBSTF and the MBS Client. If you already cloned one
 of those without it, run `git submodule update --init --recursive` in it before building.
 
-Each clone takes that repository's default branch, which is what these scripts are written against.
-Note that it is not `main` everywhere: `srsRAN_4G_mbs` defaults to `5mbs`, so a plain `git clone`
-already gives the right one and you should not add `-b main`.
+**The `-b 5mbs` on those three is not optional.** open5gs and the two srsRAN repositories are forks
+whose `main` tracks upstream and carries no MBS work; `5mbs` is the branch that does. In
+`srsRAN_Project_mbs` the difference is total, `main` containing none of the MBS sources at all, so a
+plain `git clone` there produces a gNB that builds and then cannot do MBS. `srsRAN_4G_mbs` already
+defaults to `5mbs`, and it is given explicitly above so that all three read the same way rather than
+relying on which repository happens to default where.
+
+The six `rt-mbs-*` components need no branch: they are MBS components throughout, and their default
+branch is the one to use.
 
 **Several of these repositories are private.** If a clone fails with a 404 rather than a permission
 message, that is what it means: GitHub reports a repository you cannot see as absent, not as
