@@ -107,15 +107,44 @@ having `libzmq3-dev` installed does not cover it.
 `srsRAN_4G_mbs`'s own README covers its two extra dependencies, cpprestsdk and OpenSSL, in more
 detail.
 
-Clone each from its default branch, with submodules, which the MBSF, MBSTF and MBS Client all
-need:
+Clone each from its default branch. **Where you put them matters**: the scripts expect open5gs and
+the two srsRAN forks directly under one root, and the six MBS components one level deeper in
+`rt-mbs/`. Cloning them all side by side gives a layout the defaults do not describe, so from a
+machine with nothing on it:
 
 ```bash
-git clone --recurse-submodules https://github.com/5G-MAG/<repository>.git
+mkdir -p ~/Repos/rt-mbs
+
+cd ~/Repos
+git clone https://github.com/5G-MAG/open5gs.git
+git clone https://github.com/5G-MAG/srsRAN_Project_mbs.git
+git clone https://github.com/5G-MAG/srsRAN_4G_mbs.git
+
+cd ~/Repos/rt-mbs
+git clone --recurse-submodules https://github.com/5G-MAG/rt-mbs-function.git
+git clone --recurse-submodules https://github.com/5G-MAG/rt-mbs-transport-function.git
+git clone --recurse-submodules https://github.com/5G-MAG/rt-mbs-client.git
+git clone https://github.com/5G-MAG/rt-mbs-application.git
+git clone https://github.com/5G-MAG/rt-mbs-application-provider.git
+git clone https://github.com/5G-MAG/rt-mbs-examples.git
 ```
 
-If you already cloned without `--recurse-submodules`, run
-`git submodule update --init --recursive` before building.
+That produces exactly the tree in section 3, so no variable needs setting. Only the three repositories
+shown with `--recurse-submodules` have any: MBSF, MBSTF and the MBS Client. If you already cloned one
+of those without it, run `git submodule update --init --recursive` in it before building.
+
+Each clone takes that repository's default branch, which is what these scripts are written against.
+Note that it is not `main` everywhere: `srsRAN_4G_mbs` defaults to `5mbs`, so a plain `git clone`
+already gives the right one and you should not add `-b main`.
+
+**Several of these repositories are private.** If a clone fails with a 404 rather than a permission
+message, that is what it means: GitHub reports a repository you cannot see as absent, not as
+forbidden. It is not a wrong URL. You need an account with access to the 5G-MAG organisation and
+either an SSH key, in which case use the `git@github.com:5G-MAG/<repo>.git` form, or a credential
+helper holding a token with `repo` scope.
+
+Put them somewhere else if you prefer, and set `REPOS_ROOT`, or the individual variables, as section 3
+describes.
 
 The two Node components also need their configuration in place: `cp .env.example .env` in each,
 and set `AUTH_TOKEN` in the provider's, which refuses to start without one. `05-start-client-and-app.sh`
