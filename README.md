@@ -51,8 +51,9 @@ eight other components built first. The complete list, with the exact `apt` line
 command for each component, is in
 [the Broadcast demo's Prerequisites](scripts/mbs-broadcast-demo/README.md#prerequisites).
 
-In short: a distribution with GCC 14 or later, Node.js 18 or later, MongoDB from MongoDB's own
-repository, and the four source clips the channel line-up names.
+In short: GCC 14 or later, which the MBSF and MBSTF need for C++20 and which you should check with
+`gcc --version` rather than by release number; Node.js 18 or later; MongoDB from MongoDB's own
+repository; and a DASH package for the origin, which you can generate.
 
 ## Downloading
 

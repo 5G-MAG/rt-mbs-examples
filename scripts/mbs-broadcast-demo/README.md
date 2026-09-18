@@ -51,8 +51,18 @@ These scripts **run** a deployment; they build nothing. Everything below has to 
 
 ### 1. System packages
 
-Use a distribution with GCC 14 or later (Ubuntu 24.04 or later), which the MBSF and MBSTF
-require. Then:
+You need **GCC 14 or later**, which comes from the MBSF and MBSTF: both set `cpp_std=gnu++20` in
+their `meson.build`. Check with `gcc --version` rather than going by release number, because a
+distribution's default is often older than its newest available compiler. If yours is older, install
+a newer one alongside it and point the builds at it:
+
+```bash
+sudo apt install g++-14            # or g++-15
+CC=gcc-14 CXX=g++-14 <the build command for each component>
+```
+
+The two srsRAN forks are not the constraint: `srsRAN_4G_mbs` is verified to build on GCC 13, 14 and
+15. Then:
 
 ```bash
 sudo apt install git ninja-build build-essential meson cmake pkg-config \
