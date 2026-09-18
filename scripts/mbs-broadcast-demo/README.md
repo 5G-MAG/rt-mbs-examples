@@ -296,6 +296,52 @@ where the UE struggles to attach:
 DEMO_CHANNELS=mwc-tv-1 ./start-all.sh      # or: DEMO_CHANNELS=mwc-tv-1 ./demo up
 ```
 
+### 5. Testing work that has not merged yet
+
+Everything above describes the **stable** layout: the `5mbs` branch of the three forks and the default
+branch of the six `rt-mbs-*` components. That is deliberate, so these instructions stay correct once
+outstanding work merges. It also means that while a change is still under review, the branch these
+instructions name is not the branch under test, and the two will disagree.
+
+To test unmerged work, check the relevant branch out in **every** repository that has it, not just the
+one whose change you are interested in. The components are built against each other, so a mixture of
+branches produces failures that read as defects in whichever component happens to compile first.
+
+Taking `feature/mbs-compliance-fixes` as the example, it exists in all nine of the repositories you
+cloned:
+
+```bash
+for d in open5gs srsRAN_Project_mbs srsRAN_4G_mbs \
+         rt-mbs/rt-mbs-function rt-mbs/rt-mbs-transport-function rt-mbs/rt-mbs-client \
+         rt-mbs/rt-mbs-application rt-mbs/rt-mbs-application-provider rt-mbs/rt-mbs-examples; do
+    git -C ~/Repos/"$d" checkout feature/mbs-compliance-fixes && git -C ~/Repos/"$d" pull
+done
+```
+
+`rt-5gc-service-consumers` and `rt-common-shared` are not in that list because you do not clone them:
+they arrive as a meson subproject and a git submodule respectively, and follow from the wraps once you
+do the next step.
+
+**Then rebuild, and do not skip the refresh.** Switching branches changes the `.wrap` files but not the
+subproject directories already on disk, and meson will not touch a subproject directory that exists, so
+the old revision silently stays. The build commands in section 2 already begin with
+`git submodule update --init --recursive` and, for MBSF and MBSTF, `meson subprojects update`, which is
+exactly why. Use them rather than calling `meson setup` directly:
+
+```bash
+cd ~/Repos/rt-mbs/rt-mbs-function
+git submodule update --init --recursive && meson subprojects update
+rm -rf build && meson setup build && ninja -C build
+```
+
+Skipping it produces errors that look like a broken component and are not. A real example: MBSF on
+`feature/mbs-compliance-fixes` with `subprojects/open5gs` left on `5mbs` fails with
+`'OpenAPI_ext_mbs_session_t' has no member named 'red_mbs_service_area'`, from
+`rt-5gc-service-consumers` code that is correct against the open5gs revision its wrap names.
+
+This section exists only while work is outstanding. When the branches merge it should be deleted, not
+updated to name the next one.
+
 ## Running it
 
 ```bash
