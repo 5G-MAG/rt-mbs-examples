@@ -139,9 +139,21 @@ publishing a live presentation into the media server, so there is nothing extra 
 The line-up is `scripts/mbs-broadcast-demo/channels.json`: four channels, `5G-MAG.tv 1`, `2`, `3`
 and `5G-MAG.radio`, the same four names the MBMS and DVB-I demos publish. All four are encoded and
 served by the origin; one of them is carried over the radio, which is the `onAir` flag in that
-file. The source clips live in `CONTENT_ROOT` (default `~/MWC_TV_RADIO/`), which must hold the
-four files the line-up names: `TV_1.mp4`, `TV_2.mp4`, `TV_3.mp4` and `RADIO.mp4`. That directory is
-required: without it the encoders have nothing to loop and the demo comes up with an empty origin.
+file.
+
+**Nothing is downloadable and nothing needs to be on the machine already.** Two different things
+are involved, and only one of them stops a run:
+
+- **Required**: a DASH package at `$MWC_CONTENT_ROOT/$DEMO_STREAM`, default
+  `~/MWC_TV_RADIO/dash/tv_1`. `./demo up` stops at `03-start-media-server.sh` without it, with
+  `content not found`.
+- **Optional**: the per-channel source clips `TV_1.mp4`, `TV_2.mp4`, `TV_3.mp4` and `RADIO.mp4`
+  under `CONTENT_ROOT`, default `~/MWC_TV_RADIO`. The encoders fall back to a generated test
+  pattern when one is absent, so `./demo up` runs without them.
+
+Any MP4 will do for either, and
+[the Broadcast demo's Prerequisites](scripts/mbs-broadcast-demo/README.md#prerequisites) carries an
+`ffmpeg` command for each.
 
 ```bash
 # check content is actually flowing, once the demo is up
@@ -150,7 +162,8 @@ curl -s http://127.0.0.1:3004/tv_1_live/manifest.mpd | head
 ```
 
 To play something else, edit `channels.json`, or point `CONTENT_ROOT` at a directory holding files
-of those names. Setting `LIVE_SOURCE_MEDIA` or `LIVE_STREAM_NAME` does **not** change what `./demo
+of those names, remembering that this changes only the live channels and not the DASH package the
+origin serves. Setting `LIVE_SOURCE_MEDIA` or `LIVE_STREAM_NAME` does **not** change what `./demo
 up` plays: `start-all.sh` sets both per channel from `channels.json` as it starts each encoder.
 They apply only when a script such as `live-encoder.sh` is run directly.
 
