@@ -143,17 +143,36 @@ each one, so a wrong layout is caught before anything starts.
 
 ### 4. Content
 
-Source clips are **required**: without them the encoders have nothing to loop and the demo comes
-up with an empty origin. `CONTENT_ROOT` (default `$HOME/MWC_TV_RADIO`) must hold the four files
-the channel line-up names, `TV_1.mp4`, `TV_2.mp4`, `TV_3.mp4` and `RADIO.mp4`.
+**Nothing here is downloadable and nothing is assumed to be on the machine already.** The directory
+name is historical, after the event the line-up was first shown at; it does not name a content pack you
+are missing. Two separate things live under it, and only one of them is required.
 
-**The clips are not shipped with this repository and there is nothing to download.** The directory
-name is historical, from the event the line-up was first shown at; it does not name a content pack
-you are missing. **Any** four MP4 files will do, and the demo does not care what is in them. Either
-point `CONTENT_ROOT` at a directory holding files of those names, or edit `channels.json` in this
-directory to name the files you already have.
+**Required: a DASH package at `$MWC_CONTENT_ROOT/$DEMO_STREAM`**, which defaults to
+`~/MWC_TV_RADIO/dash/tv_1`. `03-start-media-server.sh` copies it into the origin and builds the
+carousel manifest from what it finds, so without it `./demo up` stops at that step with
+`content not found: <path>`. Any MP4 will do as the input; the demo does not care what the picture
+shows:
 
-If you just need the demo to run, generate them. `ffmpeg` is already in the `apt` line above:
+```bash
+mkdir -p ~/MWC_TV_RADIO/dash/tv_1 && cd ~/MWC_TV_RADIO/dash/tv_1
+ffmpeg -y -f lavfi -i testsrc2=size=1280x720:rate=25 \
+       -f lavfi -i sine=frequency=440:sample_rate=48000 -t 30 \
+       -c:v libx264 -preset veryfast -pix_fmt yuv420p -g 50 -keyint_min 50 -sc_threshold 0 \
+       -c:a aac -b:a 128k -shortest \
+       -f dash -seg_duration 2 -use_template 1 -use_timeline 1 manifest.mpd
+```
+
+That produces `manifest.mpd`, `init-stream*.m4s` and `chunk-stream*.m4s`, which is the shape the media
+server expects. Substitute `-i your-file.mp4` for the two `lavfi` inputs to use your own media.
+
+**Optional: source clips at `$CONTENT_ROOT`**, which defaults to `~/MWC_TV_RADIO`, named `TV_1.mp4`,
+`TV_2.mp4`, `TV_3.mp4` and `RADIO.mp4` after the `source` fields in `channels.json`. These feed the
+looping live encoder, and **they are genuinely optional**: `live-encoder.sh` falls back to a generated
+test pattern with a tone when the file is absent, logging `source: none at <path>, generating a test
+pattern instead`. Provide them only if you want specific content on the live channels, or point
+`LIVE_SOURCE_MEDIA` at your own file. A radio channel discards the video track either way.
+
+To provide them anyway:
 
 ```bash
 mkdir -p ~/MWC_TV_RADIO && cd ~/MWC_TV_RADIO
@@ -164,15 +183,6 @@ for f in TV_1 TV_2 TV_3 RADIO; do
          -c:a aac -b:a 128k -shortest "$f.mp4"
 done
 ```
-
-Sixty seconds is plenty: the encoders loop their source indefinitely. `RADIO.mp4` can carry video
-like the rest, because a channel with `"type": "radio"` in `channels.json` is encoded audio-only and
-its video track is discarded either way.
-
-Note that `./demo doctor` checks the clip for **every** channel in `channels.json`, including the
-three that are not on air, because all four are encoded and served by the origin. If you would
-rather not provide four, use `DEMO_CHANNELS` (below) to limit the run, or cut `channels.json` down
-to the channels you want.
 
 `channels.json` is the line-up itself: four channels, all of them encoded and served by the
 origin, and the `onAir` flag decides which are carried over the radio as their own MBS User

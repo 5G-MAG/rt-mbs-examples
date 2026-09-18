@@ -142,7 +142,7 @@ MEDIA_PORT=3004
 
 # Content: MWC TV/Radio DASH package this demo carousels. Read-only source; scripts copy
 # from here, never write into it.
-MWC_CONTENT_ROOT="$HOME/MWC_TV_RADIO/dash"
+MWC_CONTENT_ROOT="${MWC_CONTENT_ROOT:-$HOME/MWC_TV_RADIO/dash}"
 # Source file the looping live encoder (live-encoder.sh) plays on repeat, and the name of the
 # presentation it writes under the media server's public directory. Both are named here rather
 # than inside that script so the bypass demo's ingest session and its encoder cannot disagree
@@ -163,7 +163,7 @@ CHANNELS_FILE="${CHANNELS_FILE:-$DEMO_ROOT/channels.json}"
 # starved its own largest objects. Both causes have since been fixed in the transport function
 # (FDT instances are retained across a carousel repetition, and the transmit window no longer
 # inverts for the largest objects), so the reason for cutting the content down no longer applies.
-DEMO_STREAM=tv_1
+DEMO_STREAM="${DEMO_STREAM:-tv_1}"
 # maxContBitRate governs the Distribution Session's own real on-air transmission-rate
 # cap, independent of CAROUSEL_REPETITION_MS (which only controls how often MBSTF
 # refetches each object from origin, not the transmitter's own pacing). Found live this
