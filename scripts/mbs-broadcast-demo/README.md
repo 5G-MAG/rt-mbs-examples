@@ -124,7 +124,35 @@ writes both `.env` files itself when it runs, so for the demo alone `npm install
 ### 3. Telling the scripts where everything is
 
 The defaults assume the repositories are checked out under `$HOME/Repos`, with the MBS ones
-grouped in `rt-mbs/`. That is one machine's habit, not a requirement. If yours are elsewhere:
+grouped in a `rt-mbs/` sub-directory and the rest beside it. That grouping is the one part of the
+layout that is not obvious, so the whole expected tree is below. It is one machine's habit, not a
+requirement: every path here has a variable that moves it.
+
+```
+$HOME/Repos/                                REPOS_ROOT
+├── open5gs/                                OPEN5GS_DIR
+├── srsRAN_Project_mbs/                     GNB_DIR      (RAN_ROOT, defaults to REPOS_ROOT)
+│   └── build/apps/gnb/gnb                  GNB_BIN
+├── srsRAN_4G_mbs/                          UE_DIR
+│   └── build/srsue/src/srsue               UE_BIN
+└── rt-mbs/                                 RTMBS_ROOT   (note the extra level)
+    ├── rt-mbs-function/                    MBSF_DIR
+    ├── rt-mbs-transport-function/          MBSTF_DIR
+    ├── rt-mbs-client/                      CLIENT_DIR
+    │   └── build/mbs-client                CLIENT_BIN
+    ├── rt-mbs-application/                 APP_DIR
+    ├── rt-mbs-application-provider/        PROVIDER_DIR
+    └── rt-mbs-examples/                    this repository
+        └── express-mock-media-server/      MEDIA_DIR
+```
+
+`./demo doctor` checks exactly those nine directories and three binaries. The other components are
+run from inside their own checkouts, so they need no separate binary path.
+
+Content lives outside this tree and is covered in section 4: `$MWC_CONTENT_ROOT/$DEMO_STREAM`
+(required) and `$CONTENT_ROOT` (optional), both defaulting under `$HOME/MWC_TV_RADIO`.
+
+If yours are elsewhere:
 
 ```bash
 cp local.env.example local.env     # in this directory; it is gitignored
