@@ -218,13 +218,15 @@ CAROUSEL_REPETITION_MS="${CAROUSEL_REPETITION_MS:-300000}"
 # cannot reach it, rather than close enough to need re-tuning whenever the window changes shape.
 LIVE_INGEST_MAX_BITRATE="12 Mbps"
 
-# Broadcast Distribution Session SSM (source-specific multicast) source/destination.
-# MBSF's own mbsf.yaml carries these same values under broadcastDistribution -- the
-# ingest-session provisioning request (06-provision-broadcast-service.sh) must supply the
-# same pair as the session's own mbsSessionId.ssm, together with locationDependent:true,
-# so MBSF's SDP builder (UserServiceAnnBundle.cc) has a real origin/connection-info pair
-# to serialise while MB-SMF still allocates a genuine TMGI for over-the-air delivery (see
-# that script's own header comment for the full explanation).
+# Source and destination addresses the MBSF labels this Distribution Session's packets with
+# inside the Nmb9 tunnel, and announces to receivers. 02-start-mbs-function.sh writes them
+# into mbsf.yaml as broadcastDistribution.sourceAddress/destinationAddress; the MBSF reads
+# them for both the Nmb9 flow (Nmb2Build.cc) and the announcement SDP (UserServiceAnnBundle.cc).
+#
+# The provisioning requests do NOT send these as an mbsSessionId.ssm. A broadcast MBS Session
+# is identified by a TMGI: TS 23.247 V18.8.0 clause 6.5.1 gives the types as "-TMGI (for
+# broadcast and multicast MBS sessions);" and "-source specific IP multicast address (for
+# multicast MBS sessions)". Omitting mbsSessionId is what makes the MBSF request a TMGI.
 BCAST_SSM_SOURCE=127.0.0.68
 # Overridable because start-all.sh provisions one Distribution Session per on-air channel in
 # channels.json and each needs its own group; the value here is the first channel's.

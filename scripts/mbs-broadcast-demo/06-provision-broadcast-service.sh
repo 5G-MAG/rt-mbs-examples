@@ -12,20 +12,25 @@
 #     session -- UserDataIngSession.cc:2090 reads it from the parent User Service's own
 #     servType, not from anything in the ingest-session body itself.
 #   - a brand new TMGI is allocated by MB-SMF precisely when 'mbsSessionId' is entirely
-#     ABSENT from the per-session object (UserDataIngSession.cc:2048-2058,2074:
+#     ABSENT from the per-session object (UserDataIngSession.cc:
 #     "if no MBS session identifier is provided ... MBSF shall include a "tmgiAllocReq"
-#     attribute set to "true""), OR when an SSM address IS given together with
-#     "locationDependent": true (same code, :2053-2058 -- TS 29.580's second trigger).
-#     This script uses the SECOND form deliberately, not the first: MBSF's own SDP builder
-#     (UserServiceAnnBundle.cc:278-309) can only construct a valid announcement SDP (an
-#     origin line and media connection info) when an SSM source/dest address is present --
-#     a pure TMGI-only session (no SSM at all) leaves the SDP with neither, which
-#     SessionDescriptionProtocol::operator std::string() rejects (std::out_of_range,
-#     caught at :303-306 and logged as "Failed to serialise SDP", the announcement bundle
-#     is then never written -- observed live in this deployment before this fix). Supplying
-#     mbsSessionId.ssm (MBSF's own configured broadcastDistribution.sourceAddress/
-#     destinationAddress, not a fabricated pair) alongside locationDependent:true gets both
-#     a valid SDP AND a real allocated TMGI in one request.
+#     attribute set to "true""), which is the form this script uses.
+#
+#     A BROADCAST service must use that form. TS 23.247 V18.8.0 clause 6.5.1 gives the
+#     MBS Session ID types as "-TMGI (for broadcast and multicast MBS sessions);" and
+#     "-source specific IP multicast address (for multicast MBS sessions)", so an SSM
+#     identifies a multicast session only. This script used to send one anyway, together
+#     with "locationDependent": true, because MBSF's SDP builder could then find an
+#     origin line and connection info; without it the announcement bundle was never
+#     written. MBSF now takes those addresses from its own mbsf.broadcastDistribution
+#     configuration, the same pair it gives the MBSTF for the Nmb9 flow, so the SSM is no
+#     longer needed and is refused for a BROADCAST service.
+#
+#     The address on the wire is therefore mbsf.broadcastDistribution.destinationAddress,
+#     which the demo sets from the on-air channel's ssmDest. One on-air channel at a time
+#     is fine; a second would need 5G-MAG/rt-mbs-function#59, because that configuration is
+#     one pair per MBSF while the specification makes the Nmb9 label per Distribution
+#     Session.
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")"
 source env.sh
@@ -68,13 +73,6 @@ ING_BODY=$(cat <<EOF
   "mbsUserServId": "$SVC_ID",
   "mbsDisSessInfos": {
     "AP_MBS_SESSION_1": {
-      "mbsSessionId": {
-        "ssm": {
-          "sourceIpAddr": { "ipv4Addr": "$BCAST_SSM_SOURCE" },
-          "destIpAddr": { "ipv4Addr": "$BCAST_SSM_DEST" }
-        }
-      },
-      "locationDependent": true,
       "mbsDistSessState": "ACTIVE",
       "maxContBitRate": "$INGEST_MAX_BITRATE",
       "distrMethod": "OBJECT",

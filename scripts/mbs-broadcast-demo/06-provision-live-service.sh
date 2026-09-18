@@ -72,9 +72,6 @@ log "MBS User Service: $svc_id"
 ing_id=$(post_for_id "Ingest Session creation" "$PROVIDER_URL/ingest-sessions" "$PROVIDER_AUTH" "{
       \"mbsUserServId\": \"$svc_id\",
       \"mbsDisSessInfos\": { \"AP_MBS_SESSION_1\": {
-          \"mbsSessionId\": { \"ssm\": { \"sourceIpAddr\": { \"ipv4Addr\": \"$BCAST_SSM_SOURCE\" },
-                                         \"destIpAddr\": { \"ipv4Addr\": \"$BCAST_SSM_DEST\" } } },
-          \"locationDependent\": true,
           \"mbsDistSessState\": \"ACTIVE\",
           \"maxContBitRate\": \"$SESSION_MAX_BITRATE\",
           $FEC_CONFIG_JSON
