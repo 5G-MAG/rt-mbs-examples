@@ -101,13 +101,32 @@ build command is repeated here only so you can see the whole job at once.
 | Component | Repository | Build |
 |---|---|---|
 | 5G Core (MB-SMF, MB-UPF, AMF, NRF, …) | `open5gs` | `meson setup build && ninja -C build` |
-| MBSF | `rt-mbs-function` | `meson setup build && ninja -C build` |
-| MBSTF | `rt-mbs-transport-function` | `meson setup build && ninja -C build` |
-| MBS Client | `rt-mbs-client` | `mkdir build && cd build && cmake -GNinja .. && ninja` |
+| MBSF | `rt-mbs-function` | `git submodule update --init --recursive && meson subprojects update && meson setup build && ninja -C build` |
+| MBSTF | `rt-mbs-transport-function` | `git submodule update --init --recursive && meson subprojects update && meson setup build && ninja -C build` |
+| MBS Client | `rt-mbs-client` | `git submodule update --init --recursive && mkdir -p build && cd build && cmake -GNinja .. && ninja` |
 | MBS-Aware Application | `rt-mbs-application` | `npm install` |
 | Application Provider | `rt-mbs-application-provider` | `npm install` |
 | gNB | `srsRAN_Project_mbs` | `cmake -S . -B build -DENABLE_ZEROMQ=ON && cmake --build build -j$(nproc)` |
 | UE | `srsRAN_4G_mbs` | `cmake -S . -B build && cmake --build build -j$(nproc)` |
+
+The `git submodule update` and `meson subprojects update` steps on the three components that carry
+dependencies of their own are there so a rebuild is correct after changing branches, without anyone
+having to remember a cleanup step.
+
+They are needed because **meson does not update a subproject directory that already exists**: an
+existing checkout silently wins over the `.wrap` file. So a tree built once on one branch keeps that
+subproject when you switch, the `.wrap` is ignored, and the build then fails with errors that read as
+though the component itself is broken. A real example: `rt-5gc-service-consumers` on one branch uses
+`red_mbs_service_area` and `UpdateRspData`, which exist only in the open5gs revision its sibling wrap
+names, so a stale `subprojects/open5gs` produces `has no member named 'red_mbs_service_area'` from
+code that is perfectly consistent with the wrap it was meant to build against. Git submodules go stale
+across a branch switch in the same way.
+
+`meson subprojects update` checks each subproject out at the revision its wrap names. It is a no-op on
+a fresh clone, reporting `Not used.` before `meson setup` clones them itself, so the same command is
+correct whether you are building for the first time or the tenth. If you have local changes inside a
+subproject it stashes them rather than discarding them, recoverable with `git stash pop` in that
+directory; `--reset` would throw them away, which is why it is not used here.
 
 `ENABLE_ZEROMQ=ON` on the gNB is what lets it use the `device_driver: zmq` in this demo's
 `gnb.yaml`. It defaults to **OFF** in `srsRAN_Project_mbs` (it is already ON in `srsRAN_4G_mbs`,
