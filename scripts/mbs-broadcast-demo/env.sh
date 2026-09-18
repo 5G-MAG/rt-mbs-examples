@@ -41,17 +41,18 @@ CLIENT_DIR="${CLIENT_DIR:-$RTMBS_ROOT/rt-mbs-client}"
 APP_DIR="${APP_DIR:-$RTMBS_ROOT/rt-mbs-application}"
 PROVIDER_DIR="${PROVIDER_DIR:-$RTMBS_ROOT/rt-mbs-application-provider}"
 MEDIA_DIR="${MEDIA_DIR:-$RTMBS_ROOT/rt-mbs-examples/express-mock-media-server}"
-# The gNB repository is 5G-MAG/rt-srsRAN_Project_mbs, so that is the directory a plain `git clone`
-# produces and the default here. A checkout made before the rt- prefix, or from the
-# srsRAN_Project_mbs mirror of the same branches, is accepted too rather than silently not found.
+# The gNB repository is 5G-MAG/srsRAN_Project_mbs, so that is the directory a plain `git clone`
+# produces and the default here. The older rt-srsRAN_Project_mbs name still reaches the same
+# repository through GitHub's rename redirect, so a checkout made under it is accepted too rather
+# than silently not found.
 if [ -n "${GNB_DIR:-}" ]; then
     :
-elif [ -d "$RAN_ROOT/rt-srsRAN_Project_mbs" ]; then
-    GNB_DIR="$RAN_ROOT/rt-srsRAN_Project_mbs"
 elif [ -d "$RAN_ROOT/srsRAN_Project_mbs" ]; then
     GNB_DIR="$RAN_ROOT/srsRAN_Project_mbs"
-else
+elif [ -d "$RAN_ROOT/rt-srsRAN_Project_mbs" ]; then
     GNB_DIR="$RAN_ROOT/rt-srsRAN_Project_mbs"
+else
+    GNB_DIR="$RAN_ROOT/srsRAN_Project_mbs"
 fi
 UE_DIR="${UE_DIR:-$RAN_ROOT/srsRAN_4G_mbs}"
 

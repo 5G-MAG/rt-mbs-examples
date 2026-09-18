@@ -96,13 +96,16 @@ build command is repeated here only so you can see the whole job at once.
 | MBS Client | `rt-mbs-client` | `mkdir build && cd build && cmake -GNinja .. && ninja` |
 | MBS-Aware Application | `rt-mbs-application` | `npm install` |
 | Application Provider | `rt-mbs-application-provider` | `npm install` |
-| gNB | `rt-srsRAN_Project_mbs` | `cmake -S . -B build && cmake --build build -j$(nproc)` |
-| UE | `srsRAN_4G_mbs` | `cmake -DENABLE_WERROR=OFF -S . -B build && cmake --build build -j$(nproc)` |
+| gNB | `srsRAN_Project_mbs` | `cmake -S . -B build -DENABLE_ZEROMQ=ON && cmake --build build -j$(nproc)` |
+| UE | `srsRAN_4G_mbs` | `cmake -S . -B build && cmake --build build -j$(nproc)` |
 
-`ENABLE_WERROR=OFF` on the UE is required with GCC 14 or later: upstream's `pusch_test` trips
-`-Werror=stringop-overflow=` on a write that is in fact in bounds, and the file is upstream test
-code this fork does not modify. `srsRAN_4G_mbs`'s own README covers that and its two extra
-dependencies in more detail.
+`ENABLE_ZEROMQ=ON` on the gNB is what lets it use the `device_driver: zmq` in this demo's
+`gnb.yaml`. It defaults to **OFF** in `srsRAN_Project_mbs` (it is already ON in `srsRAN_4G_mbs`,
+which is why only the gNB needs the flag), and the ZeroMQ radio is compiled only when it is on, so
+having `libzmq3-dev` installed does not cover it.
+
+`srsRAN_4G_mbs`'s own README covers its two extra dependencies, cpprestsdk and OpenSSL, in more
+detail.
 
 Clone each from its default branch, with submodules, which the MBSF, MBSTF and MBS Client all
 need:

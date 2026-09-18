@@ -31,7 +31,7 @@
 | **Provides** | An end-to-end MBS Broadcast demo, a mock media origin, API tests, Insomnia collections and a Docker Compose deployment |
 | **Role** | Integration: it starts and provisions the other components, and builds none of them |
 | **Built with** | Bash, Node.js and Python |
-| **Works with** | [rt-mbs-function](https://github.com/5G-MAG/rt-mbs-function), [rt-mbs-transport-function](https://github.com/5G-MAG/rt-mbs-transport-function), [rt-mbs-client](https://github.com/5G-MAG/rt-mbs-client), [rt-mbs-application](https://github.com/5G-MAG/rt-mbs-application), [rt-mbs-application-provider](https://github.com/5G-MAG/rt-mbs-application-provider), [open5gs](https://github.com/5G-MAG/open5gs), [rt-srsRAN_Project_mbs](https://github.com/5G-MAG/rt-srsRAN_Project_mbs) and [srsRAN_4G_mbs](https://github.com/5G-MAG/srsRAN_4G_mbs) |
+| **Works with** | [rt-mbs-function](https://github.com/5G-MAG/rt-mbs-function), [rt-mbs-transport-function](https://github.com/5G-MAG/rt-mbs-transport-function), [rt-mbs-client](https://github.com/5G-MAG/rt-mbs-client), [rt-mbs-application](https://github.com/5G-MAG/rt-mbs-application), [rt-mbs-application-provider](https://github.com/5G-MAG/rt-mbs-application-provider), [open5gs](https://github.com/5G-MAG/open5gs), [srsRAN_Project_mbs](https://github.com/5G-MAG/srsRAN_Project_mbs) and [srsRAN_4G_mbs](https://github.com/5G-MAG/srsRAN_4G_mbs) |
 | **Part of** | [5G Multicast Broadcast Services](https://www.5g-mag.com/reference-tools/5g-multicast-broadcast-services) |
 
 ## Introduction
