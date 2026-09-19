@@ -35,17 +35,41 @@ ensure_sudo() {
 # SD is compared by value rather than by spelling: open5gs-dbctl stores whatever string it is given,
 # so the same slice can be on disk as "1" or as "000001", and rewriting a row that is already
 # correct would be destructive for no gain.
+# Prints exactly one of: ok, wrong, absent. Returns non-zero, printing the driver's own error, if
+# the probe could not run at all. That distinction matters: a failed probe read as "absent" makes the
+# caller insert a subscriber that is already there, and open5gs-dbctl has no upsert, so the run dies
+# on a duplicate-key error whose message says nothing about the real problem.
 subscriber_state() {
-    local uri="$1"
-    mongosh --quiet --eval "
+    local uri="$1" out state
+    out=$(mongosh --quiet --eval "
         var s = db.subscribers.findOne({imsi: '$UE_IMSI'});
         if (!s) { print('absent'); }
         else if (!s.slice || !s.slice[0]) { print('wrong'); }
         else if (s.slice[0].sst != $UE_SLICE_SST) { print('wrong'); }
         else if (parseInt(String(s.slice[0].sd), 16) != parseInt('$UE_SLICE_SD', 16)) { print('wrong'); }
-        else { print('ok'); }" "$uri" 2>/dev/null | tr -d '[:space:]'
+        else { print('ok'); }" "$uri" 2>&1) || { printf '%s\n' "$out" >&2; return 1; }
+
+    state=$(printf '%s' "$out" | tr -d '[:space:]')
+    case "$state" in
+        ok|wrong|absent) printf '%s' "$state" ;;
+        *) printf 'subscriber probe returned something unrecognised: %s\n' "$out" >&2; return 1 ;;
+    esac
 }
 
+# The UE is rejected at registration unless its SUPI is in the UDR's database, and a clean MongoDB
+# has no subscribers at all. The failure surfaces three components away from its cause, as
+# "Cannot find SUPI in DB" in the UDR and "PLMN not allowed" at the UE, so provision it here rather
+# than leaving it as a manual step nobody reads about until the demo has already failed.
+#
+# Presence is not the condition. open5gs-dbctl's plain `add` writes a slice carrying sst with no sd
+# field at all, and a subscriber whose S-NSSAI does not match the AMF's configured slice gets past
+# authentication and is then rejected with "No Allowed-NSSAI" (5GMM cause #62), which reads as a
+# slicing misconfiguration rather than a provisioning one. So the stored slice is compared, and a row
+# that does not match is rewritten.
+#
+# SD is compared by value and not by spelling: open5gs-dbctl stores whatever string it is handed, so
+# the same slice can be on disk as "1" or as "000001", and rewriting a row that is already correct
+# would be destructive for no gain.
 ensure_subscriber() {
     local dbctl="$OPEN5GS_DIR/misc/db/open5gs-dbctl"
     local uri="${OPEN5GS_DB_URI:-mongodb://127.0.0.1/open5gs}"
@@ -54,20 +78,31 @@ ensure_subscriber() {
     require_cmd mongosh
     [[ -x "$dbctl" ]] || die "open5gs-dbctl not found at $dbctl (is OPEN5GS_DIR correct?)"
 
-    state=$(subscriber_state "$uri")
+    state=$(subscriber_state "$uri") \
+        || die "could not read the subscriber database at $uri; the error above is the driver's own"
+
     case "$state" in
         ok)
             log "subscriber $UE_IMSI already provisioned (SST=$UE_SLICE_SST SD=$UE_SLICE_SD)"
             return 0
             ;;
         wrong)
-            # Repairing rather than leaving it: the alternative is a demo that fails at registration
-            # for anyone whose database was provisioned before this check existed, with no hint why.
             log "subscriber $UE_IMSI exists with a slice this deployment does not serve; reprovisioning"
-            DB_URI="$uri" "$dbctl" remove "$UE_IMSI" >/dev/null 2>&1 \
-                || die "could not remove the mismatched subscriber $UE_IMSI"
+            ;;
+        absent)
+            ;;
+        *)
+            die "unrecognised subscriber state '$state' for $UE_IMSI"
             ;;
     esac
+
+    # Remove before adding, whatever the probe said. open5gs-dbctl has no upsert and its add verbs
+    # fail with E11000 against an existing imsi, so making this unconditional is what stops a
+    # misread state, a partially written row or a concurrent run from aborting the whole demo. It is
+    # a no-op when there is nothing to remove.
+    DB_URI="$uri" "$dbctl" remove "$UE_IMSI" >/dev/null 2>&1 || true
+    [[ "$(subscriber_state "$uri" 2>/dev/null)" == "absent" ]] \
+        || die "could not clear the existing row for $UE_IMSI from $uri; remove it by hand with: DB_URI=$uri $dbctl remove $UE_IMSI"
 
     log "provisioning subscriber $UE_IMSI (APN internet, SST=$UE_SLICE_SST SD=$UE_SLICE_SD) in $uri"
     DB_URI="$uri" "$dbctl" add_ue_with_slice \
