@@ -260,6 +260,14 @@ UE_IMSI="${UE_IMSI:-001011234567892}"
 UE_KEY="${UE_KEY:-00000000000000000000000000000000}"
 UE_OPC="${UE_OPC:-00000000000000000000000000000000}"
 
+# The S-NSSAI the subscriber is provisioned with. It must match what 01-start-core-nfs.sh writes
+# into the AMF, SMF and NSSF configurations and what 04-start-ran.sh writes into the gNB, all of
+# which are sst 1 / sd 1 here. A subscriber whose slice does not match is authenticated and then
+# rejected with "No Allowed-NSSAI" (5GMM cause #62), which reads as a slicing problem rather than a
+# provisioning one.
+UE_SLICE_SST="${UE_SLICE_SST:-1}"
+UE_SLICE_SD="${UE_SLICE_SD:-000001}"
+
 # MBS User Service / Ingest Session identity for this demo
 DEMO_SERVICE_EXT_ID="https://mwc-tv-radio.ebu.io/services/${DEMO_STREAM}"
 DEMO_SERVICE_NAME="5G-MAG.tv 1"

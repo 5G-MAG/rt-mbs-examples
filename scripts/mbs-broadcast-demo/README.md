@@ -96,9 +96,15 @@ The UE's subscriber is provisioned automatically, in `01-start-core-nfs.sh`, usi
 `misc/db/open5gs-dbctl`. There is no manual database step. It is idempotent, so an existing row is
 left untouched and re-running the demo never disturbs a database you have already populated. The
 identity comes from `UE_IMSI`, `UE_KEY` and `UE_OPC` in `env.sh`, which are the same three values
-written into the generated `ue_bcast.conf`, so the USIM and the database cannot drift apart. If you
-point the demo at a database that already holds a *different* subscriber for this IMSI, it is used
-as-is and registration will fail; remove it with `open5gs-dbctl remove <imsi>` first.
+written into the generated `ue_bcast.conf`, so the USIM and the database cannot drift apart.
+
+The subscriber is provisioned with the S-NSSAI this deployment serves, `UE_SLICE_SST` and
+`UE_SLICE_SD` in `env.sh`, both `1`, matching the AMF, SMF, NSSF and gNB configurations the scripts
+generate. That is checked rather than assumed: a row carrying the right IMSI but a different slice,
+or no `sd` at all, is removed and rewritten. It has to be, because `open5gs-dbctl add` without a
+slice argument produces exactly that row, and a subscriber whose S-NSSAI does not match is
+authenticated and then rejected with `No Allowed-NSSAI` (5GMM cause #62), which reads as a slicing
+misconfiguration rather than a provisioning one.
 
 `sudo` is required, for network-namespace management and the UPF's TUN device. You do **not** need
 passwordless sudo: each entry point calls `sudo -v` once at the start and prompts there if it has

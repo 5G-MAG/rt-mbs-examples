@@ -24,25 +24,58 @@ ensure_sudo() {
 # has no subscribers at all. The failure surfaces three components away from its cause, as
 # "Cannot find SUPI in DB" in the UDR and "PLMN not allowed" at the UE, so provision it here rather
 # than leaving it as a manual step nobody reads about until the demo has already failed.
-# Idempotent: an existing row is left alone, so re-running never disturbs a provisioned database.
+#
+# Presence alone is not the condition. open5gs-dbctl's plain `add` writes a slice carrying sst with
+# no sd field at all, and a subscriber whose S-NSSAI does not match the AMF's configured slice gets
+# past authentication and is then rejected with "No Allowed-NSSAI" (5GMM cause #62). That reads as a
+# slicing misconfiguration rather than a provisioning one, so the check below compares the stored
+# slice against this deployment's and repairs a row that does not match, rather than accepting any
+# row that happens to carry the right IMSI.
+#
+# SD is compared by value rather than by spelling: open5gs-dbctl stores whatever string it is given,
+# so the same slice can be on disk as "1" or as "000001", and rewriting a row that is already
+# correct would be destructive for no gain.
+subscriber_state() {
+    local uri="$1"
+    mongosh --quiet --eval "
+        var s = db.subscribers.findOne({imsi: '$UE_IMSI'});
+        if (!s) { print('absent'); }
+        else if (!s.slice || !s.slice[0]) { print('wrong'); }
+        else if (s.slice[0].sst != $UE_SLICE_SST) { print('wrong'); }
+        else if (parseInt(String(s.slice[0].sd), 16) != parseInt('$UE_SLICE_SD', 16)) { print('wrong'); }
+        else { print('ok'); }" "$uri" 2>/dev/null | tr -d '[:space:]'
+}
+
 ensure_subscriber() {
     local dbctl="$OPEN5GS_DIR/misc/db/open5gs-dbctl"
     local uri="${OPEN5GS_DB_URI:-mongodb://127.0.0.1/open5gs}"
+    local state
 
     require_cmd mongosh
     [[ -x "$dbctl" ]] || die "open5gs-dbctl not found at $dbctl (is OPEN5GS_DIR correct?)"
 
-    if mongosh --quiet --eval "db.subscribers.countDocuments({imsi:\"$UE_IMSI\"})" "$uri" 2>/dev/null | grep -qx "1"; then
-        log "subscriber $UE_IMSI already provisioned"
-        return 0
-    fi
+    state=$(subscriber_state "$uri")
+    case "$state" in
+        ok)
+            log "subscriber $UE_IMSI already provisioned (SST=$UE_SLICE_SST SD=$UE_SLICE_SD)"
+            return 0
+            ;;
+        wrong)
+            # Repairing rather than leaving it: the alternative is a demo that fails at registration
+            # for anyone whose database was provisioned before this check existed, with no hint why.
+            log "subscriber $UE_IMSI exists with a slice this deployment does not serve; reprovisioning"
+            DB_URI="$uri" "$dbctl" remove "$UE_IMSI" >/dev/null 2>&1 \
+                || die "could not remove the mismatched subscriber $UE_IMSI"
+            ;;
+    esac
 
-    log "provisioning subscriber $UE_IMSI in $uri"
-    DB_URI="$uri" "$dbctl" add_ue_with_slice "$UE_IMSI" "$UE_KEY" "$UE_OPC" internet 1 000001 >/dev/null \
+    log "provisioning subscriber $UE_IMSI (APN internet, SST=$UE_SLICE_SST SD=$UE_SLICE_SD) in $uri"
+    DB_URI="$uri" "$dbctl" add_ue_with_slice \
+        "$UE_IMSI" "$UE_KEY" "$UE_OPC" internet "$UE_SLICE_SST" "$UE_SLICE_SD" >/dev/null \
         || die "could not provision subscriber $UE_IMSI"
 
-    mongosh --quiet --eval "db.subscribers.countDocuments({imsi:\"$UE_IMSI\"})" "$uri" 2>/dev/null | grep -qx "1" \
-        || die "open5gs-dbctl reported success but $UE_IMSI is not in the database"
+    [[ "$(subscriber_state "$uri")" == "ok" ]] \
+        || die "open5gs-dbctl reported success but $UE_IMSI is not stored with SST=$UE_SLICE_SST SD=$UE_SLICE_SD"
 }
 
 require_file() {
