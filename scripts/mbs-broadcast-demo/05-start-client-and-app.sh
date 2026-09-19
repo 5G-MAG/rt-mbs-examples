@@ -18,7 +18,7 @@ log "waiting for the UE's tun_bcastue interface to get an address (PDU session e
 UE_IP=""
 for _ in $(seq 1 "$UE_TUN_WAIT_SECS"); do
     UE_IP=$(sudo -n ip netns exec "$NETNS" ip -o -4 addr show tun_bcastue 2>/dev/null \
-        | awk '{print $4}' | cut -d/ -f1)
+        | awk '{print $4}' | cut -d/ -f1 || true)
     [[ -n "$UE_IP" ]] && break
     sleep 1
 done
