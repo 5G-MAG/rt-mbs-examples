@@ -87,9 +87,9 @@ Client needs it too. The
 `libzmq3-dev` packages are the two srsRAN builds' own, `libzmq3-dev` in particular because both
 the gNB and the UE run over the ZeroMQ software radio here rather than real hardware.
 
-You also need **Node.js 18 or later** (`node --version`). The distribution package is often
-older; use [NodeSource](https://github.com/nodesource/distributions) or
-[nvm](https://github.com/nvm-sh/nvm) if it is.
+You also need **Node.js 18 or later** (`node --version`), installed with `nodejs npm`. Ubuntu 26.04
+ships v22, which is new enough; on an older distribution whose package is not, use
+[NodeSource](https://github.com/nodesource/distributions) or [nvm](https://github.com/nvm-sh/nvm).
 
 **MongoDB** is needed separately: the NRF and UDR store their state in it. Ubuntu's own
 `mongodb` package is not what Open5GS expects; install from
