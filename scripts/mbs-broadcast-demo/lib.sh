@@ -38,7 +38,7 @@ ensure_subscriber() {
     fi
 
     log "provisioning subscriber $UE_IMSI in $uri"
-    DB_URI="$uri" "$dbctl" add "$UE_IMSI" "$UE_KEY" "$UE_OPC" >/dev/null \
+    DB_URI="$uri" "$dbctl" add_ue_with_slice "$UE_IMSI" "$UE_KEY" "$UE_OPC" internet 1 000001 >/dev/null \
         || die "could not provision subscriber $UE_IMSI"
 
     mongosh --quiet --eval "db.subscribers.countDocuments({imsi:\"$UE_IMSI\"})" "$uri" 2>/dev/null | grep -qx "1" \
