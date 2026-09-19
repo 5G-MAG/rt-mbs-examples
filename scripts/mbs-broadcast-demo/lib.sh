@@ -9,6 +9,42 @@ require_cmd() {
     command -v "$1" >/dev/null 2>&1 || die "missing command: $1 (install it and re-run)"
 }
 
+# Network-namespace setup and the UPF's TUN device need root, and the scripts reach for it with
+# `sudo -n` throughout so that no component start can stall on an invisible password prompt behind
+# tmux. That only works once a sudo timestamp exists, so acquire one here, interactively, before any
+# of it runs. A no-op where sudo is already passwordless or the timestamp is still valid.
+ensure_sudo() {
+    sudo -n true 2>/dev/null && return 0
+    [[ -t 0 ]] || die "sudo needs a password and there is no terminal to ask on. Run 'sudo -v' first, then re-run this script."
+    log "sudo is needed for the network namespace and the UPF TUN device; asking once now"
+    sudo -v || die "could not acquire sudo"
+}
+
+# The UE is rejected at registration unless its SUPI is in the UDR's database, and a clean MongoDB
+# has no subscribers at all. The failure surfaces three components away from its cause, as
+# "Cannot find SUPI in DB" in the UDR and "PLMN not allowed" at the UE, so provision it here rather
+# than leaving it as a manual step nobody reads about until the demo has already failed.
+# Idempotent: an existing row is left alone, so re-running never disturbs a provisioned database.
+ensure_subscriber() {
+    local dbctl="$OPEN5GS_DIR/misc/db/open5gs-dbctl"
+    local uri="${OPEN5GS_DB_URI:-mongodb://127.0.0.1/open5gs}"
+
+    require_cmd mongosh
+    [[ -x "$dbctl" ]] || die "open5gs-dbctl not found at $dbctl (is OPEN5GS_DIR correct?)"
+
+    if mongosh --quiet --eval "db.subscribers.countDocuments({imsi:\"$UE_IMSI\"})" "$uri" 2>/dev/null | grep -qx "1"; then
+        log "subscriber $UE_IMSI already provisioned"
+        return 0
+    fi
+
+    log "provisioning subscriber $UE_IMSI in $uri"
+    DB_URI="$uri" "$dbctl" add "$UE_IMSI" "$UE_KEY" "$UE_OPC" >/dev/null \
+        || die "could not provision subscriber $UE_IMSI"
+
+    mongosh --quiet --eval "db.subscribers.countDocuments({imsi:\"$UE_IMSI\"})" "$uri" 2>/dev/null | grep -qx "1" \
+        || die "open5gs-dbctl reported success but $UE_IMSI is not in the database"
+}
+
 require_file() {
     [[ -e "$1" ]] || die "missing required file/executable: $1"
 }

@@ -87,11 +87,25 @@ older; use [NodeSource](https://github.com/nodesource/distributions) or
 **MongoDB** is needed separately: the NRF and UDR store their state in it. Ubuntu's own
 `mongodb` package is not what Open5GS expects; install from
 [MongoDB's repository](https://www.mongodb.com/docs/manual/administration/install-on-linux/),
-which provides `mongod` via `mongodb-org-server`. The scripts start `mongod` if it is installed
-but inactive, and fail with a clear message if it is absent.
+which provides `mongod` via `mongodb-org-server` and the `mongosh` shell via `mongodb-mongosh`.
+Both are needed: `mongod` to hold the state, `mongosh` because the demo provisions the UE's
+subscriber through it. The scripts start `mongod` if it is installed but inactive, and fail with a
+clear message if either is absent.
 
-Passwordless or cached `sudo` is required, for network-namespace management and the UPF's TUN
-device. The scripts call `sudo -v` once up front.
+The UE's subscriber is provisioned automatically, in `01-start-core-nfs.sh`, using Open5GS's own
+`misc/db/open5gs-dbctl`. There is no manual database step. It is idempotent, so an existing row is
+left untouched and re-running the demo never disturbs a database you have already populated. The
+identity comes from `UE_IMSI`, `UE_KEY` and `UE_OPC` in `env.sh`, which are the same three values
+written into the generated `ue_bcast.conf`, so the USIM and the database cannot drift apart. If you
+point the demo at a database that already holds a *different* subscriber for this IMSI, it is used
+as-is and registration will fail; remove it with `open5gs-dbctl remove <imsi>` first.
+
+`sudo` is required, for network-namespace management and the UPF's TUN device. You do **not** need
+passwordless sudo: each entry point calls `sudo -v` once at the start and prompts there if it has
+to, so that the many privileged calls that follow can use `sudo -n` and no component start stalls
+on a password prompt hidden behind tmux. If you already have a cached timestamp, or sudo is
+passwordless, nothing is asked. Running non-interactively with no cached timestamp fails
+immediately with a message saying to run `sudo -v` first, rather than part-way through.
 
 ### 2. The components
 

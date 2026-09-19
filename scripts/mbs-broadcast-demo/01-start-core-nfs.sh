@@ -19,9 +19,13 @@ netns_exists || die "run 00-setup-netns.sh first"
 
 if ! systemctl is-active --quiet mongod; then
     log "mongod is not active, starting it"
-    sudo -n true || die "passwordless sudo (or a cached sudo timestamp) is required"
+    ensure_sudo
     sudo -n systemctl start mongod || die "could not start mongod (needed by NRF/UDR)"
 fi
+
+# Before the UDR starts, not after: a UE that registers against a database with no matching SUPI is
+# rejected, and the rejection reads as a PLMN problem rather than a provisioning one.
+ensure_subscriber
 
 gen_nf_yaml() {
     # gen_nf_yaml <name> <addr> [extra_yaml_lines...]

@@ -14,7 +14,7 @@ source lib.sh
 
 require_cmd ip
 require_cmd sudo
-sudo -n true || die "passwordless sudo (or a cached sudo timestamp) is required"
+ensure_sudo
 
 teardown() {
     log "tearing down $NETNS"

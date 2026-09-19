@@ -251,6 +251,15 @@ GNB_EXTRA_ARGS="${GNB_EXTRA_ARGS:-cu_cp}"
 # this is a configuration option rather than a fixed bound.
 UE_TUN_WAIT_SECS="${UE_TUN_WAIT_SECS:-180}"
 
+# The UE's subscriber identity. These three are written into the generated ue_bcast.conf AND used to
+# provision the subscriber in the UDR's MongoDB, so a single definition keeps the two from drifting:
+# a UE whose IMSI is not in the database is rejected at registration with "PLMN not allowed", which
+# reads as a radio or PLMN misconfiguration rather than as a missing database row.
+# Test credentials only. All-zero K/OPc is what the soft USIM in ue_bcast.conf has always used.
+UE_IMSI="${UE_IMSI:-001011234567892}"
+UE_KEY="${UE_KEY:-00000000000000000000000000000000}"
+UE_OPC="${UE_OPC:-00000000000000000000000000000000}"
+
 # MBS User Service / Ingest Session identity for this demo
 DEMO_SERVICE_EXT_ID="https://mwc-tv-radio.ebu.io/services/${DEMO_STREAM}"
 DEMO_SERVICE_NAME="5G-MAG.tv 1"

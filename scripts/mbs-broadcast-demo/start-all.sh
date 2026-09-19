@@ -14,6 +14,7 @@ cd "$(dirname "${BASH_SOURCE[0]}")"
 source env.sh
 source lib.sh
 ensure_dirs
+ensure_sudo
 
 SEG_DURATION_S="${LIVE_SEG_DURATION:-5}"
 PRESENTATION_PATH="${LIVE_PRESENTATION:-$LIVE_STREAM_NAME/manifest.mpd}"

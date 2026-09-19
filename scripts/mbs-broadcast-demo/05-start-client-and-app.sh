@@ -12,7 +12,7 @@ ensure_dirs
 require_file "$CLIENT_BIN"
 require_cmd socat
 netns_exists || die "run 00-setup-netns.sh first"
-sudo -n true || die "passwordless sudo (or a cached sudo timestamp) is required"
+ensure_sudo
 
 log "waiting for the UE's tun_bcastue interface to get an address (PDU session establishment)"
 UE_IP=""

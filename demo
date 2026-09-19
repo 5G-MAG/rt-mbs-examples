@@ -123,6 +123,15 @@ check_prereqs() {
         echo "        install mongodb-org-server from MongoDB's own repository, not Ubuntu's"
         missing=1
     fi
+    # mongosh is a separate package from mongod, and the demo needs it: the UE's subscriber is
+    # provisioned through Open5GS's own open5gs-dbctl, which drives mongosh. Without it the run
+    # gets as far as the UE registering and is then rejected with "PLMN not allowed", which does
+    # not look like a missing shell.
+    if ! command -v mongosh >/dev/null 2>&1; then
+        bad "missing command: mongosh"
+        echo "        install mongodb-mongosh; it is needed to provision the UE's subscriber"
+        missing=1
+    fi
     [ "$missing" -eq 0 ] && ok "required commands present"
     return "$missing"
 }

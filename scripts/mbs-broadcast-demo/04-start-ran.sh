@@ -57,7 +57,7 @@ require_file "$GNB_BIN"
 require_file "$UE_BIN"
 netns_exists || die "run 00-setup-netns.sh first"
 wait_for_tcp "$AMF_ADDR" "$SBI_PORT" 5 || die "AMF is not up yet -- run 01-start-core-nfs.sh first"
-sudo -n true || die "passwordless sudo (or a cached sudo timestamp) is required"
+ensure_sudo
 
 # Optional mbs: parameters. Each is emitted only when it actually has a value: the gNB treats an
 # absent key as "use my own default", but an empty one is a parse error, so writing the key
@@ -262,9 +262,9 @@ file_max_size = -1
 [usim]
 mode = soft
 algo = milenage
-opc  = 00000000000000000000000000000000
-k    = 00000000000000000000000000000000
-imsi = 001011234567892
+opc  = ${UE_OPC}
+k    = ${UE_KEY}
+imsi = ${UE_IMSI}
 imei = 353490069873319
 
 [rrc]
