@@ -106,6 +106,15 @@ fi
 dpkg --compare-versions "$(meson --version)" ge 1.4.0 || { echo "Meson >= 1.4 required"; exit 1; }
 echo "using Meson $(meson --version)"
 
+# MBSF and MBSTF need std::chrono::parse from GCC 14.1 or newer.
+if dpkg --compare-versions "$(g++ -dumpfullversion)" lt 14.1; then
+    apt-get install -y -qq gcc-14 g++-14 || exit 1
+    export CC=gcc-14 CXX=g++-14
+fi
+cxx_version=$(${CXX:-g++} -dumpfullversion) || exit 1
+dpkg --compare-versions "$cxx_version" ge 14.1 || { echo "G++ >= 14.1 required, found $cxx_version"; exit 1; }
+echo "using G++ $cxx_version"
+
 # Failures are recorded, not only printed, so this can exit non-zero. A check that always succeeds
 # is worse than no check: it reads as evidence while proving nothing.
 : > /out/failures
