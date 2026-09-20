@@ -89,6 +89,17 @@ Client needs it too. The
 `libzmq3-dev` packages are the two srsRAN builds' own, `libzmq3-dev` in particular because both
 the gNB and the UE run over the ZeroMQ software radio here rather than real hardware.
 
+**Ubuntu 24.04 needs a newer meson than it packages.** `rt-mbs-function` and
+`rt-mbs-transport-function` both declare `meson_version : '>= 1.4.0'`, and 24.04's archive has 1.3.2,
+so both fail at configure with `Meson version is 1.3.2 but project requires >= 1.4.0`. Install a
+current one alongside the distribution's:
+
+```bash
+sudo apt install pipx && pipx install meson     # or: pip install --user meson
+```
+
+Ubuntu 26.04 packages 1.10.1 and needs none of this.
+
 You also need **Node.js 18 or later** (`node --version`), installed with `nodejs npm`. Ubuntu 26.04
 ships v22, which is new enough; on an older distribution whose package is not, use
 [NodeSource](https://github.com/nodesource/distributions) or [nvm](https://github.com/nvm-sh/nvm).
