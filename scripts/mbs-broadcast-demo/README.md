@@ -122,6 +122,24 @@ on a password prompt hidden behind tmux. If you already have a cached timestamp,
 passwordless, nothing is asked. Running non-interactively with no cached timestamp fails
 immediately with a message saying to run `sudo -v` first, rather than part-way through.
 
+### Checking the build the way someone else will see it
+
+`scripts/check-build-from-clean.sh` clones every component fresh and builds it in a stock container
+with only the packages listed above, so the answer to "can anyone else build this" does not depend on
+what happens to be installed on the machine asking.
+
+```bash
+./scripts/check-build-from-clean.sh --quick      # skips the two srsRAN builds, ~15 min
+./scripts/check-build-from-clean.sh              # everything, ~45 min
+```
+
+It takes the package list out of this README rather than restating it, so a package added above is
+picked up with no edit. Cloning happens outside the container, so a private-repo permission failure
+cannot be mistaken for a missing dependency.
+
+Worth running before telling anyone the stack builds. A local rebuild cannot find an incomplete
+package list, and the list above grew from 38 entries to 43 the first time this was run.
+
 ### 2. The components
 
 Clone and build each of these. They are independent repositories with their own READMEs; the
