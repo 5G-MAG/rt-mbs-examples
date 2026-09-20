@@ -71,14 +71,16 @@ sudo apt install git ninja-build build-essential meson cmake pkg-config \
   libcurl4-gnutls-dev libtins-dev libtalloc-dev libpcre2-dev uuid-dev \
   libcpprest-dev libfftw3-dev libmbedtls-dev libboost-program-options-dev \
   libconfig++-dev libzmq3-dev libspdlog-dev libtinyxml2-dev libgmime-3.0-dev \
-  libyaml-cpp-dev \
+  libyaml-cpp-dev libglibmm-2.4-dev \
   default-jdk curl wget jq util-linux-extra socat iproute2 ffmpeg python3
 ```
 
 `libspdlog-dev`, `libtinyxml2-dev` and `libgmime-3.0-dev` are the MBS Client's, which asks for them
 by name in its `CMakeLists.txt` and fails at configure time without them. `libyaml-cpp-dev` is the
 gNB's, and is not the same package as `libyaml-dev` above: that one is the C library, which open5gs
-uses, while `srsRAN_Project_mbs` needs the C++ one.
+uses, while `srsRAN_Project_mbs` needs the C++ one. `libglibmm-2.4-dev` is required by the MBSTF's
+`libmpdpp` subproject, which asks for `glibmm-2.4` by name; note the 2.4, not the newer 2.68 the
+archive also carries.
 
 `libcpprest-dev` (with `libssl-dev`, already above) is for `srsRAN_4G_mbs`, whose `srsue` carries the radio status
 API this demo's dashboard reads; it is built by default and fails to link without them. The MBS
