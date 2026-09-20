@@ -1,0 +1,70 @@
+name: Clean component build
+
+on:
+  push:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: Component branch to build (leave empty for the script default)
+        required: false
+        type: string
+
+
+permissions:
+  contents: read
+
+jobs:
+  clean-build:
+
+    name: Clean build (${{ matrix.runner }} / ${{ matrix.image }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            image: ubuntu:24.04
+          - runner: ubuntu-26.04
+            image: ubuntu:26.04
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 120
+
+    steps:
+      - name: Create temporary read-only token for MBS components
+        id: github-app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ vars.MBS_CI_APP_ID }}
+          private-key: ${{ secrets.MBS_CI_APP_PRIVATE_KEY }}
+          permission-contents: read
+          owner: 5G-MAG
+          repositories: |
+            open5gs
+            rt-mbs-function
+            rt-mbs-transport-function
+            rt-mbs-client
+            rt-mbs-application
+            rt-mbs-application-provider
+            rt-mbs-examples
+            srsRAN_Project_mbs
+            srsRAN_4G_mbs
+
+      - name: Check out this repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Build every component in a stock container
+        # The script clones git@github.com URLs.  Git reads this temporary
+        # in-memory URL rewrite; no token is written to Git configuration.
+        env:
+          INPUT_BRANCH: ${{ inputs.branch }}
+          GIT_CONFIG_COUNT: "1"
+          GIT_CONFIG_KEY_0: url.https://x-access-token:${{ steps.github-app-token.outputs.token }}@github.com/.insteadOf
+          BUILD_IMAGE: ${{ matrix.image }}
+          GIT_CONFIG_VALUE_0: "git@github.com:"
+        run: |
+          if [ -n "$INPUT_BRANCH" ]; then
+            ./scripts/check-build-from-clean.sh --image "$BUILD_IMAGE" --examples-checkout "$GITHUB_WORKSPACE" --branch "$INPUT_BRANCH"
+          else
+            ./scripts/check-build-from-clean.sh --image "$BUILD_IMAGE" --examples-checkout "$GITHUB_WORKSPACE"
+          fi

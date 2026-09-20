@@ -16,11 +16,14 @@
 #   ./check-build-from-clean.sh --quick             # skip the two srsRAN builds, ~15 min
 #   ./check-build-from-clean.sh --image ubuntu:24.04
 #   ./check-build-from-clean.sh --branch main
+#   ./check-build-from-clean.sh --examples-checkout /path/to/rt-mbs-examples
+# --examples-checkout exports the committed HEAD, excluding untracked files and local edits.
 set -uo pipefail
 
 IMAGE=ubuntu:26.04
 BRANCH=feature/mbs-compliance-fixes
 QUICK=0
+EXAMPLES_CHECKOUT=""
 WORK=${WORK:-$(mktemp -d)}
 mkdir -p "$WORK" || { echo "cannot create $WORK" >&2; exit 1; }
 
@@ -28,6 +31,7 @@ while [ $# -gt 0 ]; do
     case "$1" in
         --image)  IMAGE="$2"; shift 2 ;;
         --branch) BRANCH="$2"; shift 2 ;;
+        --examples-checkout) EXAMPLES_CHECKOUT="$2"; shift 2 ;;
         --quick)  QUICK=1; shift ;;
         --keep)   KEEP=1; shift ;;
         -h|--help) sed -n '2,20p' "$0" | sed 's/^# \?//'; exit 0 ;;
@@ -61,12 +65,22 @@ clone() {
         echo "$(git -C "$parent/$repo" rev-parse --short HEAD)"
     else
         echo "FAILED (no access, or no branch $BRANCH)"
+        return 1
     fi
 }
 echo "cloning at $BRANCH"
-for r in open5gs srsRAN_Project_mbs srsRAN_4G_mbs;                                do clone "$r" "$SRC"; done
-for r in rt-mbs-function rt-mbs-transport-function rt-mbs-client;                 do clone "$r" "$SRC/rt-mbs" --recurse-submodules; done
-for r in rt-mbs-application rt-mbs-application-provider rt-mbs-examples;          do clone "$r" "$SRC/rt-mbs"; done
+for r in open5gs srsRAN_Project_mbs srsRAN_4G_mbs;                                do clone "$r" "$SRC" || exit 1; done
+for r in rt-mbs-function rt-mbs-transport-function rt-mbs-client;                 do clone "$r" "$SRC/rt-mbs" --recurse-submodules || exit 1; done
+for r in rt-mbs-application rt-mbs-application-provider;                         do clone "$r" "$SRC/rt-mbs" || exit 1; done
+if [ -n "$EXAMPLES_CHECKOUT" ]; then
+    # Export the exact CI checkout without carrying its credentials, build output,
+    # or untracked files into the container. pipefail catches archive errors too.
+    mkdir -p "$SRC/rt-mbs/rt-mbs-examples" || exit 1
+    git -C "$EXAMPLES_CHECKOUT" archive HEAD | tar -x -C "$SRC/rt-mbs/rt-mbs-examples" || exit 1
+    echo "rt-mbs-examples from checkout: $(git -C "$EXAMPLES_CHECKOUT" rev-parse HEAD)"
+else
+    clone rt-mbs-examples "$SRC/rt-mbs" || exit 1
+fi
 
 SKIP=""
 [ "$QUICK" = 1 ] && SKIP="ue gnb"
@@ -91,7 +105,7 @@ skip="'"$SKIP"'"
 b() {
     n="$1"; d="$2"; shift 2
     case " $skip " in *" $n "*) echo "SKIP  $n"; return ;; esac
-    [ -d "$d" ] || { echo "SKIP  $n (not cloned)"; return ; }
+    [ -d "$d" ] || { echo "FAIL  $n (source directory missing)"; echo "$n" >> /out/failures; return; }
     if ( cd "$d" && eval "$@" ) > /out/$n.log 2>&1; then
         echo "PASS  $n"
     else
