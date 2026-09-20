@@ -98,6 +98,14 @@ else
     exit 1
 fi
 
+# Install a newer Meson only when the stock image is too old.
+if dpkg --compare-versions "$(meson --version)" lt 1.4.0; then
+    apt-get install -y -qq pipx || exit 1
+    PIPX_HOME=/opt/mbs-pipx PIPX_BIN_DIR=/usr/local/bin pipx install meson || exit 1
+fi
+dpkg --compare-versions "$(meson --version)" ge 1.4.0 || { echo "Meson >= 1.4 required"; exit 1; }
+echo "using Meson $(meson --version)"
+
 # Failures are recorded, not only printed, so this can exit non-zero. A check that always succeeds
 # is worse than no check: it reads as evidence while proving nothing.
 : > /out/failures
