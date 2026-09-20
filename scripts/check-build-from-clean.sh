@@ -118,13 +118,38 @@ echo "using G++ $cxx_version"
 # Failures are recorded, not only printed, so this can exit non-zero. A check that always succeeds
 # is worse than no check: it reads as evidence while proving nothing.
 : > /out/failures
+: > /out/stale
+
+# Components already failing for a reason recorded elsewhere, so the run can still gate on anything
+# NEW rather than being permanently red. Two properties keep this from becoming a way of not looking.
+# The entry is predicated on the CAUSE, not the component name, so it holds only where the blocker
+# actually applies. And a known failure that starts passing is reported as stale and fails the run,
+# so the entry has to be removed once the fix lands.
+known_reason() {
+    case "$1" in
+        mbstf)
+            pkg-config --exists libmongoc-1.0 2>/dev/null \
+                || echo "5G-MAG/open5gs#52: the pinned open5gs branch has no mongo-c-driver 2.x support, and this image has no libmongoc-1.0"
+            ;;
+        *) echo "" ;;
+    esac
+}
 skip="'"$SKIP"'"
 b() {
     n="$1"; d="$2"; shift 2
     case " $skip " in *" $n "*) echo "SKIP  $n"; return ;; esac
     [ -d "$d" ] || { echo "FAIL  $n (source directory missing)"; echo "$n" >> /out/failures; return; }
+    why=$(known_reason "$n")
     if ( cd "$d" && eval "$@" ) > /out/$n.log 2>&1; then
-        echo "PASS  $n"
+        if [ -n "$why" ]; then
+            echo "PASS  $n  -- was a known failure, remove it from known_reason()"
+            echo "$n" >> /out/stale
+        else
+            echo "PASS  $n"
+        fi
+    elif [ -n "$why" ]; then
+        echo "KNOWN $n  ($why)"
+        grep -E "ERROR:|error:|undefined reference to" /out/$n.log | head -2 | sed "s/^/        /"
     else
         echo "FAIL  $n"
         echo "$n" >> /out/failures
@@ -142,9 +167,11 @@ b mediasrv  /src/rt-mbs/rt-mbs-examples/express-mock-media-server "npm install"
 b ue        /src/srsRAN_4G_mbs                      "cmake -S . -B build && cmake --build build -j$(nproc)"
 b gnb       /src/srsRAN_Project_mbs                 "cmake -S . -B build -DENABLE_ZEROMQ=ON && cmake --build build -j$(nproc)"
 
-n=$(wc -l < /out/failures)
 # No single quotes below: this whole block is inside a single-quoted bash -c, and one would close it.
-if [ "$n" -eq 0 ]; then echo "--- everything attempted built"; else echo "--- $n failed:" $(cat /out/failures); fi
+nf=$(wc -l < /out/failures); ns=$(wc -l < /out/stale); n=$((nf + ns))
+[ "$nf" -gt 0 ] && echo "--- $nf new failure(s):" $(cat /out/failures)
+[ "$ns" -gt 0 ] && echo "--- $ns known failure(s) now passing, prune known_reason():" $(cat /out/stale)
+[ "$n" -eq 0 ] && echo "--- everything attempted built, or failed only for a known and recorded reason"
 exit "$n"
 '
 rc=$?
