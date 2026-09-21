@@ -1,14 +1,15 @@
 #!/bin/bash
-# The whole MBS Broadcast demo: exactly the live DASH service start-bypass-live.sh runs, plus the
-# real radio path. Same encoder, same media server, same MBS User Service and Ingest Session in
-# OBJECT_STREAMING, same provider and player. The only difference is what carries the FLUTE
-# packets: a gNB and UE pair over ZMQ RF loopback instead of the host's own loopback interface,
-# with the MBS Client running inside the gNB network namespace on the UE's own PDU session.
+# The whole MBS Broadcast demo: core network, MBSF/MBSTF, a media server and encoder, a gNB and UE
+# pair over ZMQ RF loopback, rt-mbs-client running inside the gNB network namespace on the UE's own
+# PDU session, and both web portals.
 #
-# Provisioning is shared with the RAN-free path (06-provision-live-service.sh) so the two cannot
-# drift apart: if the service works without the radio, the same service is what goes over it.
+# This is the only entry point: a RAN-free path (start-bypass-live.sh/start-systems.sh) existed
+# alongside this one until the MBSTF started delivering content over the MB-UPF's own ingress
+# tunnel (real GTP-U) rather than over loopback directly. That needs a gNB/UPF to terminate it, so
+# the RAN-free path stopped delivering anything and was removed rather than left as a script that
+# silently does nothing. See README.md.
 #
-# See README.md for the three entry points and what each is for.
+# 06-provision-live-service.sh does the actual provisioning; this script is what still calls it.
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")"
 source env.sh
@@ -25,8 +26,8 @@ require_file "$UE_BIN"
 require_cmd ffmpeg
 require_cmd curl
 
-# Start from zero unless told otherwise, for the reason start-bypass-live.sh does: a run on top
-# of a previous one fails far from its cause, most often as an SSM still held by a surviving MBSF.
+# Start from zero unless told otherwise: a run on top of a previous one fails far from its cause,
+# most often as an SSM still held by a surviving MBSF.
 if [[ "${DEMO_KEEP_RUNNING:-0}" != "1" ]]; then
     reset_demo
 fi

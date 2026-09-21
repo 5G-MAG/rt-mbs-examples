@@ -6,7 +6,8 @@ rt-mbs-client, and both web portals.
 
 For the service layer on its own, how an MBS User Service and its Ingest Session are defined and
 what the operating mode changes, see `rt-mbs-examples/templates/README.md`, the MBS User Services
-tutorial. It uses the RAN-free path below so nothing radio-related gets in the way.
+tutorial. **Its own RAN-free walkthrough is no longer supported** -- see the note at the top of
+that file for why -- so reproduce its steps against a `./start-all.sh` run instead.
 
 ## Which script
 
@@ -14,11 +15,16 @@ tutorial. It uses the RAN-free path below so nothing radio-related gets in the w
 |---|---|---|
 | `./start-all.sh` | Everything, gNB and UE included, and provisions a demo service | The full end-to-end |
 | `UE_PRE_CONFIGURATION=1 ./start-all.sh` | The same, but the client finds the Service Announcement through the TS 24.575 pre-configuration object instead of a fixed config block | Showing the specified bootstrap |
-| `./start-bypass-live.sh` | Everything except the RAN, with a looping live DASH service created for you | Watching video without the radio |
-| `./start-systems.sh` | The same bring-up, creating no service at all | Provisioning it yourself from the provider |
 
-All three reset anything already running first, so they are safe to run twice. `./stop-all.sh`
+`./start-all.sh` resets anything already running first, so it is safe to run twice. `./stop-all.sh`
 stops everything, the encoder included. `./status.sh` shows what is up.
+
+A RAN-free bring-up (`start-bypass-live.sh`/`start-systems.sh`, gNB and UE skipped, MBSTF sending
+straight to loopback) used to exist alongside this. It no longer works: the MBSTF now delivers
+content over the MB-UPF's own GTP-U ingress tunnel rather than plain loopback multicast, and that
+tunnel has no receiving end without a real gNB/UPF. The scripts were removed rather than left in
+place doing nothing -- if you need to test without radio hardware, `./start-all.sh`'s own gNB/UE
+pair already runs over a ZMQ software radio loopback, so no RF hardware is needed either way.
 
 ### What "it worked" looks like
 
@@ -442,7 +448,7 @@ This runs, in order:
 | 03 | `03-start-media-server.sh` | Copies the demo DASH content into `express-mock-media-server/public/`, (re)generates its object-manifest carousel, starts the server |
 | 04 | `04-start-ran.sh` | gNB and UE, both inside `ns-gnb`, over a ZMQ RF loopback |
 | 05 | `05-start-client-and-app.sh` | rt-mbs-client + rt-mbs-application (both inside `ns-gnb`) + a socat relay so the dashboard is reachable from outside the namespace, and rt-mbs-application-provider on the host |
-| 06 | `06-provision-live-service.sh` | What `start-all.sh` and `start-bypass-live.sh` both call: creates the live DASH MBS User Service and its Ingest Session through the application provider (OBJECT_STREAMING, the presentation manifest as entry point), then asks the MBS Client to join it |
+| 06 | `06-provision-live-service.sh` | What `start-all.sh` calls per on-air channel: creates the live DASH MBS User Service and its Ingest Session through the application provider (OBJECT_STREAMING, the presentation manifest as entry point), then asks the MBS Client to join it |
 | 06 | `06-provision-broadcast-service.sh` | The alternative, run on its own: a `servType: BROADCAST` User Service with a CAROUSEL/PULL Ingest Session from the media server, TMGI auto-allocated, through MBSF's own API |
 
 Each script can also be run on its own (e.g. `./04-start-ran.sh` to restart just the RAN
@@ -628,48 +634,19 @@ see it.
   up -- check `run/mbsf-cache/` for more than one entry, and prefer a full restart over
   trying to delete just one stale session live.
 
-## Running without the RAN: looping content over loopback
+## Running without the RAN: no longer supported
 
-`start-bypass-live.sh` brings up the same service chain with no gNB or UE. MBSTF sends to the
-SSM group on loopback and rt-mbs-client joins it there, so
-rt-mbs-application-provider -> MBSF -> MBSTF -> rt-mbs-client -> rt-mbs-application runs end to
-end without the radio. Use it when the radio is not what you are testing.
+This demo used to offer a RAN-free bring-up (`start-bypass-live.sh`/`start-systems.sh`): the same
+service chain with no gNB or UE, MBSTF sending the content straight to its SSM group on loopback
+for rt-mbs-client to join there. It was useful for testing the service layer -- provider, MBSF,
+MBSTF, client, application -- without needing the radio stack up at all.
 
-Unlike `start-all.sh`, the content **loops**: `live-encoder.sh` runs ffmpeg with
-`-stream_loop -1` over the source file, writing a rolling DASH window, so segments keep being
-produced instead of the presentation ending after one pass.
+It has been removed, not fixed, because the mechanism it relied on no longer exists: MBSTF now
+delivers content over the MB-UPF's own GTP-U ingress tunnel rather than sending a second,
+plain-multicast copy on loopback. That tunnel is only terminated by a real UPF/gNB pair, so a
+run with no RAN component receives nothing -- confirmed with a packet capture on loopback during
+a bypass run, showing only the tunnelled (GTP-U, port 2152) traffic and no plain multicast copy.
 
-`live-carousel.sh` regenerates `public/carousel-live` from that window. It differs from
-`07-live-carousel-regen.sh` in two ways that matter for a live stream:
-
-- it advertises only the newest `LIVE_CAROUSEL_SEGMENTS` segments per representation rather
-  than the encoder's whole window, so the sender is not spending its capacity re-transmitting
-  segments that have already been delivered, and
-- it repeats the bootstrap objects (the MPD and the initialisation segments) more often than
-  the media window. MBSTF schedules by transmit deadline, so with everything on one interval
-  the media segments -- always newer -- take the slots and a receiver can end up with media it
-  cannot play because the manifest and initialisation segments never arrived.
-
-Useful knobs, all environment variables:
-
-| Variable | Default | Meaning |
-|---|---|---|
-| `LIVE_SEG_DURATION` | 5 | Encoder segment duration, and therefore the arrival pace |
-| `LIVE_CAROUSEL_SEGMENTS` | 8 | Newest segments per representation advertised |
-| `LIVE_REPETITION_MS` | 10000 | How often each advertised object repeats |
-| `BYPASS_MAX_BITRATE` | 6 Mbps | Session maximum bit rate |
-| `BYPASS_SERVICE_ID` | `.../services/tv_1_live` | External service identifier |
-
-The service and ingest session are created **through the provider**, so its own UI lists them
-rather than only MBSF knowing about them.
-
-Checking it is working: segments should arrive one per `LIVE_SEG_DURATION`, and what the MBS
-Client serves as a manifest should only ever name segments it holds.
-
-```
-curl -s http://127.0.0.1:3031/mbs-client-api/content | grep -o '"location":"[^"]*"' | wc -l
-curl -s http://127.0.0.1:3031/mbs-client-api/content/tv_1_live/manifest.mpd
-```
-
-To stop: `./stop-all.sh`, then kill `live-encoder.sh` and `live-carousel.sh`, which run
-independently of it.
+If you want to test the service layer without radio *hardware*, `./start-all.sh` already covers
+that: its gNB and UE run over a ZMQ software-radio loopback, not real RF, so no SDR or antenna is
+needed either way -- only the RAN-free option (skipping the gNB/UE processes entirely) is gone.

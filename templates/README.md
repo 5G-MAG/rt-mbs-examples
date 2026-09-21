@@ -5,8 +5,17 @@ operating mode decides what actually gets delivered, and how to provision both f
 **rt-mbs-application-provider** rather than from a script.
 
 For the whole stack including the gNB and UE, see
-`scripts/mbs-broadcast-demo/README.md`, the end-to-end tutorial. This one stays on the service layer
-and uses the RAN-free path so nothing radio-related gets in the way.
+`scripts/mbs-broadcast-demo/README.md`, the end-to-end tutorial.
+
+**This tutorial's own RAN-free walkthrough (`start-systems.sh` / `start-bypass-live.sh`) is no
+longer supported, and those scripts have been removed.** They relied on MBSTF sending a second,
+plain-multicast copy of the content on loopback alongside the real delivery path; MBSTF now sends
+only over the MB-UPF's own GTP-U ingress tunnel, which nothing terminates without a real gNB and
+UE. What this tutorial still documents correctly is the service layer itself -- what an MBS User
+Service and Ingest Session are for, what each operating mode changes, and how to provision both
+from a template through the provider -- but reaching the receiving-side steps below now needs the
+full stack from `scripts/mbs-broadcast-demo/README.md` (`./start-all.sh`) up and running, radio
+included.
 
 ## What you are creating
 
@@ -27,25 +36,17 @@ its `sessions` array.
 
 ## 1. Start the systems
 
+`./start-systems.sh` no longer exists (see the note above). Bring up the full stack instead:
+
 ```bash
 cd scripts/mbs-broadcast-demo
-./start-systems.sh
+./start-all.sh
 ```
 
-This brings up the core network functions, the MBSF and MBSTF, the media server, a looping live
-DASH encoder, the MBS Client, the application and the provider, and then stops. No service and no
-session are created: that is what you are about to do yourself.
-
-It resets anything already running first, so it is safe to run twice. It also checks every binary
-and command it needs before starting anything, and names the build command for whatever is
-missing.
-
-If no source video is present it encodes a generated test pattern, so this works on a fresh
-checkout. To use your own content:
-
-```bash
-LIVE_SOURCE_MEDIA=/path/to/your.mp4 ./start-systems.sh
-```
+Unlike the removed script, this also brings up the gNB and UE and provisions its own demo
+services for the on-air channels in `channels.json` -- the service and session you create below
+through the provider are an additional one alongside those, not the only one running. See
+`scripts/mbs-broadcast-demo/README.md` for what it needs and what it prints when it is up.
 
 ## 2. Create the service
 
@@ -118,7 +119,7 @@ end time signalled for it has passed, and that time comes from the presentation'
 To skip the encoder entirely:
 
 ```bash
-LIVE_PRESENTATION=my_channel/manifest.mpd ./start-systems.sh
+LIVE_PRESENTATION=my_channel/manifest.mpd ./start-all.sh
 ```
 
 **A different operating mode.** Three more templates in this directory cover the other cases, and
@@ -173,4 +174,7 @@ They load the same way.
 
 ## Just show me the video
 
-`./start-bypass-live.sh` is the same bring-up with the service and session created for you.
+The bypass shortcut this pointed at is gone (see the note at the top of this file).
+`scripts/mbs-broadcast-demo/README.md`'s `./start-all.sh` already provisions and activates a demo
+service for each on-air channel in `channels.json`, reaching playable video without the steps
+above -- over the real radio path, not this tutorial's own template-loading steps.

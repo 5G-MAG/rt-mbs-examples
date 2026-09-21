@@ -37,9 +37,9 @@ fi
 # the caller of this script is a confusing way to fail.
 sudo -n pkill -x -TERM 'open5gs-upfd' 2>/dev/null || true
 
-# The looping encoder is started detached by start-bypass-live.sh and so has no pidfile of its own.
-# Match only an ffmpeg writing into this demo's own media directory, so an unrelated encode on the
-# same machine is left alone.
+# The looping encoder is started detached by start-all.sh and so has no pidfile of its own. Match
+# only an ffmpeg writing into this demo's own media directory, so an unrelated encode on the same
+# machine is left alone.
 for pid in $(pgrep -f "ffmpeg .*$MEDIA_DIR/public" 2>/dev/null || true); do
     [[ "$pid" == "$$" ]] && continue
     log "stopping live encoder (pid $pid)"

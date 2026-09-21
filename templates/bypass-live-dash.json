@@ -1,10 +1,10 @@
 {
   "_comment": [
-    "Template for the RAN-free (bypass) live DASH demo, for rt-mbs-application-provider.",
+    "Template for a live DASH service, for rt-mbs-application-provider.",
     "One file, loaded twice: once on the MBS User Services card, which reads the 'service'",
     "block, and once on the Ingest Sessions card with that service open, which reads the",
     "'sessions' array. See templates/README.md for the walkthrough.",
-    "Start the systems first with scripts/mbs-broadcast-demo/start-systems.sh: the presentation",
+    "Start the systems first with scripts/mbs-broadcast-demo/start-all.sh: the presentation",
     "this points at is produced by that script's own encoder."
   ],
 
