@@ -127,10 +127,6 @@ echo "using G++ $cxx_version"
 # so the entry has to be removed once the fix lands.
 known_reason() {
     case "$1" in
-        mbstf)
-            pkg-config --exists libmongoc-1.0 2>/dev/null \
-                || echo "5G-MAG/open5gs#52: the pinned open5gs branch has no mongo-c-driver 2.x support, and this image has no libmongoc-1.0"
-            ;;
         *) echo "" ;;
     esac
 }
