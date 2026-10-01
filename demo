@@ -1,0 +1,503 @@
+#!/bin/bash
+# One entry point for the demos in this repository.
+#
+#   ./demo up [name] [--force]        start a demo, after checking nothing will collide with it
+#   ./demo down [--all]               stop it, verify nothing is left; --all stops all three demos
+#   ./demo status [name]              what is up
+#   ./demo doctor [name]              run the checks only, change nothing
+#   ./demo logs [log]                 list this demo's logs, or tail one of them
+#
+# The per-demo scripts under scripts/ are unchanged and can still be run directly. This wrapper
+# exists for two reasons: so the demo can be started without knowing which directory it lives in,
+# and so that starting one demo does not silently break another that is already running.
+#
+# The second reason is the substantive one. Three demos in this project share a machine and
+# contend for the same resources, and none of them can see the others:
+#
+#   - the MBMS demo (rt-mbms-examples) and this one both drive an RF-over-ZMQ radio on TCP
+#     2100 and 2101, so whichever starts second finds the ports taken and fails in the radio
+#     rather than anywhere informative;
+#   - the DVB-I demo (rt-dvb-i-examples) runs its own copy of this repository's
+#     express-mock-media-server on the same port 3004 this demo uses, so the two cannot
+#     both be up;
+#   - all three are memory-hungry, and an out-of-memory kill lands on whichever process the
+#     kernel picks, not on the one that was started last.
+#
+# So `up` refuses to start on top of a conflict and says what to stop. `--force` overrides it.
+set -euo pipefail
+cd "$(dirname "${BASH_SOURCE[0]}")"
+
+REPO_ROOT="$PWD"
+SCRIPTS_DIR="$REPO_ROOT/scripts"
+DEFAULT_DEMO="broadcast"
+
+# Memory below which a demo of this size is not worth starting. No clause or vendor figure governs
+# this; it is the floor at which runs on this project's own machines began failing in the radio
+# rather than in anything diagnosable. Override with DEMO_MIN_FREE_MB if your machine differs.
+MIN_FREE_MB="${DEMO_MIN_FREE_MB:-2500}"
+
+# What this demo owns. `down` uses these to prove it actually stopped, rather than assuming the
+# stop scripts worked: a launcher that fails quietly leaves a process holding a port that the
+# next run then fails on.
+SELF_PROCS=(gnb srsue mbsfd mbstfd)
+SELF_PROC_PATTERNS=("open5gs-(smfd|amfd|upfd|nrfd|udmd|udrd|pcfd|ausfd|nssfd|bsfd|scpd)" "rt-mbs-application")
+SELF_PORTS=(2100 2101 3004 3050 8091)
+SELF_NETNS="ns-gnb"
+# Root-namespace half of the veth pair the demos build; see hard_clean for why it is listed.
+SELF_VETHS=(veth-h)
+
+# Sibling demo checkouts, for `down --all`. Overridable, because these live wherever the user
+# cloned them; the defaults only cover the common side-by-side and grouped layouts.
+find_sibling() {
+    local name="$1" env_override="$2"
+    [ -n "$env_override" ] && { [ -x "$env_override/demo" ] && echo "$env_override"; return; }
+    local c e
+    for c in "$REPO_ROOT/../$name" "$REPO_ROOT/../../$name" \
+             "$REPO_ROOT/../../*/$name" "$HOME/$name" "$HOME/Repos/$name"; do
+        for e in $c; do [ -x "$e/demo" ] && { realpath "$e"; return; }; done
+    done
+}
+
+c_red=$'\033[31m'; c_grn=$'\033[32m'; c_yel=$'\033[33m'; c_off=$'\033[0m'
+ok()   { echo "  ${c_grn}ok${c_off}    $*"; }
+warn() { echo "  ${c_yel}warn${c_off}  $*"; }
+bad()  { echo "  ${c_red}block${c_off} $*"; }
+
+usage() {
+    sed -n '2,9p' "$0" | sed 's/^# \{0,1\}//'
+    echo
+    echo "Demos in this repository:"
+    for d in "$SCRIPTS_DIR"/mbs-*-demo; do
+        [ -d "$d" ] && echo "  $(basename "$d" | sed 's/^mbs-//; s/-demo$//')"
+    done
+    exit "${1:-0}"
+}
+
+demo_dir() {
+    local name="${1:-$DEFAULT_DEMO}"
+    local dir="$SCRIPTS_DIR/mbs-$name-demo"
+    [ -d "$dir" ] || { echo "No such demo: $name" >&2; usage 1; }
+    echo "$dir"
+}
+
+# Which demo, if any, left a pid directory behind. Used by `down` and `status` so neither needs
+# to be told which demo was started.
+running_demo() {
+    for d in "$SCRIPTS_DIR"/mbs-*-demo; do
+        [ -d "$d/run/pids" ] && [ -n "$(ls -A "$d/run/pids" 2>/dev/null)" ] && {
+            basename "$d" | sed 's/^mbs-//; s/-demo$//'; return 0; }
+    done
+    return 1
+}
+
+# pgrep -f, excluding this script and the shell that launched it. Without that, a check whose
+# pattern appears in its own invocation reports a process that is not there.
+pgrep_other() {
+    pgrep -f "$1" 2>/dev/null | grep -vxF -e "$$" -e "${PPID:-0}" | head -1
+}
+
+port_held_by() {
+    ss -lntp 2>/dev/null | awk -v p=":$1\$" '$4 ~ p {print $0; exit}'
+}
+
+# ---------------------------------------------------------------- checks
+
+# Is this demo already running? If so a restart frees whatever it is holding, so the memory floor
+# and the radio ports are not reasons to refuse.
+SELF_RUNNING=0
+detect_self() {
+    [ -n "$(pgrep_other "open5gs-(smfd|amfd|upfd|nrfd)")" ] \
+        || pgrep -x gnb >/dev/null 2>&1 || pgrep -x srsue >/dev/null 2>&1 && SELF_RUNNING=1 || true
+}
+
+check_prereqs() {
+    local missing=0
+    for c in node ffmpeg curl python3 ip socat; do
+        command -v "$c" >/dev/null 2>&1 || { bad "missing command: $c"; missing=1; }
+    done
+    # mongod is where the NRF and UDR keep their state. 01-start-core-nfs.sh starts it if it is
+    # installed but inactive, so only its absence is a problem, and it is worth naming here:
+    # Ubuntu's own `mongodb` package is not what Open5GS expects.
+    if ! command -v mongod >/dev/null 2>&1; then
+        bad "missing command: mongod"
+        echo "        install mongodb-org-server from MongoDB's own repository, not Ubuntu's"
+        missing=1
+    fi
+    # mongosh is a separate package from mongod, and the demo needs it: the UE's subscriber is
+    # provisioned through Open5GS's own open5gs-dbctl, which drives mongosh. Without it the run
+    # gets as far as the UE registering and is then rejected with "PLMN not allowed", which does
+    # not look like a missing shell.
+    if ! command -v mongosh >/dev/null 2>&1; then
+        bad "missing command: mongosh"
+        echo "        install mongodb-mongosh; it is needed to provision the UE's subscriber"
+        missing=1
+    fi
+    [ "$missing" -eq 0 ] && ok "required commands present"
+    return "$missing"
+}
+
+# Two different content prerequisites, and only one of them stops a run.
+#
+# The DASH package at $MWC_CONTENT_ROOT/$DEMO_STREAM is required: 03-start-media-server.sh copies it
+# into the origin and dies with "content not found" if it is absent, so a missing one is reported as a
+# block. It was previously unchecked here, which meant doctor could report "Ready to start" on a
+# machine where the run stopped at step 03.
+#
+# The per-channel source clips under CONTENT_ROOT are NOT required: live-encoder.sh falls back to a
+# generated test pattern when the file is absent. They are reported as a warning, not a block, because
+# blocking on them refused runs that would have worked.
+check_content() {
+    local demo_dir; demo_dir=$(demo_dir "${1:-}")
+    [ -f "$demo_dir/channels.json" ] || return 0      # this demo has no line-up
+    local report content_root dash_dir
+    content_root=$(cd "$demo_dir" && set +eu && source ./env.sh 2>/dev/null; printf '%s' "$CONTENT_ROOT")
+    dash_dir=$(cd "$demo_dir" && set +eu && source ./env.sh 2>/dev/null; printf '%s/%s' "$MWC_CONTENT_ROOT" "$DEMO_STREAM")
+
+    local dash_rc=0
+    if [ -d "$dash_dir" ]; then
+        ok "DASH package present for the origin: $dash_dir"
+    else
+        bad "no DASH package at $dash_dir"
+        echo "        Required: 03-start-media-server.sh copies it into the origin and stops without it."
+        echo "        Generate one from any MP4; see 'Prerequisites, 4. Content' in this demo's README."
+        dash_rc=1
+    fi
+    report=$(cd "$demo_dir" && set +eu && source ./env.sh 2>/dev/null
+    python3 - "$CONTENT_ROOT" <<'EOF'
+import json, os, sys
+root = sys.argv[1]
+for ch in json.load(open("channels.json"))["channels"]:
+    if not os.path.isfile(os.path.join(root, ch["source"])):
+        print(f'{ch["id"]} {ch["source"]}')
+EOF
+)
+    if [ -z "$report" ]; then
+        ok "source clips for every channel present"
+        return "$dash_rc"
+    fi
+    while read -r ch_id src; do
+        [ -z "$ch_id" ] && continue
+        warn "no source clip for $ch_id: $src, a test pattern will be generated instead"
+    done <<< "$report"
+    echo "        Any MP4 will do and nothing needs downloading: the directory name is historical,"
+    echo "        not a content pack you are missing. Put files of those names in"
+    echo "        $content_root (move it with CONTENT_ROOT), or edit channels.json to name what you"
+    echo "        already have. To generate throwaway clips, see 'Prerequisites, 4. Content' in this"
+    echo "        demo's README."
+    return "$dash_rc"
+}
+
+# The components this demo starts, and the variable that moves each one. Checked before a
+# run because the defaults describe one machine's checkout layout and nothing enforces it:
+# without this, `doctor` said "Ready to start" on a machine where nothing was where it
+# expected, and the first sign of trouble came from inside a start script.
+check_paths() {
+    local name dir rc=0 missing=0
+    local demo_dir; demo_dir=$(demo_dir "${1:-}")
+    # Read the demo's own env in a subshell: it is the authority on where things are, and
+    # sourcing it here would leak its several dozen variables into this script.
+    local report
+    # set +u as well as +e: a demo's env.sh need not define every variable the others do,
+    # and an unset one must be reported as missing rather than aborting the subshell, which
+    # would return an empty report and be indistinguishable from "everything is present".
+    report=$(cd "$demo_dir" && set +eu && source ./env.sh 2>/dev/null
+    for spec in "MBSF_DIR:${MBSF_DIR:-}" "MBSTF_DIR:${MBSTF_DIR:-}" "CLIENT_DIR:${CLIENT_DIR:-}" \
+                "APP_DIR:${APP_DIR:-}" "PROVIDER_DIR:${PROVIDER_DIR:-}" "MEDIA_DIR:${MEDIA_DIR:-}" \
+                "OPEN5GS_DIR:${OPEN5GS_DIR:-}" "GNB_DIR:${GNB_DIR:-}" "UE_DIR:${UE_DIR:-}" \
+                "CONTENT_ROOT:${CONTENT_ROOT:-}"; do
+        path="${spec#*:}"
+        [ -n "$path" ] || continue          # this demo does not use it
+        [ -d "$path" ] || echo "dir ${spec%%:*} $path"
+    done
+    for spec in "CLIENT_BIN:${CLIENT_BIN:-}" "GNB_BIN:${GNB_BIN:-}" "UE_BIN:${UE_BIN:-}"; do
+        path="${spec#*:}"
+        [ -n "$path" ] || continue
+        [ -e "$path" ] || echo "bin ${spec%%:*} $path"
+    done)
+
+    if [ -z "$report" ]; then
+        ok "all component checkouts and binaries found"
+        return 0
+    fi
+    while read -r kind var path; do
+        [ -z "$kind" ] && continue
+        if [ "$kind" = dir ]; then
+            bad "no checkout at $path"
+        else
+            bad "not built: $path"
+        fi
+        echo "        set $var to point at it, or put it where the default expects"
+        missing=1
+    done <<< "$report"
+    echo "        paths come from $demo_dir/env.sh; copy local.env.example to local.env there"
+    echo "        to set them without editing a tracked file"
+    return "$missing"
+}
+
+check_memory() {
+    local avail
+    avail=$(awk '/MemAvailable/ {printf "%d", $2/1024}' /proc/meminfo)
+    if [ "$avail" -lt "$MIN_FREE_MB" ] && [ "$SELF_RUNNING" -eq 1 ]; then
+        warn "only ${avail} MB available, but this demo is already running and"
+        echo "        start-all.sh stops it first, which frees what it holds"
+        return 0
+    fi
+    if [ "$avail" -lt "$MIN_FREE_MB" ]; then
+        bad "only ${avail} MB available, this demo wants at least ${MIN_FREE_MB} MB"
+        echo "        the largest consumers right now:"
+        ps -eo rss,comm --sort=-rss | awk 'NR>1 && NR<=4 {printf "          %6.0f MB  %s\n", $1/1024, $2}'
+        return 1
+    fi
+    ok "memory: ${avail} MB available"
+    return 0
+}
+
+# The ZMQ radio control ports. This demo's gNB and UE bind them, and so do the MBMS demo's eNB and
+# MBMS-GW, so a holder here is either a previous run of this demo or the other project's radio.
+check_radio_ports() {
+    local hit=0 found=0 holder proc
+    for p in 2100 2101; do
+        holder=$(port_held_by "$p") || true
+        [ -z "$holder" ] && continue
+        found=1; hit=1
+        proc=$(sed -n 's/.*users:((\"\([^"]*\)\".*/\1/p' <<<"$holder")
+        case "$proc" in
+            gnb|srsue|srsran*)
+                # Our own, from a previous run. start-all.sh stops this demo before starting it.
+                hit=0
+                warn "ZMQ radio port $p is held by $proc, this demo from an earlier run"
+                echo "        start-all.sh stops it first, so a restart is fine" ;;
+            srsenb|mbms-gw|bmsc)
+                bad "ZMQ radio port $p is held by $proc, the MBMS demo's radio"
+                echo "        stop it from your rt-mbms-examples checkout:  ./demo down" ;;
+            *)  bad "ZMQ radio port $p is held by ${proc:-another process}"
+                echo "        $holder" ;;
+        esac
+    done
+    [ "$hit" -ne 0 ] && return 1
+    [ "$found" -eq 0 ] && ok "ZMQ radio ports 2100 and 2101 are free"
+    return 0
+}
+
+# The MBMS demo's own processes, beyond the ports above: its EPC and BM-SC are large enough that
+# leaving them up will usually push us under the memory floor.
+check_mbms() {
+    if pgrep -x srsenb >/dev/null 2>&1 || pgrep -x bmsc >/dev/null 2>&1 \
+        || [ -n "$(pgrep_other "rt-mbms-modem|rt-mbms.*modem")" ]; then
+        warn "the MBMS demo is running and will compete for memory"
+        echo "        stop it from your rt-mbms-examples checkout:  ./demo down"
+    else
+        ok "no MBMS demo in the way"
+    fi
+    return 0
+}
+
+# The DVB-I demo. It runs its own copy of this repository's express-mock-media-server, on the same
+# port 3004 this demo's media server binds, so the two cannot both be up.
+check_dvbi() {
+    local holder proc
+    holder=$(port_held_by 3004) || true
+    if [ -n "$holder" ] && [ "$SELF_RUNNING" -eq 0 ]; then
+        proc=$(sed -n 's/.*users:((\"\([^"]*\)\".*/\1/p' <<<"$holder")
+        bad "media origin port 3004 is already held by ${proc:-another process}"
+        if [ -n "$(pgrep_other "rt-dvb-i-application")" ]; then
+            echo "        that is the DVB-I demo, which runs its own media server on the same port"
+            echo "        stop it from your rt-dvb-i-examples checkout:  ./demo down"
+        else
+            echo "        $holder"
+        fi
+        return 1
+    fi
+    if [ -n "$(pgrep_other "rt-dvb-i-application")" ]; then
+        warn "the DVB-I demo is running and will compete for memory"
+    else
+        ok "media origin port 3004 is free"
+    fi
+    return 0
+}
+
+doctor() {
+    detect_self
+    echo "Checks:"
+    local rc=0
+    check_prereqs || rc=1
+    check_paths "${1:-}" || rc=1
+    check_content "${1:-}" || rc=1
+    check_memory      || rc=1
+    check_radio_ports || rc=1
+    check_mbms        || true
+    check_dvbi        || rc=1
+    echo
+    if [ "$rc" -eq 0 ]; then
+        echo "Ready to start."
+    else
+        echo "Not ready. Fix the blocking items above, or re-run with --force to start anyway."
+    fi
+    return "$rc"
+}
+
+# ---------------------------------------------------------------- teardown
+
+# Anything of this demo still present after a stop. Printed by `down` so a partial teardown is
+# visible rather than discovered by the next `up`.
+leftovers() {
+    local out=() p pid
+    for p in "${SELF_PROCS[@]}"; do
+        pgrep -x "$p" >/dev/null 2>&1 && out+=("process $p")
+    done
+    for p in "${SELF_PROC_PATTERNS[@]}"; do
+        [ -n "$(pgrep_other "$p")" ] && out+=("process matching $p")
+    done
+    for p in "${SELF_PORTS[@]}"; do
+        [ -n "$(port_held_by "$p")" ] && out+=("port $p still bound")
+    done
+    ip netns list 2>/dev/null | grep -qw "$SELF_NETNS" && out+=("network namespace $SELF_NETNS")
+    printf '%s\n' "${out[@]}"
+}
+
+# Kill whatever the stop scripts left. Only this demo's own signature, never a pattern broad
+# enough to catch another project's processes.
+hard_clean() {
+    local p
+    for p in "${SELF_PROCS[@]}"; do pkill -TERM -x "$p" 2>/dev/null || true; done
+    for p in "${SELF_PROC_PATTERNS[@]}"; do pkill -TERM -f "$p" 2>/dev/null || true; done
+    sleep 2
+    for p in "${SELF_PROCS[@]}"; do pkill -KILL -x "$p" 2>/dev/null || true; done
+    for p in "${SELF_PROC_PATTERNS[@]}"; do pkill -KILL -f "$p" 2>/dev/null || true; done
+
+    # Whatever still holds one of this demo's ports, by pid rather than by name. Node servers
+    # started from a directory show up only as "node server.js" or "node ./bin/www", so no command
+    # line pattern reaches them; the port they are holding is the thing that identifies them.
+    local pid
+    for p in "${SELF_PORTS[@]}"; do
+        for pid in $(ss -lntpH 2>/dev/null | grep -E ":$p\s" | grep -oP 'pid=\K[0-9]+' | sort -u); do
+            kill -TERM "$pid" 2>/dev/null || sudo kill -TERM "$pid" 2>/dev/null || true
+        done
+    done
+    sleep 1
+    for p in "${SELF_PORTS[@]}"; do
+        for pid in $(ss -lntpH 2>/dev/null | grep -E ":$p\s" | grep -oP 'pid=\K[0-9]+' | sort -u); do
+            kill -KILL "$pid" 2>/dev/null || sudo kill -KILL "$pid" 2>/dev/null || true
+        done
+    done
+    ip netns list 2>/dev/null | grep -qw "$SELF_NETNS" && sudo ip netns delete "$SELF_NETNS" 2>/dev/null || true
+
+    # Deleting the namespace takes the namespace end of the veth pair with it but leaves the root
+    # end, which then looks to 00-setup-netns.sh like a pair that already exists. Remove it here so
+    # the next run really does start from nothing.
+    for v in "${SELF_VETHS[@]}"; do
+        ip link show "$v" >/dev/null 2>&1 && \
+            { sudo ip link delete "$v" 2>/dev/null || true; }
+    done
+}
+
+# ---------------------------------------------------------------- commands
+
+cmd_up() {
+    local force=0 name=""
+    for a in "$@"; do
+        case "$a" in
+            --force) force=1 ;;
+            -*)      echo "Unknown option: $a" >&2; usage 1 ;;
+            *)       name="$a" ;;
+        esac
+    done
+    local dir; dir=$(demo_dir "$name")
+
+    if ! doctor "$name" && [ "$force" -eq 0 ]; then
+        exit 1
+    fi
+    [ "$force" -eq 1 ] && echo && echo "--force given, starting despite the above."
+    echo
+    exec "$dir/start-all.sh"
+}
+
+cmd_down() {
+    local all=0 name=""
+    for a in "$@"; do
+        case "$a" in
+            --all) all=1 ;;
+            -*)    echo "Unknown option: $a" >&2; usage 1 ;;
+            *)     name="$a" ;;
+        esac
+    done
+
+    if [ -z "$name" ]; then
+        name=$(running_demo) || name="$DEFAULT_DEMO"
+    fi
+    local dir; dir=$(demo_dir "$name")
+
+    echo "Stopping the MBS demo..."
+    "$dir/stop-all.sh" || true
+
+    # Verify, do not assume. The stop script hands off to external launchers that can fail quietly.
+    local left; mapfile -t left < <(leftovers)
+    if [ "${#left[@]}" -gt 0 ] && [ -n "${left[0]}" ]; then
+        echo
+        echo "Still present after stop-all.sh:"
+        printf '  %s\n' "${left[@]}"
+        echo "Clearing those..."
+        hard_clean
+        mapfile -t left < <(leftovers)
+    fi
+
+    if [ "${#left[@]}" -gt 0 ] && [ -n "${left[0]}" ]; then
+        echo
+        echo "${c_red}Could not fully clean up:${c_off}"
+        printf '  %s\n' "${left[@]}"
+        echo "Something outside this demo may be holding these."
+        [ "$all" -eq 0 ] && exit 1
+    else
+        echo "${c_grn}MBS demo stopped, nothing of it left running.${c_off}"
+    fi
+
+    if [ "$all" -eq 1 ]; then
+        local sib
+        for spec in "rt-mbms-examples:${MBMS_EXAMPLES_DIR:-}" "rt-dvb-i-examples:${DVBI_EXAMPLES_DIR:-}"; do
+            sib=$(find_sibling "${spec%%:*}" "${spec#*:}")
+            if [ -n "$sib" ]; then
+                echo
+                echo "--- ${spec%%:*} ($sib)"
+                "$sib/demo" down || true
+            else
+                echo
+                echo "--- ${spec%%:*}: checkout not found, skipping"
+                echo "    set $( [ "${spec%%:*}" = rt-mbms-examples ] && echo MBMS_EXAMPLES_DIR || echo DVBI_EXAMPLES_DIR ) to its path"
+            fi
+        done
+    fi
+}
+
+cmd_status() {
+    local name="${1:-}"
+    if [ -z "$name" ]; then
+        name=$(running_demo) || name="$DEFAULT_DEMO"
+    fi
+    local dir; dir=$(demo_dir "$name")
+    echo "Demo: $name"
+    exec "$dir/status.sh"
+}
+
+cmd_logs() {
+    local name; name=$(running_demo) || name="$DEFAULT_DEMO"
+    local dir; dir=$(demo_dir "$name")
+    local log_dir="$dir/run/logs"
+    [ -d "$log_dir" ] || { echo "No logs yet in $log_dir"; exit 0; }
+    if [ -n "${2:-}" ]; then
+        exec tail -f "$log_dir/$2".log
+    fi
+    echo "Logs in $log_dir:"
+    ls -1 "$log_dir" | sed 's/^/  /'
+    echo
+    echo "Tail one with: ./demo logs <name>"
+}
+
+case "${1:-}" in
+    up)     shift; cmd_up "$@" ;;
+    down)   shift; cmd_down "$@" ;;
+    status) shift; cmd_status "${1:-}" ;;
+    doctor) shift; doctor "${1:-}" ;;
+    logs)   cmd_logs "$@" ;;
+    ""|-h|--help|help) usage ;;
+    *)      echo "Unknown command: $1" >&2; usage 1 ;;
+esac

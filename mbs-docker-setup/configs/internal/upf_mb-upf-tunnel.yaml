@@ -17,5 +17,8 @@ upf:
       gateway: 10.45.0.1
   mbs:
     udptunnel:
-      address: upf-mb-upf.5g-mag.org
+      # NOTE: unlike pfcp.server/gtpu.server above, this field is parsed with ogs_inet_pton()
+      # (src/upf/context.c), which only accepts a literal numeric IP address, never a hostname --
+      # must match the static ipv4_address given to this container in the compose file.
+      address: 10.33.33.99
       port: 0 
