@@ -54,8 +54,6 @@ EOF
 
 cat > "$GEN_CONF_DIR/mbsf.yaml" <<EOF
 logger:
-  file:
-    path: $LOG_DIR/mbsf.log
   level: debug
 
 global:

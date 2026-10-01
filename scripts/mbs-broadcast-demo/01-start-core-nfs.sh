@@ -35,8 +35,6 @@ gen_nf_yaml() {
 
 gen_nf_yaml nrf "$NRF_ADDR" <<EOF
 logger:
-  file:
-    path: $LOG_DIR/nrf.log
   level: info
 global:
 db_uri: mongodb://127.0.0.1/open5gs
@@ -72,8 +70,6 @@ for pair in "ausf:$AUSF_ADDR" "udm:$UDM_ADDR" "pcf:$PCF_ADDR" "nssf:$NSSF_ADDR" 
     fi
     cat > "$GEN_CONF_DIR/${nf}.yaml" <<EOF
 logger:
-  file:
-    path: $LOG_DIR/${nf}.log
   level: info
 global:
 db_uri: mongodb://127.0.0.1/open5gs
@@ -91,8 +87,6 @@ done
 
 cat > "$GEN_CONF_DIR/amf.yaml" <<EOF
 logger:
-  file:
-    path: $LOG_DIR/amf.log
   level: debug
 global:
 amf:
@@ -138,8 +132,6 @@ EOF
 
 cat > "$GEN_CONF_DIR/smf.yaml" <<EOF
 logger:
-  file:
-    path: $LOG_DIR/smf.log
   level: info
 global:
 db_uri: mongodb://127.0.0.1/open5gs
@@ -185,8 +177,6 @@ EOF
 
 cat > "$GEN_CONF_DIR/upf.yaml" <<EOF
 logger:
-  file:
-    path: $LOG_DIR/upf.log
   level: info
 global:
 upf:
