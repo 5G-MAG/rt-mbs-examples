@@ -173,6 +173,264 @@ collection:
             store: true
           rebuildPath: true
       - url: "{{ _.base_url_mbstf }}nmbstf-distsession/v1/dist-sessions"
+        name: DistSession-PULL-FEC-Raptor-request
+        meta:
+          id: req_fd7f00681c4f4ec486ecebd359f05be3
+          created: 1791302025418
+          modified: 1791302025418
+          isPrivate: false
+          description: "AL-FEC: Raptor (RFC 5053), 25% repair symbols. The 16384-byte fec-object goes out as 12 source and 3 repair packets; the FDT declares FEC-OTI-FEC-Encoding-ID=1."
+          sortKey: -1772797692418
+        method: POST
+        body:
+          mimeType: application/json
+          text: |
+            {
+              "distSession": {
+                "distSessionId": "5a1f0e2c-7b3d-4f61-9c2e-1d4b8a6f3e01",
+                "distSessionState": "ACTIVE",
+                "mbUpfTunAddr": {
+                  "ipv4Addr": "{{ _.ingressTunAddrIP }}",
+                  "portNumber": {{ _.ingressTunAddrPort }}
+                },
+                "upTrafficFlowInfo": {
+                  "transportSessionId": 1234,
+                  "srcIpAddr": {
+                    "ipv4Addr": "127.0.0.7"
+                  },
+                  "destIpAddr": {
+                    "ipv4Addr": "232.0.0.1"
+                  },
+                  "portNumber": 5000
+                },
+                "mbr": "10 Mbps",
+                "fecInformation": {
+                  "fecScheme": "urn:ietf:rmt:fec:encoding:1",
+                  "fecOverHead": 25
+                },
+                "objDistributionData": {
+                  "objDistributionOperatingMode": "SINGLE",
+                  "objAcquisitionMethod": "PULL",
+                  "objAcquisitionIdsPull": [
+                    "fec-object"
+                  ],
+                  "objIngestBaseUrl": "http://127.0.0.1:3004/",
+                  "objDistributionBaseUrl": "http://127.0.0.2/"
+                }
+              }
+            }
+        headers:
+          - name: Content-Type
+            value: application/json
+          - name: User-Agent
+            value: insomnia/12.2.0
+            description: ""
+            disabled: false
+        scripts:
+          afterResponse: |+
+            let data;
+            try {
+             data = insomnia.response.json();
+            } catch (e) {
+            	console.log(e);
+             return;
+            }
+
+            const distSessionId = data?.distSession?.distSessionId;
+
+            if (distSessionId) {
+             insomnia.environment.set( "distSessionId",`${distSessionId}`);
+            } 
+
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ _.base_url_mbstf }}nmbstf-distsession/v1/dist-sessions"
+        name: DistSession-PULL-FEC-CompactNoCode-request
+        meta:
+          id: req_fd4f7746d93047c6a2ed1d992f19f3ca
+          created: 1791302025418
+          modified: 1791302025418
+          isPrivate: false
+          description: "AL-FEC: Compact No-Code (RFC 3695), no repair symbols. fec-object goes out as 12 packets; the FDT declares FEC-OTI-FEC-Encoding-ID=0."
+          sortKey: -1772797692417
+        method: POST
+        body:
+          mimeType: application/json
+          text: |
+            {
+              "distSession": {
+                "distSessionId": "5a1f0e2c-7b3d-4f61-9c2e-1d4b8a6f3e02",
+                "distSessionState": "ACTIVE",
+                "mbUpfTunAddr": {
+                  "ipv4Addr": "{{ _.ingressTunAddrIP }}",
+                  "portNumber": {{ _.ingressTunAddrPort }}
+                },
+                "upTrafficFlowInfo": {
+                  "transportSessionId": 1234,
+                  "srcIpAddr": {
+                    "ipv4Addr": "127.0.0.7"
+                  },
+                  "destIpAddr": {
+                    "ipv4Addr": "232.0.0.1"
+                  },
+                  "portNumber": 5000
+                },
+                "mbr": "10 Mbps",
+                "fecInformation": {
+                  "fecScheme": "urn:ietf:rmt:fec:encoding:0",
+                  "fecOverHead": 0
+                },
+                "objDistributionData": {
+                  "objDistributionOperatingMode": "SINGLE",
+                  "objAcquisitionMethod": "PULL",
+                  "objAcquisitionIdsPull": [
+                    "fec-object"
+                  ],
+                  "objIngestBaseUrl": "http://127.0.0.1:3004/",
+                  "objDistributionBaseUrl": "http://127.0.0.2/"
+                }
+              }
+            }
+        headers:
+          - name: Content-Type
+            value: application/json
+          - name: User-Agent
+            value: insomnia/12.2.0
+            description: ""
+            disabled: false
+        scripts:
+          afterResponse: |+
+            let data;
+            try {
+             data = insomnia.response.json();
+            } catch (e) {
+            	console.log(e);
+             return;
+            }
+
+            const distSessionId = data?.distSession?.distSessionId;
+
+            if (distSessionId) {
+             insomnia.environment.set( "distSessionId",`${distSessionId}`);
+            } 
+
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ _.base_url_mbstf }}nmbstf-distsession/v1/dist-sessions"
+        name: DistSession-PULL-FEC-RaptorQ-refused-request
+        meta:
+          id: req_6d8d58b7d5fd4227be0c789a7991b449
+          created: 1791302025418
+          modified: 1791302025418
+          isPrivate: false
+          description: "AL-FEC: RaptorQ is not one of the schemes the MBMS Download Profile admits (TS 26.346 clause L.4.7). The session is created (201) but nothing is sent, not even an FDT, and the MBSTF logs that it cannot apply the FEC configuration."
+          sortKey: -1772797692416
+        method: POST
+        body:
+          mimeType: application/json
+          text: |
+            {
+              "distSession": {
+                "distSessionId": "5a1f0e2c-7b3d-4f61-9c2e-1d4b8a6f3e03",
+                "distSessionState": "ACTIVE",
+                "mbUpfTunAddr": {
+                  "ipv4Addr": "{{ _.ingressTunAddrIP }}",
+                  "portNumber": {{ _.ingressTunAddrPort }}
+                },
+                "upTrafficFlowInfo": {
+                  "transportSessionId": 1234,
+                  "srcIpAddr": {
+                    "ipv4Addr": "127.0.0.7"
+                  },
+                  "destIpAddr": {
+                    "ipv4Addr": "232.0.0.1"
+                  },
+                  "portNumber": 5000
+                },
+                "mbr": "10 Mbps",
+                "fecInformation": {
+                  "fecScheme": "urn:ietf:rmt:fec:encoding:6",
+                  "fecOverHead": 25
+                },
+                "objDistributionData": {
+                  "objDistributionOperatingMode": "SINGLE",
+                  "objAcquisitionMethod": "PULL",
+                  "objAcquisitionIdsPull": [
+                    "fec-object"
+                  ],
+                  "objIngestBaseUrl": "http://127.0.0.1:3004/",
+                  "objDistributionBaseUrl": "http://127.0.0.2/"
+                }
+              }
+            }
+        headers:
+          - name: Content-Type
+            value: application/json
+          - name: User-Agent
+            value: insomnia/12.2.0
+            description: ""
+            disabled: false
+        scripts:
+          afterResponse: |+
+            let data;
+            try {
+             data = insomnia.response.json();
+            } catch (e) {
+            	console.log(e);
+             return;
+            }
+
+            const distSessionId = data?.distSession?.distSessionId;
+
+            if (distSessionId) {
+             insomnia.environment.set( "distSessionId",`${distSessionId}`);
+            } 
+
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ _.base_url_mbstf }}nmbstf-distsession/v1/dist-sessions/{{
+          _.distSessionId }}"
+        name: Get MBS Distribution Session
+        meta:
+          id: req_4e4062817e2c481f9d814acaa2c0e28a
+          created: 1791302025418
+          modified: 1791302025418
+          isPrivate: false
+          description: "Reads back the Distribution Session last created, including its distSessionState and fecInformation."
+          sortKey: -1772797692415
+        method: GET
+        headers:
+          - name: User-Agent
+            value: insomnia/12.2.0
+            description: ""
+            disabled: false
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ _.base_url_mbstf }}nmbstf-distsession/v1/dist-sessions"
         name: DistSession-PUSH-request
         meta:
           id: req_b68decea835e4b1f8ffce023133d217f
