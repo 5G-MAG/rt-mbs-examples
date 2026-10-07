@@ -56,7 +56,8 @@ app.use(express.static(path.join(__dirname, 'public'), {etag: true, index: false
 		}
 		if (pth == path.join(__dirname, 'public/carousel') ||
 		    pth == path.join(__dirname, 'public/carousel-live') ||
-		    pth == path.join(__dirname, 'public/collection-manifest')) {
+		    pth == path.join(__dirname, 'public/collection-manifest') ||
+		    pth == path.join(__dirname, 'public/carousel-file-set')) {
 		    res.setHeader('Content-Type', 'application/3gpp-mbs-object-manifest+json;version="Rel17"');
 		} else if (pth.endsWith('.mpd')) {
 		    // MBSTF's own DASHManifestHandler (rt-mbs-transport-function/src/mbstf/
