@@ -40,7 +40,28 @@ MBSF_DIR="${MBSF_DIR:-$RTMBS_ROOT/rt-mbs-function}"
 CLIENT_DIR="${CLIENT_DIR:-$RTMBS_ROOT/rt-mbs-client}"
 APP_DIR="${APP_DIR:-$RTMBS_ROOT/rt-mbs-application}"
 PROVIDER_DIR="${PROVIDER_DIR:-$RTMBS_ROOT/rt-mbs-application-provider}"
+# The content tree (03-start-media-server.sh's copied VOD package, the carousel manifest, and
+# live-encoder.sh's/live-carousel.sh's ffmpeg output) always lives under here, at $MEDIA_DIR/public
+# -- true for both values of MEDIA_ORIGIN_BACKEND below, since only the process serving that tree
+# differs. express-mock-media-server itself is also still used directly by this repo's own test/
+# suite, independent of this demo.
 MEDIA_DIR="${MEDIA_DIR:-$RTMBS_ROOT/rt-mbs-examples/express-mock-media-server}"
+# rt-media-origin (5G-MAG/rt-media-origin): the generic config-driven origin that
+# 03-start-media-server.sh points at $MEDIA_DIR/public when MEDIA_ORIGIN_BACKEND=rt-media-origin.
+# A separate top-level checkout, like open5gs/the two srsRAN forks, not one of the six rt-mbs-*
+# components: it is a shared reference-tools repository, not MBS-specific. Unused, and its checkout
+# not required, when MEDIA_ORIGIN_BACKEND=legacy.
+MEDIA_ORIGIN_DIR="${MEDIA_ORIGIN_DIR:-$REPOS_ROOT/rt-media-origin}"
+# Which server 03-start-media-server.sh starts to serve $MEDIA_DIR/public:
+#   legacy (default)  -- this repository's own express-mock-media-server. No MEDIA_ORIGIN_DIR
+#                        checkout needed.
+#   rt-media-origin   -- 5G-MAG/rt-media-origin, generic and config-driven (see above). The
+#                        default stays legacy while that repository is not yet public, so a
+#                        fresh clone of this one runs without it.
+# Both serve the same directory the same way at the same $MEDIA_HOST:$MEDIA_PORT, so every other
+# script (start-all.sh, status.sh, 06-provision-*.sh, live-encoder.sh, live-carousel.sh) is
+# unaffected by which one is running.
+MEDIA_ORIGIN_BACKEND="${MEDIA_ORIGIN_BACKEND:-legacy}"
 # The gNB repository is 5G-MAG/srsRAN_Project_mbs, so that is the directory a plain `git clone`
 # produces and the default here. The older rt-srsRAN_Project_mbs name still reaches the same
 # repository through GitHub's rename redirect, so a checkout made under it is accepted too rather
@@ -271,7 +292,7 @@ UE_SLICE_SD="${UE_SLICE_SD:-000001}"
 # MBS User Service / Ingest Session identity for this demo
 DEMO_SERVICE_EXT_ID="https://mwc-tv-radio.ebu.io/services/${DEMO_STREAM}"
 DEMO_SERVICE_NAME="5G-MAG.tv 1"
-DEMO_SERVICE_DESC="5G-MAG demo TV channel, carouselled from rt-mbs-examples/express-mock-media-server"
+DEMO_SERVICE_DESC="5G-MAG demo TV channel, carouselled from the demo's media origin"
 
 # UE pre-configuration for 5MBS (3GPP TS 24.575). When 1, the client is given the
 # pre-configuration object instead of the deployment-fixed announcement_channel block, and

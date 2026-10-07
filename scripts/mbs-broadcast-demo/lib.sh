@@ -267,6 +267,7 @@ reset_demo() {
     local pid
     for pid in $(pgrep -f "node .*$PROVIDER_DIR" 2>/dev/null || true) \
                $(pgrep -f "node .*$APP_DIR" 2>/dev/null || true) \
+               $(pgrep -f "node .*$MEDIA_ORIGIN_DIR" 2>/dev/null || true) \
                $(pgrep -f "node .*$MEDIA_DIR" 2>/dev/null || true) \
                $(pgrep -f "ffmpeg .*$MEDIA_DIR/public" 2>/dev/null || true); do
         [[ "$pid" == "$$" ]] && continue

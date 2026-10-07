@@ -170,8 +170,14 @@ build command is repeated here only so you can see the whole job at once.
 | MBS Client | `rt-mbs-client` | `git submodule update --init --recursive && mkdir -p build && cd build && cmake -GNinja .. && ninja` |
 | MBS-Aware Application | `rt-mbs-application` | `npm install` |
 | Application Provider | `rt-mbs-application-provider` | `npm install` |
+| Media Origin (optional) | `rt-media-origin` | `npm install` |
 | gNB | `srsRAN_Project_mbs` | `cmake -S . -B build -DENABLE_ZEROMQ=ON && cmake --build build -j$(nproc)` |
 | UE | `srsRAN_4G_mbs` | `cmake -S . -B build && cmake --build build -j$(nproc)` |
+
+`rt-media-origin` is optional. By default `03-start-media-server.sh` serves the content with this
+repository's own `express-mock-media-server`; set `MEDIA_ORIGIN_BACKEND=rt-media-origin` (`env.sh`, or on
+the command line) to serve it with `rt-media-origin` instead. Both serve `express-mock-media-server/public/`
+the same way at the same address, so nothing else in this demo needs to know which one is running.
 
 The `git submodule update` and `meson subprojects update` steps on the three components that carry
 dependencies of their own are there so a rebuild is correct after changing branches, without anyone
@@ -212,6 +218,7 @@ cd ~/Repos
 git clone -b 5mbs https://github.com/5G-MAG/open5gs.git
 git clone -b 5mbs https://github.com/5G-MAG/srsRAN_Project_mbs.git
 git clone -b 5mbs https://github.com/5G-MAG/srsRAN_4G_mbs.git
+git clone https://github.com/5G-MAG/rt-media-origin.git   # only for MEDIA_ORIGIN_BACKEND=rt-media-origin
 
 cd ~/Repos/rt-mbs
 git clone --recurse-submodules https://github.com/5G-MAG/rt-mbs-function.git
@@ -259,6 +266,7 @@ requirement: every path here has a variable that moves it.
 ```
 $HOME/Repos/                                REPOS_ROOT
 ├── open5gs/                                OPEN5GS_DIR
+├── rt-media-origin/                        MEDIA_ORIGIN_DIR  (MEDIA_ORIGIN_BACKEND=rt-media-origin only)
 ├── srsRAN_Project_mbs/                     GNB_DIR      (RAN_ROOT, defaults to REPOS_ROOT)
 │   └── build/apps/gnb/gnb                  GNB_BIN
 ├── srsRAN_4G_mbs/                          UE_DIR
@@ -274,7 +282,7 @@ $HOME/Repos/                                REPOS_ROOT
         └── express-mock-media-server/      MEDIA_DIR
 ```
 
-`./demo doctor` checks exactly those nine directories and three binaries. The other components are
+`./demo doctor` checks those directories (`rt-media-origin` only when it is the selected backend) and three binaries. The other components are
 run from inside their own checkouts, so they need no separate binary path.
 
 Content lives outside this tree and is covered in section 4: `$MWC_CONTENT_ROOT/$DEMO_STREAM`
@@ -445,7 +453,7 @@ This runs, in order:
 | 00 | `00-setup-netns.sh` | Creates the `ns-gnb` network namespace + veth pair (idempotent; `--teardown` removes it) |
 | 01 | `01-start-core-nfs.sh` | NRF, AUSF, UDM, UDR, PCF, NSSF, BSF, then UPF, SMF, AMF |
 | 02 | `02-start-mbs-function.sh` | MBSTF, then MBSF |
-| 03 | `03-start-media-server.sh` | Copies the demo DASH content into `express-mock-media-server/public/`, (re)generates its object-manifest carousel, starts the server |
+| 03 | `03-start-media-server.sh` | Copies the demo DASH content into `express-mock-media-server/public/`, (re)generates its object-manifest carousel, starts the origin serving that tree -- the repository's own `express-mock-media-server` by default, or `rt-media-origin` with `MEDIA_ORIGIN_BACKEND=rt-media-origin` |
 | 04 | `04-start-ran.sh` | gNB and UE, both inside `ns-gnb`, over a ZMQ RF loopback |
 | 05 | `05-start-client-and-app.sh` | rt-mbs-client + rt-mbs-application (both inside `ns-gnb`) + a socat relay so the dashboard is reachable from outside the namespace, and rt-mbs-application-provider on the host |
 | 06 | `06-provision-live-service.sh` | What `start-all.sh` calls per on-air channel: creates the live DASH MBS User Service and its Ingest Session through the application provider (OBJECT_STREAMING, the presentation manifest as entry point), then asks the MBS Client to join it |

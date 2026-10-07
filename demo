@@ -203,10 +203,15 @@ check_paths() {
     report=$(cd "$demo_dir" && set +eu && source ./env.sh 2>/dev/null
     for spec in "MBSF_DIR:${MBSF_DIR:-}" "MBSTF_DIR:${MBSTF_DIR:-}" "CLIENT_DIR:${CLIENT_DIR:-}" \
                 "APP_DIR:${APP_DIR:-}" "PROVIDER_DIR:${PROVIDER_DIR:-}" "MEDIA_DIR:${MEDIA_DIR:-}" \
+                "MEDIA_ORIGIN_DIR:${MEDIA_ORIGIN_DIR:-}" \
                 "OPEN5GS_DIR:${OPEN5GS_DIR:-}" "GNB_DIR:${GNB_DIR:-}" "UE_DIR:${UE_DIR:-}" \
                 "CONTENT_ROOT:${CONTENT_ROOT:-}"; do
         path="${spec#*:}"
         [ -n "$path" ] || continue          # this demo does not use it
+        # rt-media-origin's checkout is only needed when it is actually the selected backend --
+        # MEDIA_ORIGIN_BACKEND=legacy runs express-mock-media-server instead (see env.sh) and
+        # never touches MEDIA_ORIGIN_DIR, so requiring it there would block a run for no reason.
+        [ "${spec%%:*}" = "MEDIA_ORIGIN_DIR" ] && [ "${MEDIA_ORIGIN_BACKEND:-legacy}" = legacy ] && continue
         [ -d "$path" ] || echo "dir ${spec%%:*} $path"
     done
     for spec in "CLIENT_BIN:${CLIENT_BIN:-}" "GNB_BIN:${GNB_BIN:-}" "UE_BIN:${UE_BIN:-}"; do
