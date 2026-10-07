@@ -23,13 +23,26 @@ for name in provider app-relay socat app rt-mbs-client ue gnb media-server mbsf 
 done
 
 # Anything left inside the netns (gNB/UE/rt-mbs-client/app leave process-group children that
-# a plain TERM to the wrapper doesn't reach) -- clean up by binary name as a backstop.
+# a plain TERM to the wrapper doesn't reach). Selected by namespace membership, not by name:
+# "ip netns exec ... pkill -f" does not confine pkill to the namespace (it shares the host's PID
+# namespace), so a pattern such as 'mbs-client' also killed any host process whose command line
+# mentioned it. Everything in $NETNS is this demo's.
+#
+# Then wait for them to be gone: the gNB and UE hold their ZMQ RF ports until they exit, and a
+# start-all.sh straight after a stop otherwise brought up a UE that could not open its RF device
+# and never attached. STOP_WAIT_SECS (default 10) bounds the wait before they are killed.
 if netns_exists; then
-    sudo -n ip netns exec "$NETNS" pkill -TERM -f 'apps/gnb/gnb ' 2>/dev/null || true
-    sudo -n ip netns exec "$NETNS" pkill -TERM -f 'srsue/src/srsue ' 2>/dev/null || true
-    sudo -n ip netns exec "$NETNS" pkill -TERM -f 'mbs-client' 2>/dev/null || true
-    sudo -n ip netns exec "$NETNS" pkill -TERM -f 'node app.js' 2>/dev/null || true
-    sudo -n ip netns exec "$NETNS" pkill -TERM -f socat 2>/dev/null || true
+    ns_pids=$(sudo -n ip netns pids "$NETNS" 2>/dev/null | tr '\n' ' ')
+    [[ -n "${ns_pids// }" ]] && sudo -n kill -TERM $ns_pids 2>/dev/null
+    for _ in $(seq 1 $(( ${STOP_WAIT_SECS:-10} * 5 ))); do
+        [[ -z "$(sudo -n ip netns pids "$NETNS" 2>/dev/null)" ]] && break
+        sleep 0.2
+    done
+    ns_pids=$(sudo -n ip netns pids "$NETNS" 2>/dev/null | tr '\n' ' ')
+    if [[ -n "${ns_pids// }" ]]; then
+        log "still running in $NETNS after ${STOP_WAIT_SECS:-10}s, killing: $ns_pids"
+        sudo -n kill -KILL $ns_pids 2>/dev/null
+    fi
 fi
 
 # Match on the executable name, not the whole command line: "pkill -f open5gs-upfd" also matches
