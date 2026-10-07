@@ -271,6 +271,8 @@ GNB_EXTRA_ARGS="${GNB_EXTRA_ARGS:-cu_cp}"
 # that is busy, or one whose ZMQ virtual radio is competing for CPU, can take considerably longer, so
 # this is a configuration option rather than a fixed bound.
 UE_TUN_WAIT_SECS="${UE_TUN_WAIT_SECS:-180}"
+# How long 04-start-ran.sh waits for the gNB's DU to report it has started before starting the UE.
+GNB_READY_WAIT_SECS="${GNB_READY_WAIT_SECS:-60}"
 
 # The UE's subscriber identity. These three are written into the generated ue_bcast.conf AND used to
 # provision the subscriber in the UDR's MongoDB, so a single definition keeps the two from drifting:

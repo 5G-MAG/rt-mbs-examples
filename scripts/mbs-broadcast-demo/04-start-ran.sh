@@ -295,7 +295,17 @@ EOF
 
 log "starting gNB in $NETNS"
 run_bg_netns "gNB" gnb "$GNB_BIN" -c "$GEN_CONF_DIR/gnb_bcast.yaml" $GNB_EXTRA_ARGS
-sleep 3
+
+# The UE must not start before the gNB's DU is up: with the ZeroMQ radio, a UE started early waits
+# for samples that never come and never attaches. How long the DU takes depends on the host's load,
+# so this waits for the gNB to say so rather than for a fixed time.
+log "waiting for the gNB's DU to start (up to ${GNB_READY_WAIT_SECS}s)"
+for _ in $(seq 1 "$GNB_READY_WAIT_SECS"); do
+    grep -aq 'DU started successfully' "$LOG_DIR/gnb.log" 2>/dev/null && break
+    sleep 1
+done
+grep -aq 'DU started successfully' "$LOG_DIR/gnb.log" 2>/dev/null \
+    || die "the gNB's DU did not start within ${GNB_READY_WAIT_SECS}s; see $LOG_DIR/gnb.log"
 
 # The gNB's remote-control socket binds loopback inside $NETNS, so nothing outside the namespace
 # can reach it. This relay publishes it on the veth address, the same way the dashboard's own port
