@@ -113,6 +113,10 @@ mbsf:
     sourceAddress: $BCAST_SSM_SOURCE
     destinationAddress: $BCAST_SSM_DEST
 
+  nrParameters:
+    - freqBandIndicator: $NR_BAND
+      aRFCNValue: $NR_DL_ARFCN
+
   activeDistributionSessionsSoftLimit: 1000
   activeUserServicesSoftLimit: 50
   actPeriodGoToEstablishedState: 60

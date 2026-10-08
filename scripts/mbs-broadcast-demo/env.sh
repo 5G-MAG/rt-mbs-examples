@@ -271,6 +271,10 @@ GNB_EXTRA_ARGS="${GNB_EXTRA_ARGS:-cu_cp}"
 # that is busy, or one whose ZMQ virtual radio is competing for CPU, can take considerably longer, so
 # this is a configuration option rather than a fixed bound.
 UE_TUN_WAIT_SECS="${UE_TUN_WAIT_SECS:-180}"
+# The NR cell the gNB serves, and the frequency the MBSF announces for it (mbsf.nrParameters, TS 26.517
+# V18.6.0 table 5.2.9-2: freqBandIndicator and aRFCNValue). One value, used by both.
+NR_BAND="${NR_BAND:-3}"
+NR_DL_ARFCN="${NR_DL_ARFCN:-368500}"
 # How long 04-start-ran.sh waits for the gNB's DU to report it has started before starting the UE.
 GNB_READY_WAIT_SECS="${GNB_READY_WAIT_SECS:-60}"
 

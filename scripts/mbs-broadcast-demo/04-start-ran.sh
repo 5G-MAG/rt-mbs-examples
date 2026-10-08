@@ -100,8 +100,8 @@ cell_cfg:
     si_sched_info:
       - si_period: 32
         sib_mapping: 20
-  dl_arfcn: 368500
-  band: 3
+  dl_arfcn: ${NR_DL_ARFCN}
+  band: ${NR_BAND}
   channel_bandwidth_MHz: ${CELL_BW_MHZ}
   common_scs: 15
   plmn: "${PLMN_MCC}${PLMN_MNC}"
