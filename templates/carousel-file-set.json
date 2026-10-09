@@ -51,7 +51,7 @@
       "distSessKey": "AP_MBS_SESSION_1",
 
       "_opMode": [
-        "TS 26.517 V18.6.0 clause 6.2.3.3 defines OBJECT_CAROUSEL. The object list is fixed and",
+        "TS 26.517 V18.6.0 clause 6.2.3.4 defines OBJECT_CAROUSEL. The object list is fixed and",
         "repeated; contrast OBJECT_STREAMING, which follows a presentation manifest and sends each",
         "newly published object once."
       ],

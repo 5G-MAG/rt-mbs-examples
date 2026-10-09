@@ -50,7 +50,7 @@
 
       "_opMode": [
         "TS 26.517 V18.6.0 clause 6.2.3.2 defines OBJECT_SINGLE. Change to COLLECTION (clause",
-        "6.2.3.4) to send several related objects once as one set, listing them all in acqIds."
+        "6.2.3.3) to send several related objects once as one set, listing them all in acqIds."
       ],
       "opMode": "SINGLE",
 
