@@ -1,0 +1,10 @@
+{
+  "objects": [
+    {
+      "locator": "http://mock-media.5g-mag.org:3004/collection-obj1"
+    },
+    {
+      "locator": "http://mock-media.5g-mag.org:3004/collection-obj2"
+    }
+  ]
+}
