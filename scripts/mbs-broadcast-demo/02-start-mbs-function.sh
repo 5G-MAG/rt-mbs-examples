@@ -32,7 +32,7 @@ mbstf:
     distSessionAPI:
       - addr: $MBSTF_DISTSESSION_ADDR
         port: $SBI_PORT
-    rtpIngest:
+    packetIngest:
       - addr: $MBSTF_INGEST_ADDR
         port: 0
     httpPushIngest:
