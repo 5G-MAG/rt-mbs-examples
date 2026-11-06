@@ -50,6 +50,40 @@ This is **Broadcast only**. Multicast needs a different gNB/UE test-harness conf
 (dedicated-RRC `test_only_multicast_g_rnti`/`test_only_multicast_mrb_lcid`, not the plain
 NGAP Broadcast Session Setup path these scripts drive) and is not covered here.
 
+### Checking the whole chain
+
+`tests/test-e2e-chain.sh` drives the demo the way an Application Provider does and checks what every hop logged: the
+provider (`rt-mbs-application-provider`), the MBSF and MBSTF, the MB-SMF, AMF and MB-UPF, the gNB, the UE, the client and
+the player. It needs the demo up (`./demo up`) and uses a throwaway MBS User Service of its own, so the demo's service is
+not touched; it does restart the gNB, the UE, the client and the AMF while it runs.
+
+```bash
+PLAYWRIGHT_MODULE=/path/to/node_modules/playwright ./scripts/mbs-broadcast-demo/tests/test-e2e-chain.sh
+```
+
+| Scenario | What it checks |
+|---|---|
+| 1. create | Ingest Session created at the provider, followed to the MB-SMF, AMF, MB-UPF, gNB (E1AP and F1AP) and the UE's MBS channel |
+| restore, gNB | the gNB restarts with the session active: the AMF sets it up again and the UE has the channel again |
+| restore, AMF | the AMF restarts with the session active: the MB-SMF creates the context again, the gNB sets the session up again |
+| 2. state change | deactivate and activate the distribution session (Nmb10) |
+| 3. release | the teardown reaches the AMF, the MB-UPF, the gNB's DU and the UE |
+| 4, 5. create and release again | the chain sets up and tears down a second time |
+| 6. refused request | a request the chain cannot serve is refused and reaches no hop |
+| 7. player | the demo's own service still plays; needs `PLAYWRIGHT_MODULE` (a Playwright install with Chrome, because Playwright's own Chromium has no H.264) |
+
+It prints `PASS` or `FAIL` per check and `passed N, failed M` at the end. `E2E_RESTART=0` leaves out the gNB restart,
+`E2E_RESTART_AMF=0` the AMF restart, `E2E_WAIT` (default 20 s) is how long each check waits for a log line. The full set is
+49 checks.
+
+Run it on a machine that is not busy. The demo starts one live encoder per channel in `channels.json`; with all four
+channels running on a laptop the load can starve the 5G core: the MBSTF then misses an NRF heartbeat, is de-registered,
+and every release fails with "No MBSTF was found in the network". Point `CHANNELS_FILE` at a copy of `channels.json` with
+the first channel only (`CHANNELS_FILE=/path/to/one-channel.json ./demo up`) when that happens.
+
+Environment for more detail in the logs: `GNB_BCAST_LOG=true` turns on the gNB's broadcast log, which the checks for the
+gNB read; `UE_LOG_LEVEL` (default `info`) sets the UE's log level, and the UE's MBS channel checks need `info` or a more verbose level.
+
 ## Prerequisites
 
 These scripts **run** a deployment; they build nothing. Everything below has to exist before
@@ -67,7 +101,7 @@ sudo apt install g++-14            # or g++-15
 CC=gcc-14 CXX=g++-14 <the build command for each component>
 ```
 
-The two srsRAN forks are not the constraint: `srsRAN_4G_mbs` is verified to build on GCC 13, 14 and
+The UE is not the constraint: `srsRAN_4G_mbs` is verified to build on GCC 13, 14 and
 15. Then:
 
 ```bash
@@ -84,7 +118,7 @@ sudo apt install git ninja-build build-essential meson cmake pkg-config \
 `libspdlog-dev`, `libtinyxml2-dev` and `libgmime-3.0-dev` are the MBS Client's, which asks for them
 by name in its `CMakeLists.txt` and fails at configure time without them. `libyaml-cpp-dev` is the
 gNB's, and is not the same package as `libyaml-dev` above: that one is the C library, which open5gs
-uses, while `srsRAN_Project_mbs` needs the C++ one. `libglibmm-2.4-dev` is required by the MBSTF's
+uses, while the gNB (`ocudu`) needs the C++ one. `libglibmm-2.4-dev` is required by the MBSTF's
 `libmpdpp` subproject, which asks for `glibmm-2.4` by name; note the 2.4, not the newer 2.68 the
 archive also carries.
 
@@ -171,7 +205,7 @@ build command is repeated here only so you can see the whole job at once.
 | MBS-Aware Application | `rt-mbs-application` | `npm install` |
 | Application Provider | `rt-mbs-application-provider` | `npm install` |
 | Media Origin (optional) | `rt-media-origin` | `npm install` |
-| gNB | `srsRAN_Project_mbs` | `cmake -S . -B build -DENABLE_ZEROMQ=ON && cmake --build build -j$(nproc)` |
+| gNB | `ocudu` | `cmake -S . -B build -DENABLE_ZEROMQ=ON && cmake --build build -j$(nproc)` |
 | UE | `srsRAN_4G_mbs` | `cmake -S . -B build && cmake --build build -j$(nproc)` |
 
 `rt-media-origin` is optional. By default `03-start-media-server.sh` serves the content with this
@@ -199,8 +233,8 @@ subproject it stashes them rather than discarding them, recoverable with `git st
 directory; `--reset` would throw them away, which is why it is not used here.
 
 `ENABLE_ZEROMQ=ON` on the gNB is what lets it use the `device_driver: zmq` in this demo's
-`gnb.yaml`. It defaults to **OFF** in `srsRAN_Project_mbs` (it is already ON in `srsRAN_4G_mbs`,
-which is why only the gNB needs the flag), and the ZeroMQ radio is compiled only when it is on, so
+`gnb.yaml`. It is the default in `ocudu` and in `srsRAN_4G_mbs`; the flag is spelled out so that the
+command stays correct if the default changes, and the ZeroMQ radio is compiled only when it is on, so
 having `libzmq3-dev` installed does not cover it.
 
 `srsRAN_4G_mbs`'s own README covers its two extra dependencies, cpprestsdk and OpenSSL, in more
@@ -215,8 +249,8 @@ machine with nothing on it:
 mkdir -p ~/Repos/rt-mbs
 
 cd ~/Repos
-git clone -b 5mbs https://github.com/5G-MAG/open5gs.git
-git clone -b 5mbs https://github.com/5G-MAG/srsRAN_Project_mbs.git
+git clone -b 5mbs-development https://github.com/5G-MAG/open5gs.git
+git clone -b 5mbs-development https://github.com/5G-MAG/ocudu.git
 git clone -b 5mbs https://github.com/5G-MAG/srsRAN_4G_mbs.git
 git clone https://github.com/5G-MAG/rt-media-origin.git   # only for MEDIA_ORIGIN_BACKEND=rt-media-origin
 
@@ -233,12 +267,11 @@ That produces exactly the tree in section 3, so no variable needs setting. Only 
 shown with `--recurse-submodules` have any: MBSF, MBSTF and the MBS Client. If you already cloned one
 of those without it, run `git submodule update --init --recursive` in it before building.
 
-**The `-b 5mbs` on those three is not optional.** open5gs and the two srsRAN repositories are forks
-whose `main` tracks upstream and carries no MBS work; `5mbs` is the branch that does. In
-`srsRAN_Project_mbs` the difference is total, `main` containing none of the MBS sources at all, so a
-plain `git clone` there produces a gNB that builds and then cannot do MBS. `srsRAN_4G_mbs` already
-defaults to `5mbs`, and it is given explicitly above so that all three read the same way rather than
-relying on which repository happens to default where.
+**The `-b 5mbs-development` on open5gs and `ocudu` is not optional.** Both are forks whose `main` tracks upstream and
+carries no MBS work; `5mbs-development` is the branch the broadcast chain in this tutorial was tested on, and the AMF,
+MB-SMF, MB-UPF and gNB fixes the end-to-end check below depends on are on it. In `ocudu` the difference is total, so a
+plain `git clone` there produces a gNB that builds and then cannot do MBS. `srsRAN_4G_mbs` already defaults to the branch
+its MBS work is on, and section 6 lists the exact branches and commits that were tested together.
 
 The six `rt-mbs-*` components need no branch: they are MBS components throughout, and their default
 branch is the one to use.
@@ -267,7 +300,7 @@ requirement: every path here has a variable that moves it.
 $HOME/Repos/                                REPOS_ROOT
 ├── open5gs/                                OPEN5GS_DIR
 ├── rt-media-origin/                        MEDIA_ORIGIN_DIR  (MEDIA_ORIGIN_BACKEND=rt-media-origin only)
-├── srsRAN_Project_mbs/                     GNB_DIR      (RAN_ROOT, defaults to REPOS_ROOT)
+├── ocudu/                                  GNB_DIR      (RAN_ROOT, defaults to REPOS_ROOT)
 │   └── build/apps/gnb/gnb                  GNB_BIN
 ├── srsRAN_4G_mbs/                          UE_DIR
 │   └── build/srsue/src/srsue               UE_BIN
@@ -383,7 +416,7 @@ Taking `feature/mbs-compliance-fixes` as the example, it exists in all nine of t
 cloned:
 
 ```bash
-for d in open5gs srsRAN_Project_mbs srsRAN_4G_mbs \
+for d in open5gs ocudu srsRAN_4G_mbs \
          rt-mbs/rt-mbs-function rt-mbs/rt-mbs-transport-function rt-mbs/rt-mbs-client \
          rt-mbs/rt-mbs-application rt-mbs/rt-mbs-application-provider rt-mbs/rt-mbs-examples; do
     git -C ~/Repos/"$d" checkout feature/mbs-compliance-fixes && git -C ~/Repos/"$d" pull
@@ -438,6 +471,26 @@ open5gs, which is why it is the fallback rather than the everyday command.
 
 This section exists only while work is outstanding. When the branches merge it should be deleted, not
 updated to name the next one.
+
+### 6. What was tested together
+
+The end-to-end check above was run on these branches and commits, all on one machine: 49 of 49 twice with the AMF restart
+(open5gs built in a separate worktree), then on the default builds 48 of 49 once (one UE teardown check missed, cause
+not found) and 49 of 49 once:
+
+| Repository | Branch | Commit |
+|---|---|---|
+| open5gs | `5mbs-development` | `af2dace9b` |
+| ocudu (gNB) | `5mbs-development` | `62e5e8ad5f` |
+| srsRAN_4G_mbs (UE) | `feature/mbs-compliance-fixes` | `f966455fa` |
+| rt-media-origin | `main` | `9f94d50` |
+| rt-mbs-function | `development` | `87bed08` |
+| rt-mbs-transport-function | `development` | `e33b245` |
+| rt-mbs-client | `feature/mbs-compliance-fixes` | `304cbfb` |
+| rt-mbs-application | `feature/mbs-compliance-fixes` | `7b75b26` |
+| rt-mbs-application-provider | `feature/mbs-compliance-fixes` | `9630ddb` |
+
+A different combination may work; this is the one that was run.
 
 ## Running it
 
@@ -573,6 +626,17 @@ see it.
 
 ## Troubleshooting
 
+- **The core stops answering on the loaded machine (`No MBSTF was found in the network`, or releases that fail).** See
+  "Checking the whole chain": the NRF de-registers an NF that misses its heartbeat, and the encoders can starve it. Stop
+  the other work or run one channel (`CHANNELS_FILE`).
+- **The AMF cannot bind `10.99.0.1:38412`.** NetworkManager can take the host end of the veth pair (`veth-h`) for its own
+  and give it a LAN address. `00-setup-netns.sh` marks it unmanaged (`nmcli device set veth-h managed no`) when NetworkManager
+  runs; on a checkout without that, run the command by hand and then `./00-setup-netns.sh`.
+- **A restarted gNB or AMF does not get the session back.** The gNB's DU and CU-UP must be connected before it can take the
+  session, so the AMF repeats the request after `amf.mbs.reestablish_after` seconds (3 in the generated `amf.yaml`).
+  The UE needs a restart after the gNB (the ZeroMQ radio), the client after the UE, and the client has to be asked for the
+  service again (`GET /api/services/activate?external-service-id=...` on port 3050); `tests/test-e2e-chain.sh` does all of
+  this itself.
 - **The radio is fine but the client receives nothing.** The symptom is
   `run/logs/rt-mbs-client.log` staying short with no `Received new FDT` lines, while
   `run/logs/ue_bcast.log` shows MCCH receptions and thousands of CRC-OK decodes, and the
