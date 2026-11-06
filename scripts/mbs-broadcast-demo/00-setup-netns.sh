@@ -51,6 +51,12 @@ if ! ip link show "$VETH_ROOT" >/dev/null 2>&1; then
     log "creating veth pair $VETH_ROOT <-> $VETH_NS"
     sudo -n ip link add "$VETH_ROOT" type veth peer name "$VETH_NS"
     sudo -n ip link set "$VETH_NS" netns "$NETNS"
+    # NetworkManager takes a new ethernet device for its own, applies a wired profile (DHCP or a static
+    # address) and removes the address set below, which leaves the AMF unable to bind $VETH_ROOT_ADDR.
+    # Leave the host end to this script.
+    if command -v nmcli >/dev/null 2>&1 && nmcli -t -f RUNNING general 2>/dev/null | grep -q '^running$'; then
+        sudo -n nmcli device set "$VETH_ROOT" managed no || log "could not mark $VETH_ROOT unmanaged for NetworkManager"
+    fi
 else
     log "veth pair $VETH_ROOT already exists"
 fi
