@@ -94,12 +94,20 @@ cu_up:
   ngu:
     socket:
       - bind_addr: $VETH_NS_ADDR
+        multicast_rx: true
 
 cell_cfg:
   sib:
+    # SIB20 is a Release 17 SIB, scheduled through schedulingInfoList2 (TS 38.331 SchedulingInfo2-r17): it needs a
+    # si-WindowPosition after the SI messages of schedulingInfoList, so SIB2 goes first.
+    sib2:
+      q_rx_lev_min: -70
     si_sched_info:
       - si_period: 32
+        sib_mapping: 2
+      - si_period: 32
         sib_mapping: 20
+        si_window_position: 2
   dl_arfcn: ${NR_DL_ARFCN}
   band: ${NR_BAND}
   channel_bandwidth_MHz: ${CELL_BW_MHZ}
@@ -139,14 +147,14 @@ cell_cfg:
   pucch:
     # The gNB's own config validator requires this to be 0 when csi_rs_enabled is false and non-zero
     # when it is true, so it is derived from the same setting rather than set independently.
-    f2_or_f3_or_f4_nof_cell_res_csi: ${CELL_CSI_RESOURCES}
+    nof_cell_csi_res: ${CELL_CSI_RESOURCES}
 
 ru_sdr:
   device_driver: zmq
   device_args: tx_port=tcp://127.0.0.1:2100,rx_port=tcp://127.0.0.1:2101,base_srate=${CELL_SRATE_MHZ}e6
   srate: ${CELL_SRATE_MHZ}
-  tx_gain: 75
-  rx_gain: 75
+  tx_gain: 0
+  rx_gain: 0
 
 # The gNB's own remote control server. Off in the stock configuration; needed for the provider's RAN
 # tab to change anything while the gNB is running, rather than only writing what it will read next
@@ -159,8 +167,8 @@ remote_control:
 
 expert_execution:
   threads:
-    non_rt:
-      nof_non_rt_threads: 2
+    main_pool:
+      nof_threads: 2
 
 mbs:
   # The MCCH content is left entirely to the sessions live NGAP/F1AP Broadcast Session Setup
@@ -216,11 +224,13 @@ log:
   mac_level: ${GNB_SCHED_LOG_LEVEL:-info}
   rlc_level: ${GNB_RLC_LOG_LEVEL:-info}
   phy_level: warning
-  gtpu_level: warning
-  pdcp_level: info
+  gtpu_level: ${GNB_GTPU_LOG_LEVEL:-warning}
+  pdcp_level: ${GNB_PDCP_LOG_LEVEL:-info}
+  f1u_level: ${GNB_F1U_LOG_LEVEL:-warning}
   rrc_level: info
   cu_level: info
   hex_max_size: 0
+  broadcast_enabled: ${GNB_BCAST_LOG:-false}
 
 pcap:
   mac_enable: false
@@ -253,7 +263,7 @@ nof_prb = ${CELL_NOF_PRB}
 enable = none
 
 [log]
-all_level = info
+all_level = ${UE_LOG_LEVEL:-info}
 phy_lib_level = none
 all_hex_limit = 32
 filename = $LOG_DIR/ue_bcast.log

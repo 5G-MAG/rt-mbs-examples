@@ -125,6 +125,12 @@ amf:
   network_name:
     full: 5G-MAG MBS
   amf_name: 5g-mag-amf-with-mbs-0
+  # TS 23.527 cl. 8.3.2.2: the AMF sets a Broadcast MBS session up again in an NG-RAN that restarts or comes back.
+  mbs:
+    restoration: amf
+    # A gNB that restarts answers the first restoring Setup Request with a Failure until its DU and CU-UP are connected:
+    # the AMF tries again after this many seconds.
+    reestablish_after: 3
   time:
     t3512:
       value: 540
