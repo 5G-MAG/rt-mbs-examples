@@ -21,6 +21,7 @@
 set -uo pipefail
 
 IMAGE=ubuntu:26.04
+GNB_REPO="${GNB_REPO:-ocudu}"   # the gNB repository; srsRAN_Project_mbs is the deprecated one
 BRANCH=""   # empty: each component at the branch the demo is tested on, see branch_of()
 QUICK=0
 EXAMPLES_CHECKOUT=""
@@ -62,7 +63,7 @@ mkdir -p "$SRC/rt-mbs"
 branch_of() {
     if [ -n "$BRANCH" ]; then echo "$BRANCH"; return; fi
     case "$1" in
-        open5gs|ocudu)                              echo 5mbs-development ;;
+        open5gs|ocudu|srsRAN_Project_mbs)           echo 5mbs-development ;;
         rt-mbs-function|rt-mbs-transport-function)  echo development ;;
         *)                                          echo feature/mbs-compliance-fixes ;;
     esac
@@ -79,7 +80,7 @@ clone() {
     fi
 }
 echo "cloning ${BRANCH:-each component at its tested branch}"
-for r in open5gs ocudu srsRAN_4G_mbs;                                             do clone "$r" "$SRC" || exit 1; done
+for r in open5gs "$GNB_REPO" srsRAN_4G_mbs;                                           do clone "$r" "$SRC" || exit 1; done
 for r in rt-mbs-function rt-mbs-transport-function rt-mbs-client;                 do clone "$r" "$SRC/rt-mbs" --recurse-submodules || exit 1; done
 for r in rt-mbs-application rt-mbs-application-provider;                         do clone "$r" "$SRC/rt-mbs" || exit 1; done
 if [ -n "$EXAMPLES_CHECKOUT" ]; then
@@ -96,7 +97,7 @@ SKIP=""
 [ "$QUICK" = 1 ] && SKIP="ue gnb"
 
 echo "building in $IMAGE"
-docker run --rm -v "$SRC:/src" -v "$WORK:/out" "$IMAGE" bash -c '
+docker run --rm -e GNB_REPO -v "$SRC:/src" -v "$WORK:/out" "$IMAGE" bash -c '
 set -u
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -qq >/dev/null 2>&1
@@ -171,7 +172,7 @@ b app       /src/rt-mbs/rt-mbs-application          "npm install"
 b provider  /src/rt-mbs/rt-mbs-application-provider "npm install"
 b mediasrv  /src/rt-mbs/rt-mbs-examples/express-mock-media-server "npm install"
 b ue        /src/srsRAN_4G_mbs                      "cmake -S . -B build && cmake --build build -j$(nproc)"
-b gnb       /src/ocudu                              "cmake -S . -B build -DENABLE_ZEROMQ=ON && cmake --build build -j$(nproc)"
+b gnb       /src/$GNB_REPO                      "cmake -S . -B build -DENABLE_ZEROMQ=ON && cmake --build build -j$(nproc)"
 
 # No single quotes below: this whole block is inside a single-quoted bash -c, and one would close it.
 nf=$(wc -l < /out/failures); ns=$(wc -l < /out/stale); n=$((nf + ns))

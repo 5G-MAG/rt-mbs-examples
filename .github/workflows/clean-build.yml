@@ -45,7 +45,7 @@ jobs:
             rt-mbs-application
             rt-mbs-application-provider
             rt-mbs-examples
-            ocudu
+            srsRAN_Project_mbs
             srsRAN_4G_mbs
 
       - name: Check out this repository
@@ -58,6 +58,10 @@ jobs:
         # in-memory URL rewrite; no token is written to Git configuration.
         env:
           INPUT_BRANCH: ${{ inputs.branch }}
+          # ocudu is the gNB the demo runs, but it is private and the installation of the GitHub App behind MBS_CI_APP_*
+          # does not cover it, so the token cannot be created with it in the list. Until it does, CI builds the deprecated
+          # srsRAN_Project_mbs; change GNB_REPO to ocudu and the token list to match then.
+          GNB_REPO: srsRAN_Project_mbs
           GIT_CONFIG_COUNT: "1"
           GIT_CONFIG_KEY_0: url.https://x-access-token:${{ steps.github-app-token.outputs.token }}@github.com/.insteadOf
           BUILD_IMAGE: ${{ matrix.image }}
