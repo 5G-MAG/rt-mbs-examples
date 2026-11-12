@@ -21,7 +21,7 @@
 set -uo pipefail
 
 IMAGE=ubuntu:26.04
-BRANCH=feature/mbs-compliance-fixes
+BRANCH=""   # empty: each component at the branch the demo is tested on, see branch_of()
 QUICK=0
 EXAMPLES_CHECKOUT=""
 WORK=${WORK:-$(mktemp -d)}
@@ -58,18 +58,28 @@ echo "package list from the README: $(wc -w < "$WORK/pkgs") packages"
 
 SRC="$WORK/tree"
 mkdir -p "$SRC/rt-mbs"
+# The branch each component is tested on (section "What was tested together" of the demo README); --branch overrides it for all.
+branch_of() {
+    if [ -n "$BRANCH" ]; then echo "$BRANCH"; return; fi
+    case "$1" in
+        open5gs|ocudu)                              echo 5mbs-development ;;
+        rt-mbs-function|rt-mbs-transport-function)  echo development ;;
+        *)                                          echo feature/mbs-compliance-fixes ;;
+    esac
+}
 clone() {
-    local repo="$1" parent="$2"; shift 2
-    printf '  cloning %-30s' "$repo"
-    if git clone --quiet -b "$BRANCH" "$@" "git@github.com:5G-MAG/$repo.git" "$parent/$repo" 2>/dev/null; then
+    local repo="$1" parent="$2" br; shift 2
+    br="$(branch_of "$repo")"
+    printf '  cloning %-30s %-28s ' "$repo" "$br"
+    if git clone --quiet -b "$br" "$@" "git@github.com:5G-MAG/$repo.git" "$parent/$repo" 2>/dev/null; then
         echo "$(git -C "$parent/$repo" rev-parse --short HEAD)"
     else
-        echo "FAILED (no access, or no branch $BRANCH)"
+        echo "FAILED (no access, or no branch $br)"
         return 1
     fi
 }
-echo "cloning at $BRANCH"
-for r in open5gs srsRAN_Project_mbs srsRAN_4G_mbs;                                do clone "$r" "$SRC" || exit 1; done
+echo "cloning ${BRANCH:-each component at its tested branch}"
+for r in open5gs ocudu srsRAN_4G_mbs;                                             do clone "$r" "$SRC" || exit 1; done
 for r in rt-mbs-function rt-mbs-transport-function rt-mbs-client;                 do clone "$r" "$SRC/rt-mbs" --recurse-submodules || exit 1; done
 for r in rt-mbs-application rt-mbs-application-provider;                         do clone "$r" "$SRC/rt-mbs" || exit 1; done
 if [ -n "$EXAMPLES_CHECKOUT" ]; then
@@ -161,7 +171,7 @@ b app       /src/rt-mbs/rt-mbs-application          "npm install"
 b provider  /src/rt-mbs/rt-mbs-application-provider "npm install"
 b mediasrv  /src/rt-mbs/rt-mbs-examples/express-mock-media-server "npm install"
 b ue        /src/srsRAN_4G_mbs                      "cmake -S . -B build && cmake --build build -j$(nproc)"
-b gnb       /src/srsRAN_Project_mbs                 "cmake -S . -B build -DENABLE_ZEROMQ=ON && cmake --build build -j$(nproc)"
+b gnb       /src/ocudu                              "cmake -S . -B build -DENABLE_ZEROMQ=ON && cmake --build build -j$(nproc)"
 
 # No single quotes below: this whole block is inside a single-quoted bash -c, and one would close it.
 nf=$(wc -l < /out/failures); ns=$(wc -l < /out/stale); n=$((nf + ns))

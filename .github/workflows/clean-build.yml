@@ -45,7 +45,7 @@ jobs:
             rt-mbs-application
             rt-mbs-application-provider
             rt-mbs-examples
-            srsRAN_Project_mbs
+            ocudu
             srsRAN_4G_mbs
 
       - name: Check out this repository
