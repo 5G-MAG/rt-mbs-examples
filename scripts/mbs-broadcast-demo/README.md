@@ -484,14 +484,16 @@ updated to name the next one.
 
 ### 6. What was tested together
 
-The end-to-end check above gave 50 of 50 on two runs in a row with one AMF, and 51 of 51 on two runs in a row with a
-second AMF (below), on these branches and commits, all on one machine:
+The end-to-end check above gave 50 of 50 on four runs in a row with one AMF, and 51 of 51 on two runs with a second AMF
+(`AMF2=1 AMF2_START=late`), on the trees these commits hold, all on one machine. The three commits of open5gs, ocudu and
+srsRAN_4G_mbs are the tips after the unpushed history of each branch was regrouped by feature; the trees are those that
+were tested (the UE differs from the tested one only in its README).
 
 | Repository | Branch | Commit |
 |---|---|---|
-| open5gs | `5mbs-development` | `bb2eaf9da` |
-| ocudu (gNB) | `5mbs-development` | `3016d239e4` |
-| srsRAN_4G_mbs (UE) | `feature/mbs-compliance-fixes` | `f966455fa` |
+| open5gs | `5mbs-development` | `3fa615b00` |
+| ocudu (gNB) | `5mbs-development` | `61bcd3e80` |
+| srsRAN_4G_mbs (UE) | `feature/mbs-compliance-fixes` | `b23040496` |
 | rt-media-origin | `main` | `9f94d50` |
 | rt-mbs-function | `development` | `87bed08` |
 | rt-mbs-transport-function | `development` | `e33b245` |
