@@ -74,12 +74,22 @@ PLAYWRIGHT_MODULE=/path/to/node_modules/playwright ./scripts/mbs-broadcast-demo/
 
 It prints `PASS` or `FAIL` per check and `passed N, failed M` at the end. `E2E_RESTART=0` leaves out the gNB restart,
 `E2E_RESTART_AMF=0` the AMF restart, `E2E_WAIT` (default 20 s) is how long each check waits for a log line. The full set is
-49 checks.
+50 checks.
 
 Run it on a machine that is not busy. The demo starts one live encoder per channel in `channels.json`; with all four
 channels running on a laptop the load can starve the 5G core: the MBSTF then misses an NRF heartbeat, is de-registered,
 and every release fails with "No MBSTF was found in the network". Point `CHANNELS_FILE` at a copy of `channels.json` with
 the first channel only (`CHANNELS_FILE=/path/to/one-channel.json ./demo up`) when that happens.
+
+With a second AMF of the AMF set, `AMF2=1 AMF2_START=late` for `./demo up` and for the test (51 checks): the demo starts with
+the first AMF only, the test starts the second one after the sessions exist, restarts the first, and checks that the
+MB-SMF creates the contexts again in the second AMF, that the gNB follows the session to it (TS 23.527 clause 8.3.2.4) and
+that the video plays. The second AMF has its own address (`AMF2_NGAP_ADDR`, 10.99.1.1) on NGAP port 38412; the gNB attaches
+to it with `mbs_only: true` (MBS signalling only, no UE is routed to it). The test then reads the logs of both AMFs.
+`AMF2=1` alone starts both AMFs together; the discovery decides which one a new context goes to.
+
+The MB-SMF asks an AMF again for a broadcast context that could not be created after `smf.mbsContextRetryDelay` seconds
+(set to 2 in the generated `smf.yaml`; the specification gives no time, so the operator sets it).
 
 Environment for more detail in the logs: `GNB_BCAST_LOG=true` turns on the gNB's broadcast log, which the checks for the
 gNB read; `UE_LOG_LEVEL` (default `info`) sets the UE's log level, and the UE's MBS channel checks need `info` or a more verbose level.
@@ -111,7 +121,7 @@ sudo apt install git ninja-build build-essential meson cmake pkg-config \
   libcurl4-gnutls-dev libtins-dev libtalloc-dev libpcre2-dev uuid-dev \
   libcpprest-dev libfftw3-dev libmbedtls-dev libboost-program-options-dev \
   libconfig++-dev libzmq3-dev libspdlog-dev libtinyxml2-dev libgmime-3.0-dev \
-  libyaml-cpp-dev libglibmm-2.4-dev \
+  libyaml-cpp-dev libgtest-dev libglibmm-2.4-dev \
   default-jdk curl wget jq util-linux-extra socat iproute2 ffmpeg python3
 ```
 
@@ -474,14 +484,13 @@ updated to name the next one.
 
 ### 6. What was tested together
 
-The end-to-end check above was run on these branches and commits, all on one machine: 49 of 49 twice with the AMF restart
-(open5gs built in a separate worktree), then on the default builds 48 of 49 once (one UE teardown check missed, cause
-not found) and 49 of 49 once:
+The end-to-end check above gave 50 of 50 on two runs in a row with one AMF, and 51 of 51 on two runs in a row with a
+second AMF (below), on these branches and commits, all on one machine:
 
 | Repository | Branch | Commit |
 |---|---|---|
-| open5gs | `5mbs-development` | `af2dace9b` |
-| ocudu (gNB) | `5mbs-development` | `62e5e8ad5f` |
+| open5gs | `5mbs-development` | `bb2eaf9da` |
+| ocudu (gNB) | `5mbs-development` | `3016d239e4` |
 | srsRAN_4G_mbs (UE) | `feature/mbs-compliance-fixes` | `f966455fa` |
 | rt-media-origin | `main` | `9f94d50` |
 | rt-mbs-function | `development` | `87bed08` |

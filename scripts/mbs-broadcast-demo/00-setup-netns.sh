@@ -62,8 +62,15 @@ else
 fi
 
 sudo -n ip addr replace "$VETH_ROOT_ADDR/$VETH_PREFIX" dev "$VETH_ROOT"
+if [[ "${AMF2:-0}" == 1 ]]; then
+    # a second AMF listens on its own address, on the registered NGAP port (TS 38.412 refers to the IANA registry)
+    sudo -n ip addr replace "$AMF2_NGAP_ADDR/$VETH_PREFIX" dev "$VETH_ROOT"
+fi
 sudo -n ip link set "$VETH_ROOT" up
 sudo -n ip netns exec "$NETNS" ip addr replace "$VETH_NS_ADDR/$VETH_PREFIX" dev "$VETH_NS"
+if [[ "${AMF2:-0}" == 1 ]]; then
+    sudo -n ip netns exec "$NETNS" ip addr replace "$AMF2_NGAP_NS_ADDR/$VETH_PREFIX" dev "$VETH_NS"
+fi
 sudo -n ip netns exec "$NETNS" ip link set "$VETH_NS" up
 sudo -n ip netns exec "$NETNS" ip link set lo up
 

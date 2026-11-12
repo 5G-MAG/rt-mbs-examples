@@ -136,12 +136,27 @@ amf:
       value: 540
 EOF
 
+# AMF2=1 starts a second AMF of the same AMF set (GUAMI pointer 1, its own SBI address and its own NGAP address on the
+# registered port 38412), for the tests that need two AMFs: the choice of an AMF per request, and the takeover of a
+# session by an alternative AMF (TS 23.527 cl. 8.3.2.4). The gNB attaches to it for MBS signalling only (04-start-ran.sh).
+if [[ "${AMF2:-0}" == 1 ]]; then
+    AMF2_ADDR="${AMF2_ADDR:-127.0.0.55}"
+    sed -e "s/address: ${AMF_ADDR}\$/address: ${AMF2_ADDR}/" \
+        -e "s/address: ${VETH_ROOT_ADDR}\$/address: ${AMF2_NGAP_ADDR}/" \
+        -e "s/amf_name: 5g-mag-amf-with-mbs-0/amf_name: 5g-mag-amf-with-mbs-1/" \
+        -e "s/^        set: 1\$/        set: 1\n        pointer: 1/" \
+        "$GEN_CONF_DIR/amf.yaml" > "$GEN_CONF_DIR/amf2.yaml"
+fi
+
 cat > "$GEN_CONF_DIR/smf.yaml" <<EOF
 logger:
   level: info
 global:
 db_uri: mongodb://127.0.0.1/open5gs
 smf:
+  # The MB-SMF asks an AMF again for the broadcast context of a session after this many seconds when its Create failed,
+  # as when the AMF restarted and no gNB is connected to it yet (the AMF answers 500; TS 29.518 has no code of its own).
+  mbsContextRetryDelay: 2
   sbi:
     server:
       - address: $SMF_ADDR
@@ -223,6 +238,11 @@ sleep 1
 run_bg "SMF" smf "$OPEN5GS_BUILD/src/smf/open5gs-smfd" -c "$GEN_CONF_DIR/smf.yaml"
 sleep 1
 run_bg "AMF" amf "$OPEN5GS_BUILD/src/amf/open5gs-amfd" -c "$GEN_CONF_DIR/amf.yaml"
+# AMF2_START=late leaves it to the test to start the second AMF once the sessions exist in the first
+if [[ "${AMF2:-0}" == 1 && "${AMF2_START:-}" != late ]]; then
+    run_bg "AMF2" amf2 "$OPEN5GS_BUILD/src/amf/open5gs-amfd" -c "$GEN_CONF_DIR/amf2.yaml"
+    wait_for_tcp "$AMF2_ADDR" "$SBI_PORT" 15 || die "AMF2 did not come up"
+fi
 
 wait_for_tcp "$SMF_ADDR" "$SBI_PORT" 15 || die "SMF did not come up"
 wait_for_tcp "$AMF_ADDR" "$SBI_PORT" 15 || die "AMF did not come up"

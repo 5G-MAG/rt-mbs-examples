@@ -124,6 +124,9 @@ VETH_NS=veth-g          # ns-gnb end
 VETH_ROOT_ADDR=10.99.0.1
 VETH_NS_ADDR=10.99.0.2
 VETH_PREFIX=30
+# AMF2=1 (a second AMF of the AMF set): its NGAP address, on the registered NGAP port 38412, and the gNB's end of it
+AMF2_NGAP_ADDR=10.99.1.1
+AMF2_NGAP_NS_ADDR=10.99.1.2
 
 # 5GC control-plane addresses (loopback, root namespace)
 NRF_ADDR=127.0.0.10

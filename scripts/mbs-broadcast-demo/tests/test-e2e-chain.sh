@@ -15,14 +15,23 @@ SRC_ID="${E2E_SRC_ID:-tv_1_live/manifest.mpd}"
 WAIT="${E2E_WAIT:-20}"
 PASS=0; FAIL=0
 LOGS="mbsf smf amf upf gnb ue_bcast"
+# With AMF2=1 (a second AMF in the AMF set, see 01-start-core-nfs.sh) the context of a session may be held by either AMF:
+# what "amf" logged is what both AMFs logged.
+[ "${AMF2:-0}" = 1 ] && LOGS="$LOGS amf2"
 
 ap() { curl -s -m 30 -u "$USER_:$TOKEN" "$@"; }
-mark() { for f in $LOGS; do wc -l < "$L/$f.log" > "/tmp/.e2e_n_$f.$$"; done; }
-since() { tail -n +$(( $(cat "/tmp/.e2e_n_$1.$$") + 1 )) "$L/$1.log" | sed 's/\x1b\[[0-9;]*m//g'; }
+mark() { for f in $LOGS; do if [ -f "$L/$f.log" ]; then wc -l < "$L/$f.log" > "/tmp/.e2e_n_$f.$$"; else echo 0 > "/tmp/.e2e_n_$f.$$"; fi; done; }
+since_one() { tail -n +$(( $(cat "/tmp/.e2e_n_$1.$$") + 1 )) "$L/$1.log" 2>/dev/null | sed 's/\x1b\[[0-9;]*m//g'; }
+since() { if [ "$1" = amf ] && [ "${AMF2:-0}" = 1 ]; then since_one amf; since_one amf2; else since_one "$1"; fi; }
 check() { if [ "$2" = "$3" ]; then echo "  PASS  $1"; PASS=$((PASS+1)); else echo "  FAIL  $1 (expected: $3, got: $2)"; FAIL=$((FAIL+1)); fi; }
 # hop NAME LOG REGEX: the regex appears in what LOG wrote since mark(), within WAIT seconds
 hop() {
     local i; for i in $(seq 1 "$WAIT"); do since "$2" | grep -a -q -E "$3" && { check "$1" ok ok; return; }; sleep 1; done
+    check "$1" "not seen" ok
+}
+# hop_n NAME LOG REGEX N: the regex appears at least N times in what LOG wrote since mark(), within WAIT seconds
+hop_n() {
+    local i; for i in $(seq 1 "$WAIT"); do [ "$(since "$2" | grep -a -c -E "$3")" -ge "$4" ] && { check "$1" ok ok; return; }; sleep 1; done
     check "$1" "not seen" ok
 }
 nohop() { sleep 1; if since "$2" | grep -a -q -E "$3"; then check "$1" "seen" "absent"; else check "$1" absent absent; fi; }
@@ -47,7 +56,13 @@ create_session() {
     hop "gNB: BC Bearer Context Setup on the CU-UP (E1AP)" gnb 'Received BC Bearer Context Setup Request on the CU-UP'
     hop "UE: MBS channel set up" ue_bcast 'MBS Channel Setup'
     hop "UE: PDSCH of the new G-RNTI received" ue_bcast 'PDCCH: cc=0, g-rnti='
-    STATE=$(ap "$AP/ingest-sessions/$ING" | python3 -c 'import json,sys; d=json.load(sys.stdin)["mbsDisSessInfos"]["AP_MBS_SESSION_1"]; print(d["mbsDistSessState"], bool(d.get("mbsSessionId",{}).get("tmgi")))')
+    # The MBSTF reports ACTIVE to the MBSF asynchronously, so the provider shows ACTIVE some time after the data flows: poll.
+    local i
+    for i in $(seq 1 "$WAIT"); do
+        STATE=$(ap "$AP/ingest-sessions/$ING" | python3 -c 'import json,sys; d=json.load(sys.stdin)["mbsDisSessInfos"]["AP_MBS_SESSION_1"]; print(d["mbsDistSessState"], bool(d.get("mbsSessionId",{}).get("tmgi")))')
+        [ "$STATE" = "ACTIVE True" ] && break
+        sleep 1
+    done
     check "provider: session ACTIVE with a TMGI" "$STATE" "ACTIVE True"
 }
 release_session() {
@@ -108,10 +123,21 @@ WAIT=20
 if [ "${E2E_RESTART_AMF:-1}" = 1 ]; then
 # The restarted AMF holds no MBS context: the MB-SMF creates it again and the gNB, which kept the session, releases it and
 # sets it up again. TS 23.527 cl. 8.3.2.4 covers an AMF that failed without restart; none read covers this exact case.
+if [ "${AMF2:-0}" = 1 ] && [ "${AMF2_START:-}" = late ]; then
+# The second AMF of the set starts now, when the sessions exist in the first, so that the loss of the first leaves it as the
+# alternative AMF (TS 23.527 cl. 8.3.2.4).
+echo "the second AMF of the AMF set starts, and the gNB connects to it"
+echo 0 > "/tmp/.e2e_n_amf2.$$"
+run_bg "AMF2" amf2 "$OPEN5GS_BUILD/src/amf/open5gs-amfd" -c "$GEN_CONF_DIR/amf2.yaml" >/dev/null
+WAIT=60; hop "AMF2: NG Setup Response to the gNB" amf2 'NGSetupResponse'; WAIT=20
+fi
 echo "restore: the AMF restarts while the session is active"
 mark; restart_amf; WAIT=90
 hop "AMF: Broadcast ContextCreate received again" amf 'MBS Broadcast ContextCreate request received'
-hop "AMF: Broadcast Session Setup Response from the gNB again" amf 'BROADCAST SESSION SETUP RESPONSE'
+# Both sessions of the demo (its own service and the throwaway one) are set up again; the UE follows with its MCCH
+# modification period, so the next scenario starts when it has both channels back.
+hop_n "AMF: Broadcast Session Setup Response from the gNB again, both sessions" amf 'BROADCAST SESSION SETUP RESPONSE' 2
+hop_n "UE: both MBS channels set up again" ue_bcast 'MBS Channel Setup' 2
 WAIT=20
 fi
 fi

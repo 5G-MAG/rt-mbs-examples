@@ -18,7 +18,7 @@ kill_pidfile() {
     rm -f "$pidfile"
 }
 
-for name in provider app-relay socat app rt-mbs-client ue gnb media-server mbsf mbstf amf smf upf bsf nssf pcf udr udm ausf nrf; do
+for name in provider app-relay socat app rt-mbs-client ue gnb media-server mbsf mbstf amf2 amf smf upf bsf nssf pcf udr udm ausf nrf; do
     kill_pidfile "$name"
 done
 

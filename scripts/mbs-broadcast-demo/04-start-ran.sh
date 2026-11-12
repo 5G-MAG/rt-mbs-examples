@@ -73,6 +73,28 @@ mbs_opt intra_fsai "${MBS_INTRA_FSAI:-}"
 mbs_opt max_pdcch_alloc_attempts_per_slot "${MBS_MAX_PDCCH_ATTEMPTS_PER_SLOT:-}"
 mbs_opt max_crbs_reserved_for_mcch_per_slot "${MBS_MAX_CRBS_RESERVED_FOR_MCCH:-}"
 
+# GNB_PCAP=1 also captures F1AP, E1AP and MAC (with the RRC messages of the broadcast, SIB20 and the MCCH); the files are
+# written when the gNB stops, and TShark decodes them (they use the Exported PDU format)
+gnb_pcap=false
+[[ "${GNB_PCAP:-0}" == 1 ]] && gnb_pcap=true
+
+# AMF2=1: the gNB connects to the second AMF of the AMF set as well, for MBS signalling only (see 01-start-core-nfs.sh)
+gnb_extra_amfs=""
+if [[ "${AMF2:-0}" == 1 ]]; then
+    gnb_extra_amfs="  extra_amfs:
+    - addr: $AMF2_NGAP_ADDR
+      port: 38412
+      bind_addr: $AMF2_NGAP_NS_ADDR
+      mbs_only: true
+      supported_tracking_areas:
+        - tac: $TAC
+          plmn_list:
+            - plmn: \"${PLMN_MCC}${PLMN_MNC}\"
+              tai_slice_support_list:
+                - sst: 1
+                  sd: 1"
+fi
+
 cat > "$GEN_CONF_DIR/gnb_bcast.yaml" <<EOF
 gnb_id: 1
 
@@ -89,6 +111,7 @@ cu_cp:
               - sst: 1
                 sd: 1
   inactivity_timer: 7200
+${gnb_extra_amfs}
 
 cu_up:
   ngu:
@@ -233,7 +256,12 @@ log:
   broadcast_enabled: ${GNB_BCAST_LOG:-false}
 
 pcap:
-  mac_enable: false
+  mac_enable: $gnb_pcap
+  mac_filename: $LOG_DIR/gnb_mac.pcap
+  f1ap_enable: $gnb_pcap
+  f1ap_filename: $LOG_DIR/gnb_f1ap.pcap
+  e1ap_enable: $gnb_pcap
+  e1ap_filename: $LOG_DIR/gnb_e1ap.pcap
   ngap_enable: true
   ngap_filename: $LOG_DIR/gnb_ngap.pcap
 EOF
