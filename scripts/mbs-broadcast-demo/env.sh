@@ -62,7 +62,7 @@ MEDIA_ORIGIN_DIR="${MEDIA_ORIGIN_DIR:-$REPOS_ROOT/rt-media-origin}"
 # script (start-all.sh, status.sh, 06-provision-*.sh, live-encoder.sh, live-carousel.sh) is
 # unaffected by which one is running.
 MEDIA_ORIGIN_BACKEND="${MEDIA_ORIGIN_BACKEND:-legacy}"
-# The gNB repository is 5G-MAG/ocudu (branch 5mbs-development), so that is the directory a plain
+# The gNB repository is 5G-MAG/ocudu (branch 5mbs), so that is the directory a plain
 # `git clone` produces and the default here. The srsRAN-based 5G-MAG/srsRAN_Project_mbs is
 # deprecated; a checkout of it (or of the older rt-srsRAN_Project_mbs name) is still accepted when
 # no ocudu checkout exists.

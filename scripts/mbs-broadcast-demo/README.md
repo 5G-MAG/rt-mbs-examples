@@ -250,7 +250,7 @@ having `libzmq3-dev` installed does not cover it.
 `srsRAN_4G_mbs`'s own README covers its two extra dependencies, cpprestsdk and OpenSSL, in more
 detail.
 
-Clone each from its default branch. **Where you put them matters**: the scripts expect open5gs and
+Clone each from its stable branch: `5mbs` on the three forks, the default branch of the six `rt-mbs-*` components. **Where you put them matters**: the scripts expect open5gs and
 the two srsRAN forks directly under one root, and the six MBS components one level deeper in
 `rt-mbs/`. Cloning them all side by side gives a layout the defaults do not describe, so from a
 machine with nothing on it:
@@ -259,8 +259,8 @@ machine with nothing on it:
 mkdir -p ~/Repos/rt-mbs
 
 cd ~/Repos
-git clone -b 5mbs-development https://github.com/5G-MAG/open5gs.git
-git clone -b 5mbs-development https://github.com/5G-MAG/ocudu.git
+git clone -b 5mbs https://github.com/5G-MAG/open5gs.git
+git clone -b 5mbs https://github.com/5G-MAG/ocudu.git
 git clone -b 5mbs https://github.com/5G-MAG/srsRAN_4G_mbs.git
 git clone https://github.com/5G-MAG/rt-media-origin.git   # only for MEDIA_ORIGIN_BACKEND=rt-media-origin
 
@@ -277,8 +277,8 @@ That produces exactly the tree in section 3, so no variable needs setting. Only 
 shown with `--recurse-submodules` have any: MBSF, MBSTF and the MBS Client. If you already cloned one
 of those without it, run `git submodule update --init --recursive` in it before building.
 
-**The `-b 5mbs-development` on open5gs and `ocudu` is not optional.** Both are forks whose `main` tracks upstream and
-carries no MBS work; `5mbs-development` is the branch the broadcast chain in this tutorial was tested on, and the AMF,
+**The `-b 5mbs` on open5gs and `ocudu` is not optional.** Both are forks whose `main` tracks upstream and
+carries no MBS work; `5mbs` is the branch the broadcast chain in this tutorial runs on, and the AMF,
 MB-SMF, MB-UPF and gNB fixes the end-to-end check below depends on are on it. In `ocudu` the difference is total, so a
 plain `git clone` there produces a gNB that builds and then cannot do MBS. `srsRAN_4G_mbs` already defaults to the branch
 its MBS work is on, and section 6 lists the exact branches and commits that were tested together.
@@ -422,14 +422,15 @@ To test unmerged work, check the relevant branch out in **every** repository tha
 one whose change you are interested in. The components are built against each other, so a mixture of
 branches produces failures that read as defects in whichever component happens to compile first.
 
-Taking `feature/mbs-compliance-fixes` as the example, it exists in all nine of the repositories you
-cloned:
+Taking the branches of section 6 as the example, since the same branch name does not exist in every repository:
 
 ```bash
-for d in open5gs ocudu srsRAN_4G_mbs \
-         rt-mbs/rt-mbs-function rt-mbs/rt-mbs-transport-function rt-mbs/rt-mbs-client \
-         rt-mbs/rt-mbs-application rt-mbs/rt-mbs-application-provider rt-mbs/rt-mbs-examples; do
-    git -C ~/Repos/"$d" checkout feature/mbs-compliance-fixes && git -C ~/Repos/"$d" pull
+for pair in open5gs:5mbs-development ocudu:5mbs-development srsRAN_4G_mbs:feature/mbs-compliance-fixes \
+            rt-mbs/rt-mbs-function:development rt-mbs/rt-mbs-transport-function:development \
+            rt-mbs/rt-mbs-client:feature/mbs-compliance-fixes rt-mbs/rt-mbs-application:feature/mbs-compliance-fixes \
+            rt-mbs/rt-mbs-application-provider:feature/mbs-compliance-fixes \
+            rt-mbs/rt-mbs-examples:feature/mbs-compliance-fixes; do
+    git -C ~/Repos/"${pair%%:*}" checkout "${pair#*:}" && git -C ~/Repos/"${pair%%:*}" pull || break
 done
 ```
 
@@ -455,8 +456,8 @@ others, and the failure is easy to miss: if `ninja` begins part-way through, at 
 `[4057/4342]` rather than near `[1/...]`, then `rm -rf build` did not take effect and the build will
 reproduce whatever it failed on before.
 
-Skipping it produces errors that look like a broken component and are not. A real example: MBSF on
-`feature/mbs-compliance-fixes` with `subprojects/open5gs` left on `5mbs` fails with
+Skipping it produces errors that look like a broken component and are not. A real example: MBSF with
+`subprojects/open5gs` left on `5mbs`, while its wrap names a revision that has the attribute, fails with
 `'OpenAPI_ext_mbs_session_t' has no member named 'red_mbs_service_area'`, from
 `rt-5gc-service-consumers` code that is correct against the open5gs revision its wrap names.
 
@@ -484,20 +485,19 @@ updated to name the next one.
 
 ### 6. What was tested together
 
-The end-to-end check above gave 50 of 50 on four runs in a row with one AMF, and 51 of 51 on two runs with a second AMF
-(`AMF2=1 AMF2_START=late`), on the trees these commits hold, all on one machine. The three commits of open5gs, ocudu and
-srsRAN_4G_mbs are the tips after the unpushed history of each branch was regrouped by feature; the trees are those that
-were tested (the UE differs from the tested one only in its README).
+The end-to-end check above gave 50 of 50 on one run (2026-11-13, Ubuntu 26.04.1 LTS, one machine, one AMF), on the trees these
+commits hold. `rt-mbs-function` and `rt-mbs-transport-function` were run with the local `subprojects/*.wrap` edits that
+point their `open5gs`, `rt-5gc-service-consumers` and `libflute` subprojects at the branches under test.
 
 | Repository | Branch | Commit |
 |---|---|---|
-| open5gs | `5mbs-development` | `3fa615b00` |
+| open5gs | `5mbs-development` | `19149433f` |
 | ocudu (gNB) | `5mbs-development` | `61bcd3e80` |
 | srsRAN_4G_mbs (UE) | `feature/mbs-compliance-fixes` | `b23040496` |
 | rt-media-origin | `main` | `9f94d50` |
 | rt-mbs-function | `development` | `87bed08` |
 | rt-mbs-transport-function | `development` | `e33b245` |
-| rt-mbs-client | `feature/mbs-compliance-fixes` | `304cbfb` |
+| rt-mbs-client | `feature/mbs-compliance-fixes` | `6f448ce` |
 | rt-mbs-application | `feature/mbs-compliance-fixes` | `7b75b26` |
 | rt-mbs-application-provider | `feature/mbs-compliance-fixes` | `9630ddb` |
 
