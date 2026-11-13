@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
     inputs:
       branch:
-        description: Branch to build every component at (empty: the stable branch of each, 5mbs on the forks and main elsewhere)
+        description: "Branch to build every component at (empty means the stable branch of each: 5mbs on the forks, main elsewhere)"
         required: false
         type: string
 
