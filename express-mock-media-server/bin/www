@@ -22,10 +22,17 @@ app.set('port', port);
 var server = http.createServer(app);
 
 /**
- * Listen on provided port, on all network interfaces.
+ * Listen on provided port. Loopback only by default -- this is a mock media origin used as a
+ * live-test fixture elsewhere in this project (rt-mbs-transport-function's OBJECT_COLLECTION
+ * live test, the mbs-function-tutorial.sh script); nothing in this project needs it reachable
+ * from another host, and the stock express-generator default (every interface) was never a
+ * deliberate choice here -- this whole file is unmodified scaffolding. Lower severity than the
+ * other two places this same fix was made this session (rt-mbs-client's LocalApiServer,
+ * rt-mbs-application's dashboard): this serves only static, read-only test content, no
+ * control-plane action. Set HOST to override.
  */
 
-server.listen(port);
+server.listen(port, process.env.HOST || '127.0.0.1');
 server.on('error', onError);
 server.on('listening', onListening);
 

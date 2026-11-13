@@ -37,6 +37,13 @@ mbsf:
     mbr: 10 Mbps
     docRoot: /var/cache/mbsf/user-service-announcements
 
+  # See rt-mbs-function's own mbsf.yaml.in comment (TS 26.502 cl.4.5.6/Annex B.3.1, F12): nominated
+  # by this MBSF for a Broadcast Distribution Session's own Nmb9 traffic-flow-info address when no
+  # AF-supplied SSM exists to derive one from.
+  broadcastDistribution:
+    sourceAddress: 10.33.33.1
+    destinationAddress: 232.0.0.2
+
   activeDistributionSessionsSoftLimit: 1000
   activeUserServicesSoftLimit: 50
   actPeriodGoToEstablishedState: 60

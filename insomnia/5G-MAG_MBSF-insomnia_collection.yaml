@@ -1044,6 +1044,78 @@ collection:
             store: true
           rebuildPath: true
       - url: "{{ _.mbsf_base_url }}/nmbsf-mbs-ud-ingest/v1/sessions"
+        name: Create Carousel MBS User Data Ingest Session with AL-FEC
+        meta:
+          id: req_697b4683b91441319f943e399f4fc9b0
+          created: 1791351957702
+          modified: 1791351957702
+          isPrivate: false
+          description: "AL-FEC: the MBSF passes fecConfig to the MBSTF as the Distribution Session fecInformation and announces a=FEC-declaration encoding-id=1 in the session SDP. carousel-file-set is the mock media server object manifest for fec-object and object1."
+          sortKey: -1775557016991
+        method: POST
+        body:
+          mimeType: application/json
+          text: |+
+            {
+              "mbsUserServId": "{{ _.mbs_user_service_id }}",
+              "mbsDisSessInfos": {
+                "AP_MBS_SESSION_1": {
+                  "mbsSessionId": {
+                    "ssm": {
+                      "sourceIpAddr": {
+                        "ipv4Addr": "127.0.0.5"
+                      },
+                      "destIpAddr": {
+                        "ipv4Addr": "232.10.0.7"
+                      }
+                    }
+                  },
+                  "mbsDistSessState": "ACTIVE",
+                  "maxContBitRate": "10 Mbps",
+                  "distrMethod": "OBJECT",
+                  "objDistrInfo": {
+                    "operatingMode": "CAROUSEL",
+                    "objAcqMethod": "PULL",
+                    "objIngUri": "http://127.0.0.1:3004/",
+                    "objAcqIds": ["carousel-file-set"],
+                    "objDistrUri": "http://127.0.0.2/"
+                  },
+                  "fecConfig": {
+                    "fecScheme": "urn:ietf:rmt:fec:encoding:1",
+                    "fecOverHead": 20
+                  }
+                }
+              },
+            	"suppFeat": "3"
+            }
+
+        headers:
+          - name: Content-Type
+            value: application/json
+          - name: User-Agent
+            value: insomnia/12.2.0
+        scripts:
+          afterResponse: >-
+            const locationHeader = insomnia.response.headers.find(header =>
+            header.key.toLowerCase() === 'location')
+
+
+            if(locationHeader) {
+            	let locationValue = locationHeader.value;
+            	if (locationValue) {
+            			const uuid = locationValue.split('/').pop();
+            			insomnia.environment.set('mbs_user_data_ing_session_id', uuid);
+            	}
+            }
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ _.mbsf_base_url }}/nmbsf-mbs-ud-ingest/v1/sessions"
         name: Create MBS User Data Ingest Session (one period)
         meta:
           id: req_a5c279dd8816472da4e4ca0b88fe554f

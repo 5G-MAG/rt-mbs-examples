@@ -188,8 +188,11 @@ services:
     command: "-c /etc/open5gs/custom/upf_mb-upf.yaml"
     networks:
       5g-mag:
+        ipv4_address: 10.33.33.99
         aliases:
           - upf-mb-upf.5g-mag.org
+    extra_hosts:
+      - "upf-mb-upf.5g-mag.org:10.33.33.99"
     configs:
       - source: upf_mb-upf_config
         target: /etc/open5gs/custom/upf_mb-upf.yaml
