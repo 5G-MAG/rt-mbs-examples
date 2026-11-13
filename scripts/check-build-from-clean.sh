@@ -22,7 +22,7 @@ set -uo pipefail
 
 IMAGE=ubuntu:26.04
 GNB_REPO="${GNB_REPO:-ocudu}"   # the gNB repository; srsRAN_Project_mbs is the deprecated one
-BRANCH=""   # empty: each component at the branch the demo is tested on, see branch_of()
+BRANCH=""   # empty: each component at its stable branch, see branch_of()
 QUICK=0
 EXAMPLES_CHECKOUT=""
 WORK=${WORK:-$(mktemp -d)}
@@ -59,13 +59,13 @@ echo "package list from the README: $(wc -w < "$WORK/pkgs") packages"
 
 SRC="$WORK/tree"
 mkdir -p "$SRC/rt-mbs"
-# The branch each component is tested on (section "What was tested together" of the demo README); --branch overrides it for all.
+# The stable branch of each component: 5mbs on the MBS forks (their main tracks upstream), main on the rt-* components,
+# as the stable layout of the demo README describes. --branch overrides it for all, to build work that has not merged yet.
 branch_of() {
     if [ -n "$BRANCH" ]; then echo "$BRANCH"; return; fi
     case "$1" in
-        open5gs|ocudu|srsRAN_Project_mbs)           echo 5mbs-development ;;
-        rt-mbs-function|rt-mbs-transport-function)  echo development ;;
-        *)                                          echo feature/mbs-compliance-fixes ;;
+        open5gs|ocudu|srsRAN_Project_mbs|srsRAN_4G_mbs)  echo 5mbs ;;
+        *)                                                echo main ;;
     esac
 }
 clone() {
