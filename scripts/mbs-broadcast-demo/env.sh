@@ -87,6 +87,10 @@ UE_DIR="${UE_DIR:-$RAN_ROOT/srsRAN_4G_mbs}"
 # touching the others. To run MBSTF under AddressSanitizer, for example:
 #   MBSTF_BUILD=.../rt-mbs-transport-function/build-asan \
 #   ASAN_OPTIONS=detect_leaks=0:log_path=/tmp/asan ./start-all.sh
+#
+# An MBSTF built against the Release 19 uplift of Open5GS (Open5GS 2.8) reads the SBI part of its configuration in the
+# form the other network functions use, so start it with MBSTF_CONFIG_FORM=uplift (the default, legacy, is the form of
+# the earlier builds); see 02-start-mbs-function.sh.
 OPEN5GS_BUILD="${OPEN5GS_BUILD:-$OPEN5GS_DIR/build}"
 MBSTF_BUILD="${MBSTF_BUILD:-$MBSTF_DIR/build}"
 MBSF_BUILD="${MBSF_BUILD:-$MBSF_DIR/build}"

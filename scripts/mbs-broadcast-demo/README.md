@@ -348,6 +348,12 @@ REPOS_ROOT=/srv/code ./demo up
 `./demo doctor` lists every checkout and binary it cannot find, and names the variable that moves
 each one, so a wrong layout is caught before anything starts.
 
+An MBSTF built against the Release 19 uplift of Open5GS (Open5GS 2.8) reads the SBI part of its
+configuration as the other network functions do (`mbstf.sbi.server` and `mbstf.sbi.client.nrf`),
+not as the earlier builds do. Start the demo with `MBSTF_CONFIG_FORM=uplift` for that build; the
+default, `legacy`, is the form of the earlier ones. Choosing the wrong one makes the MBSTF stop at
+start-up while it reads its configuration.
+
 ### 4. Content
 
 **Nothing here is downloadable and nothing is assumed to be on the machine already.** The directory

@@ -11,24 +11,54 @@ require_file "$MBSTF_BUILD/src/mbstf/open5gs-mbstfd"
 require_file "$MBSF_BUILD/src/mbsf/open5gs-mbsfd"
 wait_for_tcp "$NRF_ADDR" "$SBI_PORT" 5 || die "NRF is not up yet -- run 01-start-core-nfs.sh first"
 
+# How the MBSTF reads its SBI section depends on the Open5GS it is built against. An MBSTF built against the
+# Release 19 uplift of Open5GS (Open5GS 2.8) reads it as the other network functions do: mbstf.sbi.server and
+# mbstf.sbi.client.nrf, with no top-level sbi: and nrf:. Earlier builds read the older form, a list of
+# addr/port under mbstf.sbi, a top-level sbi: for TLS and a top-level nrf:. MBSTF_CONFIG_FORM=uplift selects the
+# first; the default, legacy, is the second.
+case "${MBSTF_CONFIG_FORM:-legacy}" in
+    uplift)
+        MBSTF_YAML_TOP=""
+        MBSTF_YAML_SBI="    sbi:
+      server:
+        - address: $MBSTF_SBI_ADDR
+          port: $SBI_PORT
+      client:
+        nrf:
+          - uri: http://$NRF_ADDR:$SBI_PORT"
+        MBSTF_YAML_NRF=""
+        ;;
+    legacy)
+        MBSTF_YAML_TOP="sbi:
+  server:
+    no_tls: true
+  client:
+    no_tls: true
+"
+        MBSTF_YAML_SBI="    sbi:
+      - addr: $MBSTF_SBI_ADDR
+        port: $SBI_PORT"
+        MBSTF_YAML_NRF="
+nrf:
+    sbi:
+      - addr:
+          - $NRF_ADDR
+        port: $SBI_PORT"
+        ;;
+    *) die "MBSTF_CONFIG_FORM must be legacy or uplift, not '${MBSTF_CONFIG_FORM}'" ;;
+esac
+
 cat > "$GEN_CONF_DIR/mbstf.yaml" <<EOF
 logger:
   level: debug
 
 global:
 
-sbi:
-  server:
-    no_tls: true
-  client:
-    no_tls: true
-
+${MBSTF_YAML_TOP}
 mbstf:
     # mbstf.pathMtu is left at its 1500 byte default, which is the MTU of every interface these
     # packets cross here: veth-h into the core's namespace, and tun_bcastue on the UE side.
-    sbi:
-      - addr: $MBSTF_SBI_ADDR
-        port: $SBI_PORT
+${MBSTF_YAML_SBI}
     distSessionAPI:
       - addr: $MBSTF_DISTSESSION_ADDR
         port: $SBI_PORT
@@ -44,12 +74,7 @@ mbstf:
     serverResponseCacheControl:
       - distMaxAge: 60
         ObjectMaxAge: 60
-
-nrf:
-    sbi:
-      - addr:
-          - $NRF_ADDR
-        port: $SBI_PORT
+${MBSTF_YAML_NRF}
 EOF
 
 cat > "$GEN_CONF_DIR/mbsf.yaml" <<EOF
