@@ -25,6 +25,17 @@ done
 [[ -n "$UE_IP" ]] || die "tun_bcastue got no address within ${UE_TUN_WAIT_SECS}s -- check $LOG_DIR/ue_bcast.log for the attach, and raise UE_TUN_WAIT_SECS in env.sh if the UE is simply slow on this machine"
 log "UE PDU session address: $UE_IP"
 
+# Optional: let a UE application's own UDP socket receive the PACKET distribution method. The MBSTF's SSM source
+# address in this demo is a loopback address (BCAST_SSM_SOURCE, 127.0.0.68), and Linux drops multicast whose
+# source is a loopback address when it arrives on any other interface, unless route_localnet is set. The client's
+# FLUTE path does not need it (raw_capture_relay below reads the packets before that check); a plain UDP receiver
+# in the UE namespace does. The client discards the duplicate FLUTE packets this makes it see.
+if [[ "${UE_ROUTE_LOCALNET:-0}" == "1" ]]; then
+    log "UE_ROUTE_LOCALNET=1: allowing loopback-sourced multicast on tun_bcastue"
+    sudo -n ip netns exec "$NETNS" sysctl -qw net.ipv4.conf.tun_bcastue.route_localnet=1 \
+        net.ipv4.conf.tun_bcastue.rp_filter=0 net.ipv4.conf.all.rp_filter=0
+fi
+
 # rt-mbs-client.conf: field names/values per rt-mbs-client/run/rt-mbs-client.conf, adapted
 # for this deployment's addresses. flute_iface points at the UE's own real PDU-session
 # address (changes across UE restarts, hence discovered live above, not hardcoded).

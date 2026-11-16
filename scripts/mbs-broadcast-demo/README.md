@@ -360,6 +360,13 @@ refused (the gNB log says which identifiers the session and the cells have). Sta
 example `MBS_INTRA_FSAI=7`, which a session with `mbsFSAId` `000007` then matches) to have the cell broadcast it in SIB21; that
 schedules a third SI message, so the SI periods become 64 frames instead of 32.
 
+The PACKET distribution method (Application Provider, `distrMethod` PACKET) delivers each datagram to the UE as an IP packet on
+`tun_bcastue`, with the source address the MBSTF uses for the session (`BCAST_SSM_SOURCE`, a loopback address in this demo). Linux
+discards multicast with a loopback source that arrives on another interface, so a UDP socket of an application in the UE namespace
+receives nothing unless `route_localnet` is set on that interface. Start the demo with `UE_ROUTE_LOCALNET=1` to set it. The
+client's FLUTE path does not need it, it reads the packets before that check, and the client discards the duplicate FLUTE packets
+the setting makes it see.
+
 ### 4. Content
 
 **Nothing here is downloadable and nothing is assumed to be on the machine already.** The directory
