@@ -367,6 +367,11 @@ receives nothing unless `route_localnet` is set on that interface. Start the dem
 client's FLUTE path does not need it, it reads the packets before that check, and the client discards the duplicate FLUTE packets
 the setting makes it see.
 
+`CLIENT_PACKET_FORWARD_PORT=<port>` makes the MBS Client forward the payload of each datagram of a Packet Distribution
+Method session to `127.0.0.1:<port>` in the UE namespace (`mbstf_client.packet_forward_port` of the client's configuration).
+It is off by default, and the client then receives and counts those datagrams and delivers them nowhere. No document
+opened says how received packets reach the MBS-Aware Application, so this is an operator setting.
+
 ### 4. Content
 
 **Nothing here is downloadable and nothing is assumed to be on the machine already.** The directory

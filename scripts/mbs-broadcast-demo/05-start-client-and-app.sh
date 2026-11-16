@@ -70,6 +70,7 @@ mbsf_client: {
 mbstf_client: {
   flute_iface: "$UE_IP";
   raw_capture_relay: true;
+${CLIENT_PACKET_FORWARD_PORT:+  packet_forward_port: $CLIENT_PACKET_FORWARD_PORT;}
 }
 
 mbs_aware_api: {
