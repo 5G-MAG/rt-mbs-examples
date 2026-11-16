@@ -95,6 +95,20 @@ if [[ "${AMF2:-0}" == 1 ]]; then
                   sd: 1"
 fi
 
+# SIB21 (TS 38.331 SIB21: the Frequency Selection Areas the cell broadcasts) is scheduled only when MBS_INTRA_FSAI names
+# some: the cell then reports them to the CU-CP (F1 setup), and a Broadcast MBS session that carries an MBS FSA ID is set
+# up in the cells that broadcast one of them. Without one a session with an MBS FSA ID is refused ("no cell of the DU in
+# the MBS service area broadcasts a FSA of the session"). It goes after SIB20, whose window it follows.
+# Three SI windows of 160 slots do not fit the 32 frames the two SI messages use, so every period becomes 64 frames.
+SI_PERIOD=32
+SIB21_SCHED=""
+if [ -n "${MBS_INTRA_FSAI:-}" ]; then
+    SI_PERIOD=64
+    SIB21_SCHED="      - si_period: ${SI_PERIOD}
+        sib_mapping: 21
+        si_window_position: 3"
+fi
+
 cat > "$GEN_CONF_DIR/gnb_bcast.yaml" <<EOF
 gnb_id: 1
 
@@ -126,11 +140,12 @@ cell_cfg:
     sib2:
       q_rx_lev_min: -70
     si_sched_info:
-      - si_period: 32
+      - si_period: ${SI_PERIOD}
         sib_mapping: 2
-      - si_period: 32
+      - si_period: ${SI_PERIOD}
         sib_mapping: 20
         si_window_position: 2
+${SIB21_SCHED}
   dl_arfcn: ${NR_DL_ARFCN}
   band: ${NR_BAND}
   channel_bandwidth_MHz: ${CELL_BW_MHZ}

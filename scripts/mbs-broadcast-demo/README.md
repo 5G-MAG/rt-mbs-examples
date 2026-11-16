@@ -354,6 +354,12 @@ not as the earlier builds do. Start the demo with `MBSTF_CONFIG_FORM=uplift` for
 default, `legacy`, is the form of the earlier ones. Choosing the wrong one makes the MBSTF stop at
 start-up while it reads its configuration.
 
+A Broadcast MBS session can carry an MBS Frequency Selection Area identifier (`mbsFSAId` in the Application Provider), and the
+gNB sets such a session up only in a cell that broadcasts that identifier. The demo cell broadcasts none, so such a session is
+refused (the gNB log says which identifiers the session and the cells have). Start the demo with `MBS_INTRA_FSAI=<number>` (for
+example `MBS_INTRA_FSAI=7`, which a session with `mbsFSAId` `000007` then matches) to have the cell broadcast it in SIB21; that
+schedules a third SI message, so the SI periods become 64 frames instead of 32.
+
 ### 4. Content
 
 **Nothing here is downloadable and nothing is assumed to be on the machine already.** The directory
