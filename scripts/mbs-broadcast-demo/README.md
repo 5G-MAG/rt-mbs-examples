@@ -554,6 +554,11 @@ Two commands differ from the table in section 2 for this line:
   (the unmodified `release_26_10` tag fails the same way).
 - Start the demo with `MBSTF_CONFIG_FORM=uplift ./demo up`: the Release 19 MBSTF reads its configuration in the form of Open5GS 2.8 (see section 3).
 
+`MBSF_NR_NTN_ISA=true ./demo up` turns on the MBSF option `nrNtnIntendedServiceArea`: for a Distribution Session whose `extTgtServAreas` hold a polygon
+of 3 to 15 points or a point with an uncertainty circle, the MBSF derives an NR NTN Intended Service Area and sends it to the MB-SMF in the MBS service area.
+It needs the MBSF of this line (an older MBSF ignores the key with a warning). A session with geographical areas cannot be updated yet: the MB-SMF answers a
+patch of `/extMbsServiceArea` with "not implemented", so a change of its state is refused with 502.
+
 The radio side of this line stays Release 18; the NR NTN Intended Service Area is carried through the core and NGAP and the gNB accepts it, but no SIB27 or
 `mbs-SessionAreaList-r19` is broadcast.
 
