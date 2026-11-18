@@ -558,8 +558,6 @@ Geographical target service areas are not supported on this line: `extTgtServAre
 has the NEF/MBSF translate such an area to a TAI or cell list before the MB-SMF sees it, which the MBSF does not do (it has no cell locations); it forwards the areas to the MB-SMF
 in `extMbsServiceArea`, which TS 29.571 V19.8.0 allows only over N33. The demo's Application Provider is a trusted AF and gives its target service area in `tgtServAreas`
 (`taiList`, and `intendedServAreaList` for an NR NTN Intended Service Area), which is the supported way and the one the tests use.
-`MBSF_NR_NTN_ISA=true ./demo up` turns on the experimental MBSF option `nrNtnIntendedServiceArea` (derive an Intended Service Area from geographical areas); it is **not specification
-compliant** for the reasons above, its encoding is an unconfirmed reading, and it stays off unless set.
 
 The radio side of this line stays Release 18; the NR NTN Intended Service Area is carried through the core and NGAP and the gNB accepts it, but no SIB27 or
 `mbs-SessionAreaList-r19` is broadcast.
