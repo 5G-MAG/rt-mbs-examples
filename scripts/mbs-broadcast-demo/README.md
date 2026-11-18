@@ -554,10 +554,12 @@ Two commands differ from the table in section 2 for this line:
   (the unmodified `release_26_10` tag fails the same way).
 - Start the demo with `MBSTF_CONFIG_FORM=uplift ./demo up`: the Release 19 MBSTF reads its configuration in the form of Open5GS 2.8 (see section 3).
 
-`MBSF_NR_NTN_ISA=true ./demo up` turns on the MBSF option `nrNtnIntendedServiceArea`: for a Distribution Session whose `extTgtServAreas` hold a polygon
-of 3 to 15 points or a point with an uncertainty circle, the MBSF derives an NR NTN Intended Service Area and sends it to the MB-SMF in the MBS service area.
-It needs the MBSF of this line (an older MBSF ignores the key with a warning). A session with geographical areas cannot be updated yet: the MB-SMF answers a
-patch of `/extMbsServiceArea` with "not implemented", so a change of its state is refused with 502.
+Geographical target service areas are not supported on this line: `extTgtServAreas` is for an untrusted AF over N33 only (TS 29.580 V19.6.0), and TS 23.247 V19.3.0
+has the NEF/MBSF translate such an area to a TAI or cell list before the MB-SMF sees it, which the MBSF does not do (it has no cell locations); it forwards the areas to the MB-SMF
+in `extMbsServiceArea`, which TS 29.571 V19.8.0 allows only over N33. The demo's Application Provider is a trusted AF and gives its target service area in `tgtServAreas`
+(`taiList`, and `intendedServAreaList` for an NR NTN Intended Service Area), which is the supported way and the one the tests use.
+`MBSF_NR_NTN_ISA=true ./demo up` turns on the experimental MBSF option `nrNtnIntendedServiceArea` (derive an Intended Service Area from geographical areas); it is **not specification
+compliant** for the reasons above, its encoding is an unconfirmed reading, and it stays off unless set.
 
 The radio side of this line stays Release 18; the NR NTN Intended Service Area is carried through the core and NGAP and the gNB accepts it, but no SIB27 or
 `mbs-SessionAreaList-r19` is broadcast.

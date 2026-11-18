@@ -103,8 +103,8 @@ mbsf:
       port: $SBI_PORT
 
   # MBSF_NR_NTN_ISA=true: derive an NR NTN Intended Service Area from the geographical areas of a Distribution Session
-  # (TS 23.247 clause 6.21). Written only when set; an MBSF without the option (before the Release 19 branch) ignores the key
-  # with a warning.
+  # (TS 23.247 clause 6.21). Experimental and not specification compliant (see the README, "The Release 19 line"). Written only
+  # when set; an MBSF without the option (before the Release 19 branch) ignores the key with a warning.
 ${MBSF_NR_NTN_ISA:+  nrNtnIntendedServiceArea: $MBSF_NR_NTN_ISA}
 
   serverResponseCacheControl:
