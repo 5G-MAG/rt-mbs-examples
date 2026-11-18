@@ -527,6 +527,36 @@ point their `open5gs`, `rt-5gc-service-consumers` and `libflute` subprojects at 
 
 A different combination may work; this is the one that was run.
 
+### The Release 19 line (tested 2026-11-18)
+
+The Release 19 MBS Broadcast work is on its own branches, and a clone of the stable layout above does not contain it. Two end-to-end runs of
+`scripts/mbs-broadcast-demo/tests/test-e2e-chain.sh` on a reset demo each gave 50 of 50 (Ubuntu 26.04, GCC 15, one machine, one AMF) with
+these trees, the `rt-mbs-function` and `rt-mbs-transport-function` ones built from fresh clones of the branches named:
+
+| Repository | Branch | Commit |
+|---|---|---|
+| open5gs | `feature/mbs-broadcast-rel19` | `0fd585353` |
+| rt-5gc-service-consumers | `feature/mbs-broadcast-rel19` | `fb73c370a` |
+| rt-mbs-function | `feature/mbs-broadcast-rel19` | `bfb33b173` |
+| rt-mbs-transport-function | `feature/mbs-broadcast-rel19` | `0fb4f67a1` |
+| rt-libflute (fetched by the wraps and the client) | `feature/mbs-broadcast-rel19` | `341a4d399` |
+| rt-mbs-client | `feature/mbs-broadcast-rel19` | `97e13dfd5` |
+| ocudu (gNB) | `5mbs-development` | `4e2f4d826` |
+| srsRAN_4G_mbs (UE) | `feature/mbs-broadcast-rel19` | `bd8358f6c` |
+| rt-mbs-examples | `feature/mbs-broadcast-rel19` | this branch |
+
+`rt-mbs-application` and `rt-mbs-application-provider` have no such branch; use their default branch.
+
+Two commands differ from the table in section 2 for this line:
+
+- Build the UE with `cmake -S . -B build -DENABLE_SRSENB=OFF -DENABLE_SRSEPC=OFF && cmake --build build -j$(nproc)`. The demo needs only `srsue`; without
+  the two flags the build also compiles `srsenb`, and GCC 15 stops on `-Werror=stringop-overflow` in the upstream file `srsenb/src/stack/upper/gtpu.cc`
+  (the unmodified `release_26_10` tag fails the same way).
+- Start the demo with `MBSTF_CONFIG_FORM=uplift ./demo up`: the Release 19 MBSTF reads its configuration in the form of Open5GS 2.8 (see section 3).
+
+The radio side of this line stays Release 18; the NR NTN Intended Service Area is carried through the core and NGAP and the gNB accepts it, but no SIB27 or
+`mbs-SessionAreaList-r19` is broadcast.
+
 ## Running it
 
 ```bash
