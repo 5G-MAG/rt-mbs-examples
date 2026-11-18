@@ -527,7 +527,7 @@ point their `open5gs`, `rt-5gc-service-consumers` and `libflute` subprojects at 
 
 A different combination may work; this is the one that was run.
 
-### The Release 19 line (tested 2026-11-18)
+### The Release 19 line (tested 2026-11-19)
 
 The Release 19 MBS Broadcast work is on its own branches, and a clone of the stable layout above does not contain it. Two end-to-end runs of
 `scripts/mbs-broadcast-demo/tests/test-e2e-chain.sh` on a reset demo each gave 50 of 50 (Ubuntu 26.04, GCC 15, one machine, one AMF) with
@@ -535,13 +535,13 @@ these trees, the `rt-mbs-function` and `rt-mbs-transport-function` ones built fr
 
 | Repository | Branch | Commit |
 |---|---|---|
-| open5gs | `feature/mbs-broadcast-rel19` | `0fd585353` |
-| rt-5gc-service-consumers | `feature/mbs-broadcast-rel19` | `fb73c370a` |
-| rt-mbs-function | `feature/mbs-broadcast-rel19` | `bfb33b173` |
+| open5gs | `feature/mbs-broadcast-rel19` | `50e298b7a` |
+| rt-5gc-service-consumers | `feature/mbs-broadcast-rel19` | `4a89cf60e` |
+| rt-mbs-function | `feature/mbs-broadcast-rel19` | `82dff94a4` |
 | rt-mbs-transport-function | `feature/mbs-broadcast-rel19` | `0fb4f67a1` |
 | rt-libflute (fetched by the wraps and the client) | `feature/mbs-broadcast-rel19` | `341a4d399` |
 | rt-mbs-client | `feature/mbs-broadcast-rel19` | `97e13dfd5` |
-| ocudu (gNB) | `5mbs-development` | `4e2f4d826` |
+| ocudu (gNB) | `5mbs-development` | `31f36d0277` |
 | srsRAN_4G_mbs (UE) | `feature/mbs-broadcast-rel19` | `bd8358f6c` |
 | rt-mbs-examples | `feature/mbs-broadcast-rel19` | this branch |
 
