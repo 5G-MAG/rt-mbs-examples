@@ -146,9 +146,13 @@ run_bg() {
 # create its own tun_bcastue TUN device (CAP_NET_ADMIN), which a dropped-privilege process
 # cannot do; without this, srsue logs "Failed to setup/configure GW interface" and never
 # gets a PDU-session address (code-derived, no spec claim -- observed live in this project).
+#
+# What the process prints on its standard output and error goes to $LOG_DIR/<logbase>.log, or to $BG_CONSOLE_LOG when
+# that is set: a process that writes its own log to <logbase>.log must not share the file with its console output, as
+# two writers on one file each keep their own offset and overwrite each other's lines.
 run_bg_netns() {
     local name="$1" logbase="$2"; shift 2
-    local logfile="$LOG_DIR/${logbase}.log"
+    local logfile="${BG_CONSOLE_LOG:-$LOG_DIR/${logbase}.log}"
     local pidfile="$PID_DIR/${logbase}.pid"
     if [[ -f "$pidfile" ]] && sudo -n kill -0 "$(cat "$pidfile" 2>/dev/null)" 2>/dev/null; then
         log "$name already running (pid $(cat "$pidfile")), skipping"

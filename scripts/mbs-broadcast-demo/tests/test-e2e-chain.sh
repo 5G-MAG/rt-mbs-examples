@@ -88,7 +88,8 @@ restart_gnb() {
     # before the gNB and starts once the DU is up.
     sudo -n pkill -x srsue; for i in $(seq 1 30); do pgrep -x srsue >/dev/null || sudo -n kill -0 "$(cat "$PID_DIR/ue.pid")" 2>/dev/null || break; sleep 1; done
     echo 0 > "/tmp/.e2e_n_ue_bcast.$$"
-    run_bg_netns "gNB" gnb "$GNB_BIN" -c "$GEN_CONF_DIR/gnb_bcast.yaml" ${GNB_EXTRA_ARGS:-} >/dev/null
+    # The console output of the gNB goes to its own file, as 04-start-ran.sh does: gnb.log is the file of its logger.
+    BG_CONSOLE_LOG="$L/gnb_console.log" run_bg_netns "gNB" gnb "$GNB_BIN" -c "$GEN_CONF_DIR/gnb_bcast.yaml" ${GNB_EXTRA_ARGS:-} >/dev/null
     for i in $(seq 1 60); do grep -aq 'DU started successfully' "$L/gnb.log" 2>/dev/null && break; sleep 1; done
     run_bg_netns_root "UE" ue "$UE_BIN" "$GEN_CONF_DIR/ue_bcast.conf" >/dev/null
     # The client is bound to the UE's tun_bcastue, which the new UE creates again: it restarts once the UE has its address,

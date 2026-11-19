@@ -29,7 +29,9 @@ pair already runs over a ZMQ software radio loopback, so no RF hardware is neede
 ### What "it worked" looks like
 
 After `./start-all.sh` returns, give it a minute and check the logs under `run/logs/`. These are the
-numbers from a healthy run; the exact counts grow with how long it has been up.
+numbers from a healthy run; the exact counts grow with how long it has been up. The gNB writes its log to
+`gnb.log`; what it prints on its standard output and error (start-up warnings, an assertion or sanitizer
+message) is in `gnb_console.log`.
 
 | Check | Where | Healthy |
 |---|---|---|

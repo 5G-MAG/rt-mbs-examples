@@ -347,7 +347,9 @@ EOF
 
 
 log "starting gNB in $NETNS"
-run_bg_netns "gNB" gnb "$GNB_BIN" -c "$GEN_CONF_DIR/gnb_bcast.yaml" $GNB_EXTRA_ARGS
+# The gNB writes its own log to $LOG_DIR/gnb.log (the log: filename above). Its console output (start-up warnings, an
+# assertion or sanitizer message) goes to its own file.
+BG_CONSOLE_LOG="$LOG_DIR/gnb_console.log" run_bg_netns "gNB" gnb "$GNB_BIN" -c "$GEN_CONF_DIR/gnb_bcast.yaml" $GNB_EXTRA_ARGS
 
 # The UE must not start before the gNB's DU is up: with the ZeroMQ radio, a UE started early waits
 # for samples that never come and never attaches. How long the DU takes depends on the host's load,
