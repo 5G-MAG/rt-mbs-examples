@@ -21,6 +21,8 @@ if ! systemctl is-active --quiet mongod; then
     log "mongod is not active, starting it"
     ensure_sudo
     sudo -n systemctl start mongod || die "could not start mongod (needed by NRF/UDR)"
+    # systemctl returns once the service is started, before mongod accepts connections
+    wait_for_tcp 127.0.0.1 27017 30 || die "mongod did not accept connections on 127.0.0.1:27017"
 fi
 
 # Before the UDR starts, not after: a UE that registers against a database with no matching SUPI is
