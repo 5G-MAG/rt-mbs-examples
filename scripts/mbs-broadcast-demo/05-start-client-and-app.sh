@@ -14,15 +14,23 @@ require_cmd socat
 netns_exists || die "run 00-setup-netns.sh first"
 ensure_sudo
 
-log "waiting for the UE's tun_bcastue interface to get an address (PDU session establishment)"
+log "waiting for the UE's tun_bcastue interface to get the address of its PDU session"
+# The interface has an address of its own before the PDU session is established, which goes away when the session
+# sets the real one. An address taken in that interval is gone when the client joins its FLUTE session on it
+# ("set_option: No such device"). So the address is taken once it is the one the UE reports for its PDU session.
+pdu_session_ip() {
+    grep -a 'PDU Session Establishment successful' "$LOG_DIR/ue_bcast.log" 2>/dev/null \
+        | tail -1 | sed -n 's/.*IP: *\([0-9][0-9.]*\).*/\1/p'
+}
 UE_IP=""
 for _ in $(seq 1 "$UE_TUN_WAIT_SECS"); do
     UE_IP=$(sudo -n ip netns exec "$NETNS" ip -o -4 addr show tun_bcastue 2>/dev/null \
         | awk '{print $4}' | cut -d/ -f1 || true)
-    [[ -n "$UE_IP" ]] && break
+    [[ -n "$UE_IP" && "$UE_IP" == "$(pdu_session_ip)" ]] && break
+    UE_IP=""
     sleep 1
 done
-[[ -n "$UE_IP" ]] || die "tun_bcastue got no address within ${UE_TUN_WAIT_SECS}s -- check $LOG_DIR/ue_bcast.log for the attach, and raise UE_TUN_WAIT_SECS in env.sh if the UE is simply slow on this machine"
+[[ -n "$UE_IP" ]] || die "tun_bcastue did not get the address of the UE's PDU session within ${UE_TUN_WAIT_SECS}s -- check $LOG_DIR/ue_bcast.log for the attach, and raise UE_TUN_WAIT_SECS in env.sh if the UE is simply slow on this machine"
 log "UE PDU session address: $UE_IP"
 
 # Optional: let a UE application's own UDP socket receive the PACKET distribution method. The MBSTF's SSM source
