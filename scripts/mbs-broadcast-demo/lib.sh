@@ -162,6 +162,29 @@ run_bg_netns() {
     disown
 }
 
+# Start the gNB in $NETNS and wait up to GNB_READY_WAIT_SECS for its DU. An N310 stays claimed for a few
+# seconds after the session that used it ends, and a gNB started then exits at once: it is started again
+# until the claim is released.
+#   start_gnb <cmd...>
+start_gnb() {
+    local deadline=$((SECONDS + GNB_READY_WAIT_SECS))
+    run_bg_netns "gNB" gnb "$@"
+    while (( SECONDS < deadline )); do
+        grep -aq 'DU started successfully' "$LOG_DIR/gnb.log" 2>/dev/null && return 0
+        if grep -aq 'claim this device again' "$LOG_DIR/gnb.log" 2>/dev/null; then
+            while (( SECONDS < deadline )) && sudo -n kill -0 "$(cat "$PID_DIR/gnb.pid" 2>/dev/null)" 2>/dev/null; do
+                sleep 1
+            done
+            log "the radio is still claimed by its previous session; starting the gNB again in ${GNB_CLAIM_RETRY_SECS:-5}s"
+            sleep "${GNB_CLAIM_RETRY_SECS:-5}"
+            run_bg_netns "gNB" gnb "$@"
+            continue
+        fi
+        sleep 1
+    done
+    return 1
+}
+
 # Same as run_bg_netns but keeps the process running as root inside $NETNS (no `sudo -u`
 # drop) -- needed for the UE's own TUN device creation, see the comment above.
 run_bg_netns_root() {
