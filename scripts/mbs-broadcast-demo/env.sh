@@ -30,7 +30,7 @@ _DEMO_ENV_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # ------------------------------------------------------------------------------------
 REPOS_ROOT="${REPOS_ROOT:-$HOME/Repos}"
 RTMBS_ROOT="${RTMBS_ROOT:-$REPOS_ROOT/rt-mbs}"
-RAN_ROOT="${RAN_ROOT:-$REPOS_ROOT}"                 # parent of srsRAN_Project_mbs / srsRAN_4G_mbs
+RAN_ROOT="${RAN_ROOT:-$REPOS_ROOT}"                 # parent of ocudu / srsRAN_4G_mbs
 
 # Each is overridable on its own, not only through the roots: checkouts are not always all
 # in one place, and a contributor working on one component often has that one elsewhere.
@@ -64,19 +64,8 @@ MEDIA_ORIGIN_DIR="${MEDIA_ORIGIN_DIR:-$REPOS_ROOT/rt-media-origin}"
 MEDIA_ORIGIN_BACKEND="${MEDIA_ORIGIN_BACKEND:-legacy}"
 # The gNB repository is 5G-MAG/ocudu (branch 5mbs), so that is the directory a plain
 # `git clone` produces and the default here. The srsRAN-based 5G-MAG/srsRAN_Project_mbs is
-# deprecated; a checkout of it (or of the older rt-srsRAN_Project_mbs name) is still accepted when
-# no ocudu checkout exists.
-if [ -n "${GNB_DIR:-}" ]; then
-    :
-elif [ -d "$RAN_ROOT/ocudu" ]; then
-    GNB_DIR="$RAN_ROOT/ocudu"
-elif [ -d "$RAN_ROOT/srsRAN_Project_mbs" ]; then
-    GNB_DIR="$RAN_ROOT/srsRAN_Project_mbs"
-elif [ -d "$RAN_ROOT/rt-srsRAN_Project_mbs" ]; then
-    GNB_DIR="$RAN_ROOT/rt-srsRAN_Project_mbs"
-else
-    GNB_DIR="$RAN_ROOT/srsRAN_Project_mbs"
-fi
+# deprecated and no longer accepted.
+GNB_DIR="${GNB_DIR:-$RAN_ROOT/ocudu}"
 UE_DIR="${UE_DIR:-$RAN_ROOT/srsRAN_4G_mbs}"
 
 # Binaries (built positions, not an `install/` staging tree -- matches how every one of
@@ -204,7 +193,7 @@ DEMO_STREAM="${DEMO_STREAM:-tv_1}"
 # scheduling (greedy, picks the highest MCS/code rate that fits the pending bytes) --
 # that scheduling choice itself was the deeper problem: its own content-session CRC
 # failure rate ran close to 50% live, independent of bitrate. Fixed properly in
-# srsRAN_Project_mbs (mbs_session_fallback_scheduler.cpp: honouring
+# the gNB (mbs_session_fallback_scheduler.cpp: honouring
 # scheduler_mbs_session_expert_config's own mbs_use_fixed_mcs, fixed at MCS 18 -- a
 # deliberate middle point, not a table lookup, chosen and verified live rather than
 # guessed): CRC success measured at 94% (33/35) with this fix, versus ~50% before.

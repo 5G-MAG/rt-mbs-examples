@@ -32,7 +32,7 @@ OPEN5GS_DIR="${OPEN5GS_DIR:-$HOME/Repos/rt-mbs/open5gs}"
 MBSF_DIR="${MBSF_DIR:-$HOME/Repos/rt-mbs/rt-mbs-function}"
 MBSTF_DIR="${MBSTF_DIR:-$HOME/Repos/rt-mbs/rt-mbs-transport-function}"
 PROVIDER_DIR="${PROVIDER_DIR:-$HOME/Repos/rt-mbs/rt-mbs-application-provider}"
-GNB_DIR="${GNB_DIR:-$HOME/Repos/srsRAN_Project_mbs}"
+GNB_DIR="${GNB_DIR:-$HOME/Repos/ocudu}"
 
 OPEN5GS_BIN="$OPEN5GS_DIR/install/bin"
 OPEN5GS_ETC="$OPEN5GS_DIR/install/etc/open5gs"
