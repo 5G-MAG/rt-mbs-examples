@@ -10,6 +10,11 @@ the [Getting Started guides](https://5g-mag.github.io/Getting-Started/pages/5g-m
 > [!NOTE]
 > Docker images are available for `amd64/x86-64`- and `arm64`-based systems.
 
+> [!NOTE]
+> The gNodeB image of this deployment is built from [srsRAN_Project_mbs](https://github.com/5G-MAG/srsRAN_Project_mbs), which is deprecated in favour of
+> [ocudu](https://github.com/5G-MAG/ocudu) (branch `5mbs-development`) and gets no further updates. This deployment has not been moved to ocudu. The MBS
+> Broadcast demo that runs ocudu is in [scripts/mbs-broadcast-demo](../scripts/mbs-broadcast-demo/).
+
 ### 5G Core
 
 Some of the components are unmodified [Open5GS](https://github.com/5G-MAG/open5gs) Network Functions; these are marked with the regular Network Function's name and follow Open5GS versioning.
