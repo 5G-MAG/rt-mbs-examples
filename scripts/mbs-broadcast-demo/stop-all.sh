@@ -7,13 +7,27 @@ cd "$(dirname "${BASH_SOURCE[0]}")"
 source env.sh
 source lib.sh
 
+# The UE, the UPF and the processes started in $NETNS run as root, and sudo's cached credentials may have
+# expired since start-all.sh asked for them: ask once here when there is a terminal to ask on.
+if ! sudo -n true 2>/dev/null && [[ -t 0 ]]; then
+    log "sudo is needed to stop the processes that run as root; asking once now"
+    sudo -v || true
+fi
+have_sudo() { sudo -n true 2>/dev/null; }
+not_stopped=()
+
 kill_pidfile() {
     local name="$1" pidfile="$PID_DIR/$1.pid"
     [[ -f "$pidfile" ]] || return 0
     local pid; pid=$(cat "$pidfile")
-    if sudo -n kill -0 "$pid" 2>/dev/null; then
+    if [[ "$pid" =~ ^[0-9]+$ && -d "/proc/$pid" ]]; then
         log "stopping $name (pid $pid)"
-        sudo -n kill -TERM "$pid" 2>/dev/null
+        # A process of this user is signalled without sudo; one of root needs it. One that cannot be signalled
+        # keeps its pidfile, so the next stop can still find it.
+        if ! kill -TERM "$pid" 2>/dev/null && ! sudo -n kill -TERM "$pid" 2>/dev/null; then
+            not_stopped+=("$name (pid $pid)")
+            return 0
+        fi
     fi
     rm -f "$pidfile"
 }
@@ -31,7 +45,9 @@ done
 # Then wait for them to be gone: the gNB and UE hold their ZMQ RF ports until they exit, and a
 # start-all.sh straight after a stop otherwise brought up a UE that could not open its RF device
 # and never attached. STOP_WAIT_SECS (default 10) bounds the wait before they are killed.
-if netns_exists; then
+if ! have_sudo; then
+    not_stopped+=("whatever runs in $NETNS (sudo is needed to look)")
+elif netns_exists; then
     ns_pids=$(sudo -n ip netns pids "$NETNS" 2>/dev/null | tr '\n' ' ')
     [[ -n "${ns_pids// }" ]] && sudo -n kill -TERM $ns_pids 2>/dev/null
     for _ in $(seq 1 $(( ${STOP_WAIT_SECS:-10} * 5 ))); do
@@ -63,4 +79,9 @@ if [[ "${1:-}" == "--netns" ]]; then
     ./00-setup-netns.sh --teardown
 fi
 
+if [[ ${#not_stopped[@]} -gt 0 ]]; then
+    log "not stopped, sudo is needed (run 'sudo -v' and this script again):"
+    printf '    %s\n' "${not_stopped[@]}"
+    exit 1
+fi
 log "stopped"
