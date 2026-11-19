@@ -196,6 +196,14 @@ smf:
             mcc: $PLMN_MCC
             mnc: $PLMN_MNC
           tac: $TAC
+  # Coverage of this MB-SMF: a broadcast session requested without a service area is delivered here, and an MB-SMF
+  # that has none rejects it (TS 29.518 table 6.5.6.2.2-1 NOTE 1). The demo's Ingest Sessions carry no area.
+  mbsServiceArea:
+    taiList:
+      - plmn_id:
+          mcc: $PLMN_MCC
+          mnc: $PLMN_MNC
+        tac: $TAC
 EOF
 
 cat > "$GEN_CONF_DIR/upf.yaml" <<EOF
