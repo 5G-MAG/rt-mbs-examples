@@ -547,6 +547,13 @@ these trees, the `rt-mbs-function` and `rt-mbs-transport-function` ones built fr
 | srsRAN_4G_mbs (UE) | `feature/mbs-broadcast-rel19` | `bd8358f6c` |
 | rt-mbs-examples | `feature/mbs-broadcast-rel19` | this branch |
 
+The gNB of `5mbs-development` has moved on since those two runs. With ocudu `70b26c7cd0` in place of `31f36d0277` (an AddressSanitizer build of the
+gNB, the same chain) the test ran 18 more times with no sanitizer report: 16 runs gave 50 of 50, and 2 passed the first 49 checks and failed the last
+one, the player of the demo. In one the client had ended when it joined on an address that the tunnel of the UE no longer had (fixed in
+rt-mbs-client `35b3c18`, and the demo now starts the client on the PDU session address); in the other the UE did not complete its registration after
+the restart of the gNB, and the cause was not found. The commits after `31f36d0277` fix a log line of the scheduler that was lost to a format error, a
+name table of the PDCP log that was too short, and a use-after-free in the CU-UP when an MBS session is released.
+
 `rt-mbs-application` and `rt-mbs-application-provider` have no such branch; use their default branch.
 
 Two commands differ from the table in section 2 for this line:
