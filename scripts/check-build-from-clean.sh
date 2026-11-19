@@ -97,7 +97,7 @@ SKIP=""
 [ "$QUICK" = 1 ] && SKIP="ue gnb"
 
 echo "building in $IMAGE"
-docker run --rm -e GNB_REPO -v "$SRC:/src" -v "$WORK:/out" "$IMAGE" bash -c '
+docker run --rm -e GNB_REPO="$GNB_REPO" -v "$SRC:/src" -v "$WORK:/out" "$IMAGE" bash -c '
 set -u
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -qq >/dev/null 2>&1
