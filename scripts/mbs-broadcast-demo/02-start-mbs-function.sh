@@ -48,6 +48,25 @@ nrf:
     *) die "MBSTF_CONFIG_FORM must be legacy or uplift, not '${MBSTF_CONFIG_FORM}'" ;;
 esac
 
+# MBS_AS=1 runs the MBS AS co-located with the MBSTF (TS 26.502 clause 4.3.4) and has the MBSF announce it as the object repair server
+# (hostedBy: mbstf). It listens on the root-namespace end of the veth pair, which a client reaches over its PDU session as it reaches MBS-5.
+MBSTF_YAML_MBSAS=""
+MBSF_YAML_REPAIR=""
+if [[ "${MBS_AS:-0}" == 1 ]]; then
+    MBSAS_ADDR="${MBSAS_ADDR:-$VETH_ROOT_ADDR}"
+    MBSAS_PORT="${MBSAS_PORT:-8889}"
+    MBSTF_YAML_MBSAS="    mbsAs:
+      - addr: $MBSAS_ADDR
+        port: $MBSAS_PORT
+    repairRetentionSeconds: ${REPAIR_RETENTION_SECONDS:-3600}"
+    MBSF_YAML_REPAIR="  objectRepairParameters:
+    offsetTime: ${REPAIR_OFFSET_TIME:-1}
+    randomTimePeriod: ${REPAIR_RANDOM_TIME_PERIOD:-2}
+    objectRepairBaseLocator: http://$MBSAS_ADDR:$MBSAS_PORT
+    hostedBy: mbstf
+"
+fi
+
 cat > "$GEN_CONF_DIR/mbstf.yaml" <<EOF
 logger:
   level: debug
@@ -68,6 +87,7 @@ ${MBSTF_YAML_SBI}
     httpPushIngest:
       - addr: $MBSTF_INGEST_ADDR
         port: 0
+${MBSTF_YAML_MBSAS}
     totalMaxBitRateSoftLimit: 1000
     consecutiveIngestFailuresBeforeDeactivate: 5
     packetModeSchedulingQueueSize: 131072
@@ -97,7 +117,7 @@ mbsf:
   mbsUserServices:
     - addr: $MBSF_ADDR
       port: $SBI_PORT
-
+${MBSF_YAML_REPAIR}
   mbsUserDataIngestSession:
     - addr: $MBSF_ADDR
       port: $SBI_PORT
