@@ -39,7 +39,8 @@ MIN_FREE_MB="${DEMO_MIN_FREE_MB:-2500}"
 # What this demo owns. `down` uses these to prove it actually stopped, rather than assuming the
 # stop scripts worked: a launcher that fails quietly leaves a process holding a port that the
 # next run then fails on.
-SELF_PROCS=(gnb srsue mbsfd mbstfd)
+# Process names as pgrep -x sees them: the executable's name, cut to 15 characters by the kernel.
+SELF_PROCS=(gnb srsue open5gs-mbsfd open5gs-mbstfd mbs-client)
 SELF_PROC_PATTERNS=("open5gs-(smfd|amfd|upfd|nrfd|udmd|udrd|pcfd|ausfd|nssfd|bsfd|scpd)" "rt-mbs-application")
 SELF_PORTS=(2100 2101 3004 3050 8091)
 SELF_NETNS="ns-gnb"
@@ -94,6 +95,14 @@ running_demo() {
 # pattern appears in its own invocation reports a process that is not there.
 pgrep_other() {
     pgrep -f "$1" 2>/dev/null | grep -vxF -e "$$" -e "${PPID:-0}" | head -1
+}
+
+# signal_matching <signal> <-x|-f> <pattern>: signals the processes pgrep finds, with sudo if this user cannot.
+signal_matching() {
+    local pids
+    pids=$(pgrep "$2" "$3" 2>/dev/null | grep -vxF -e "$$" -e "${PPID:-0}" | tr '\n' ' ')
+    [ -n "${pids// }" ] || return 0
+    kill -"$1" $pids 2>/dev/null || sudo kill -"$1" $pids 2>/dev/null || true
 }
 
 port_held_by() {
@@ -364,11 +373,13 @@ leftovers() {
 # enough to catch another project's processes.
 hard_clean() {
     local p
-    for p in "${SELF_PROCS[@]}"; do pkill -TERM -x "$p" 2>/dev/null || true; done
-    for p in "${SELF_PROC_PATTERNS[@]}"; do pkill -TERM -f "$p" 2>/dev/null || true; done
+    # The UE, the MBS Client and the UPF run as root: what cannot be signalled as this user is signalled with sudo.
+    # By pid, not with "sudo pkill -f", whose own command line would match the pattern.
+    for p in "${SELF_PROCS[@]}"; do signal_matching TERM -x "$p"; done
+    for p in "${SELF_PROC_PATTERNS[@]}"; do signal_matching TERM -f "$p"; done
     sleep 2
-    for p in "${SELF_PROCS[@]}"; do pkill -KILL -x "$p" 2>/dev/null || true; done
-    for p in "${SELF_PROC_PATTERNS[@]}"; do pkill -KILL -f "$p" 2>/dev/null || true; done
+    for p in "${SELF_PROCS[@]}"; do signal_matching KILL -x "$p"; done
+    for p in "${SELF_PROC_PATTERNS[@]}"; do signal_matching KILL -f "$p"; done
 
     # Whatever still holds one of this demo's ports, by pid rather than by name. Node servers
     # started from a directory show up only as "node server.js" or "node ./bin/www", so no command

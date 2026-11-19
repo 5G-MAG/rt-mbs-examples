@@ -1,0 +1,48 @@
+#!/bin/bash
+# Cases for the leftover check of ./demo down: the names it looks for must find the processes the demo starts. Each
+# executable is stood in for by a copy of sleep under its name; nothing of a real run is signalled.
+cd "$(dirname "${BASH_SOURCE[0]}")/../../.." \
+  || { echo "cannot find the repository" >&2; exit 1; }
+PASS=0; FAIL=0
+check() { if [ "$2" = "$3" ]; then echo "  PASS  $1"; PASS=$((PASS+1)); else echo "  FAIL  $1"; echo "        expected: $3"; echo "        got:      $2"; FAIL=$((FAIL+1)); fi; }
+
+eval "$(grep '^SELF_PROCS=' demo)"
+eval "$(sed -n '/^signal_matching() {/,/^}/p' demo)"
+
+T=$(mktemp -d)
+pids=()
+trap 'kill "${pids[@]}" 2>/dev/null; rm -rf "$T"' EXIT
+
+found() {
+    local pid="$1" p
+    for p in "${SELF_PROCS[@]}"; do pgrep -x "$p" | grep -qx "$pid" && { echo found; return; }; done
+    echo missed
+}
+
+echo "1. each executable the demo starts is recognised by its name"
+for exe in gnb srsue open5gs-mbsfd open5gs-mbstfd mbs-client; do
+    cp /bin/sleep "$T/$exe"
+    "$T/$exe" 300 &
+    pids+=($!)
+    sleep 0.1
+    check "$exe" "$(found $!)" "found"
+done
+
+echo "2. signal_matching stops a process of this user"
+name="lefttest-$$"; name="${name:0:15}"
+cp /bin/sleep "$T/$name"
+"$T/$name" 300 &
+pid=$!; pids+=("$pid")
+sleep 0.1
+signal_matching TERM -x "$name"
+# Gone, or a zombie waiting for this shell to reap it.
+state=alive
+for _ in $(seq 1 30); do
+    case "$(ps -o stat= -p "$pid" 2>/dev/null)" in ""|Z*) state=gone; break ;; esac
+    sleep 0.1
+done
+check "process gone" "$state" "gone"
+
+echo
+echo "$PASS passed, $FAIL failed"
+[ "$FAIL" -eq 0 ]
