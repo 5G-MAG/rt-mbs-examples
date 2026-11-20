@@ -1,0 +1,9 @@
+#!/bin/bash
+set -eu
+
+push_prefix_url="${1}"
+
+curl --silent -H 'Content-Type: text/plain' -X PUT --data-binary "TESTDATA MBSTF TURORIAL" "${push_prefix_url}example/path/to/object.txt"
+
+#newline
+echo

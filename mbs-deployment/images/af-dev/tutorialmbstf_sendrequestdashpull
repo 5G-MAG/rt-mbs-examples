@@ -1,0 +1,58 @@
+#!/bin/bash
+set -eu
+
+upf_udp_tunnel_port="${1}"
+
+upf_fqdn=mb-upf.open5gs.org
+upf_ip=$(dig +short "${upf_fqdn}")
+
+mediaserver_fqdn=mediaserver.5g-mag.com
+mediaserver_ip=$(dig +short "${mediaserver_fqdn}")
+
+multicast_group_ip=239.0.0.25
+
+request=' 
+{
+  "distSession": {
+    "distSessionId": "541ebbd2-ebf9-496b-a3b8-dcd1c17fbc9d",
+    "distSessionState": "INACTIVE",
+    "mbUpfTunAddr": {
+      "ipv4Addr": "'"${upf_ip}"'",
+      "portNumber": '"${upf_udp_tunnel_port}"'
+    },
+    "upTrafficFlowInfo": {
+      "destIpAddr": {
+        "ipv4Addr": "'"${multicast_group_ip}"'"
+      },
+      "portNumber": 5000
+    },
+    "mbr": "10 Mbps",
+    "objDistributionData": {
+      "objDistributionOperatingMode": "STREAMING",
+      "objAcquisitionMethod": "PULL",
+      "objIngestBaseUrl": "https://livesim2.dashif.org/livesim2/WAVE/vectors/cfhd_sets/12.5_25_50/t1/2022-10-17/",
+      "objAcquisitionIdsPull": [
+        "stream.mpd"
+      ],
+      "objDistributionBaseUrl": "http://127.0.0.2/"
+    }
+  }
+}
+'
+
+echo "Request:"
+echo "${request}"
+
+response=$(curl --silent --http2-prior-knowledge --header "Content-Type: application/json" \
+    --data "${request}" \
+    mbstf.5g-mag.com:7777/nmbstf-distsession/v1/dist-sessions)
+
+echo "Response:"
+echo "${response}" | jq
+#newline
+echo
+
+echo "${response}" | jq -r '"SESSION_ID=\(.distSession.distSessionId)"'
+
+#newline
+echo
