@@ -1,0 +1,12 @@
+{
+  "objects": [
+    {
+      "locator": "http://127.0.0.1:3004/fec-object",
+      "repetitionInterval": 4000
+    },
+    {
+      "locator": "http://127.0.0.1:3004/object1",
+      "repetitionInterval": 4000
+    }
+  ]
+}

@@ -1,0 +1,74 @@
+{
+  "_comment": [
+    "Template for the PACKET distribution method, for rt-mbs-application-provider. Loaded twice,",
+    "like every template here: once on the MBS User Services card for the 'service' block, once on",
+    "the Ingest Sessions card for the 'sessions' array. See templates/README.md.",
+    "",
+    "PACKET carries a packet stream through the transport function rather than delivering discrete",
+    "objects over FLUTE, so none of the object parameters (operating mode, acquisition method,",
+    "object IDs) apply and none are present below. Use it for a stream that is already packetised",
+    "at the source; use OBJECT for files and for DASH or HLS presentations."
+  ],
+
+  "service": {
+    "extServiceIds": ["https://mwc-tv-radio.ebu.io/services/packet-stream"],
+    "servType": "BROADCAST",
+    "servClass": "urn:oma:bcast:oma_bsc:st:1.0",
+    "servNameDescs": [
+      { "servName": "Packet stream", "servDescrip": "Packet distribution method", "language": "eng" }
+    ],
+    "mainServLang": "eng"
+  },
+
+
+  "_subscription": [
+    "Optional. When present, loading this template on the Ingest Sessions card prefills the Status",
+    "Subscription form beneath it -- the notification URI, and the events ticked below. It does not",
+    "subscribe: that stays a deliberate, separate step, like creating the service and the session.",
+    "",
+    "A subscription is per Ingest Session, so it cannot be prepared until the session exists, which",
+    "is why the form only appears once one has been created.",
+    "",
+    "The events below are the ones that tell you whether delivery actually started, plus the two",
+    "failure events that explain a session that never does. Tick more in the form if you want the",
+    "full lifecycle; the running MBSF's own list is what the form offers, and an event named here",
+    "that it does not offer is reported rather than silently dropped."
+  ],
+  "subscription": {
+    "notifUri": "http://127.0.0.1:8000/notifications",
+    "events": [
+      "DIST_SESS_STARTED",
+      "DELIVERY_STARTED",
+      "DIST_SESS_TERMINATED",
+      "DIST_SESS_EST_FAILURE",
+      "DATA_INGEST_FAILURE"
+    ]
+  },
+  "sessions": [
+    {
+      "distSessKey": "AP_MBS_SESSION_1",
+
+      "_distrMethod": [
+        "Selecting PACKET makes pckDistrInfo below the parameter set that applies; objDistrInfo is",
+        "not sent at all. TS 29.580 Nmbsf_MBSUserDataIngestSession defines the two as alternatives."
+      ],
+      "distrMethod": "PACKET",
+
+      "_pckDistrInfo": [
+        "All three fields are required. operatingMode is PACKET_PROXY (the transport function",
+        "terminates the ingest and re-originates the packets) or PACKET_FORWARD_ONLY (it forwards",
+        "them unchanged). pckIngMethod is MULTICAST or UNICAST. ingEndpointAddrs is where the",
+        "transport function expects the incoming stream."
+      ],
+      "pckDistrInfo": {
+        "operatingMode": "PACKET_FORWARD_ONLY",
+        "pckIngMethod": "UNICAST",
+        "ingEndpointAddrs": { "portNumber": 3000 }
+      },
+
+      "sourceIp": "127.0.0.68",
+      "destIp": "232.0.0.5",
+      "maxBitrate": "6 Mbps"
+    }
+  ]
+}
