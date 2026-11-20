@@ -252,7 +252,7 @@ having `libzmq3-dev` installed does not cover it.
 `srsRAN_4G_mbs`'s own README covers its two extra dependencies, cpprestsdk and OpenSSL, in more
 detail.
 
-Clone each at its Release 19 branch: `feature/mbs-broadcast-rel19` for `open5gs`, `srsRAN_4G_mbs`, `rt-mbs-function`, `rt-mbs-transport-function`, `rt-mbs-client` and `rt-mbs-examples`; `feature/mbs-compliance-fixes` for `rt-mbs-application` and `rt-mbs-application-provider`, which have no Release 19 branch; and `5mbs` for `ocudu`, whose radio side stays on Release 18 (the one part of the chain that is not Release 19). **Where you put them matters**: the scripts expect open5gs and
+Clone each at its Release 19 branch: `feature/mbs-broadcast-rel19` for `open5gs`, `srsRAN_4G_mbs`, `rt-mbs-function`, `rt-mbs-transport-function`, `rt-mbs-client`, `rt-mbs-application`, `rt-mbs-application-provider` and `rt-mbs-examples`; and `5mbs` for `ocudu`, whose radio side stays on Release 18 (the one part of the chain that is not Release 19). **Where you put them matters**: the scripts expect open5gs and
 the two srsRAN forks directly under one root, and the six MBS components one level deeper in
 `rt-mbs/`. Cloning them all side by side gives a layout the defaults do not describe, so from a
 machine with nothing on it:
@@ -270,8 +270,8 @@ cd ~/Repos/rt-mbs
 git clone --recurse-submodules -b feature/mbs-broadcast-rel19 https://github.com/5G-MAG/rt-mbs-function.git
 git clone --recurse-submodules -b feature/mbs-broadcast-rel19 https://github.com/5G-MAG/rt-mbs-transport-function.git
 git clone --recurse-submodules -b feature/mbs-broadcast-rel19 https://github.com/5G-MAG/rt-mbs-client.git
-git clone -b feature/mbs-compliance-fixes https://github.com/5G-MAG/rt-mbs-application.git
-git clone -b feature/mbs-compliance-fixes https://github.com/5G-MAG/rt-mbs-application-provider.git
+git clone -b feature/mbs-broadcast-rel19 https://github.com/5G-MAG/rt-mbs-application.git
+git clone -b feature/mbs-broadcast-rel19 https://github.com/5G-MAG/rt-mbs-application-provider.git
 git clone -b feature/mbs-broadcast-rel19 https://github.com/5G-MAG/rt-mbs-examples.git
 ```
 
@@ -436,8 +436,7 @@ DEMO_CHANNELS=mwc-tv-1 ./start-all.sh      # or: DEMO_CHANNELS=mwc-tv-1 ./demo u
 
 ### 5. Testing work that has not merged yet
 
-Everything above describes the **Release 19** layout: the `feature/mbs-broadcast-rel19` branches, `feature/mbs-compliance-fixes` for the
-application and the provider, and `5mbs` for `ocudu`. The earlier layout (`5mbs` on the forks, the default branch of the `rt-mbs-*` components)
+Everything above describes the **Release 19** layout: the `feature/mbs-broadcast-rel19` branches and `5mbs` for `ocudu`. The earlier layout (`5mbs` on the forks, the default branch of the `rt-mbs-*` components)
 is the Release 18 line and does not hold the Release 19 work. While a change is still under review, the branch these instructions name
 may not be the branch under test, and the two will disagree.
 
@@ -450,8 +449,8 @@ Taking the branches of section 6 as the example, since the same branch name does
 ```bash
 for pair in open5gs:feature/mbs-broadcast-rel19 ocudu:5mbs-development srsRAN_4G_mbs:feature/mbs-broadcast-rel19 \
             rt-mbs/rt-mbs-function:feature/mbs-broadcast-rel19 rt-mbs/rt-mbs-transport-function:feature/mbs-broadcast-rel19 \
-            rt-mbs/rt-mbs-client:feature/mbs-broadcast-rel19 rt-mbs/rt-mbs-application:feature/mbs-compliance-fixes \
-            rt-mbs/rt-mbs-application-provider:feature/mbs-compliance-fixes \
+            rt-mbs/rt-mbs-client:feature/mbs-broadcast-rel19 rt-mbs/rt-mbs-application:feature/mbs-broadcast-rel19 \
+            rt-mbs/rt-mbs-application-provider:feature/mbs-broadcast-rel19 \
             rt-mbs/rt-mbs-examples:feature/mbs-broadcast-rel19; do
     git -C ~/Repos/"${pair%%:*}" checkout "${pair#*:}" && git -C ~/Repos/"${pair%%:*}" pull || break
 done
@@ -527,8 +526,8 @@ submodules and wraps, also builds and passes its 17 tests, and so did one of `rt
 | rt-mbs-client | `feature/mbs-broadcast-rel19` | `13e143164` |
 | ocudu (gNB), Release 18 radio | `5mbs-development` | `70b26c7cd0` (AddressSanitizer build) |
 | srsRAN_4G_mbs (UE) | `feature/mbs-broadcast-rel19` | `bd8358f6c` |
-| rt-mbs-application | `feature/mbs-compliance-fixes` | `7b75b26` |
-| rt-mbs-application-provider | `feature/mbs-compliance-fixes` | `35824a6` |
+| rt-mbs-application | `feature/mbs-broadcast-rel19` | `7b75b26` |
+| rt-mbs-application-provider | `feature/mbs-broadcast-rel19` | `35824a6` |
 | rt-mbs-examples | `feature/mbs-broadcast-rel19` | this branch |
 
 With the same gNB the test also ran 18 times on 2026-11-19 with no sanitizer report: 16 runs gave 50 of 50, and 2 passed the first 49 checks and failed the last
@@ -536,8 +535,6 @@ one, the player of the demo. In one the client had ended when it joined on an ad
 rt-mbs-client `35b3c18`, and the demo now starts the client on the PDU session address); in the other the UE did not complete its registration after
 the restart of the gNB, and the cause was not found. The commits after `31f36d0277` fix a log line of the scheduler that was lost to a format error, a
 name table of the PDCP log that was too short, and a use-after-free in the CU-UP when an MBS session is released.
-
-`rt-mbs-application` and `rt-mbs-application-provider` have no Release 19 branch; use `feature/mbs-compliance-fixes`.
 
 Two commands differ from the table in section 2 for this line:
 

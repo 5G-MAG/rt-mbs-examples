@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
     inputs:
       branch:
-        description: "Branch to build every component at (empty means the Release 19 branch of each: feature/mbs-broadcast-rel19, feature/mbs-compliance-fixes for the application and the provider, 5mbs for the gNB)"
+        description: "Branch to build every component at (empty means the Release 19 branch of each: feature/mbs-broadcast-rel19, 5mbs for the gNB)"
         required: false
         type: string
 
