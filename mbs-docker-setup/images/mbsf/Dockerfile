@@ -19,7 +19,7 @@ RUN apt-get update && \
 WORKDIR /source
 
 # clone rt-mbs-function
-RUN git clone --recurse-submodules --depth 1 --branch=main https://github.com/5G-MAG/rt-mbs-function.git
+RUN git clone --recurse-submodules --depth 1 --branch=feature/mbs-broadcast-rel19 https://github.com/5G-MAG/rt-mbs-function.git
 
 
 WORKDIR /source/rt-mbs-function

@@ -19,7 +19,7 @@ RUN apt-get update && \
 WORKDIR /source
 
 # clone rt-mbs-transport-function
-RUN git clone --recurse-submodules --depth 1 --branch=main https://github.com/5G-MAG/rt-mbs-transport-function.git
+RUN git clone --recurse-submodules --depth 1 --branch=feature/mbs-broadcast-rel19 https://github.com/5G-MAG/rt-mbs-transport-function.git
 
 WORKDIR /source/rt-mbs-transport-function
 

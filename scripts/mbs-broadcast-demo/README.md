@@ -252,7 +252,7 @@ having `libzmq3-dev` installed does not cover it.
 `srsRAN_4G_mbs`'s own README covers its two extra dependencies, cpprestsdk and OpenSSL, in more
 detail.
 
-Clone each from its stable branch: `5mbs` on the three forks, the default branch of the six `rt-mbs-*` components. **Where you put them matters**: the scripts expect open5gs and
+Clone each at its Release 19 branch: `feature/mbs-broadcast-rel19` for `open5gs`, `srsRAN_4G_mbs`, `rt-mbs-function`, `rt-mbs-transport-function`, `rt-mbs-client` and `rt-mbs-examples`; `feature/mbs-compliance-fixes` for `rt-mbs-application` and `rt-mbs-application-provider`, which have no Release 19 branch; and `5mbs` for `ocudu`, whose radio side stays on Release 18 (the one part of the chain that is not Release 19). **Where you put them matters**: the scripts expect open5gs and
 the two srsRAN forks directly under one root, and the six MBS components one level deeper in
 `rt-mbs/`. Cloning them all side by side gives a layout the defaults do not describe, so from a
 machine with nothing on it:
@@ -261,32 +261,29 @@ machine with nothing on it:
 mkdir -p ~/Repos/rt-mbs
 
 cd ~/Repos
-git clone -b 5mbs https://github.com/5G-MAG/open5gs.git
+git clone -b feature/mbs-broadcast-rel19 https://github.com/5G-MAG/open5gs.git
 git clone -b 5mbs https://github.com/5G-MAG/ocudu.git
-git clone -b 5mbs https://github.com/5G-MAG/srsRAN_4G_mbs.git
+git clone -b feature/mbs-broadcast-rel19 https://github.com/5G-MAG/srsRAN_4G_mbs.git
 git clone https://github.com/5G-MAG/rt-media-origin.git   # only for MEDIA_ORIGIN_BACKEND=rt-media-origin
 
 cd ~/Repos/rt-mbs
-git clone --recurse-submodules https://github.com/5G-MAG/rt-mbs-function.git
-git clone --recurse-submodules https://github.com/5G-MAG/rt-mbs-transport-function.git
-git clone --recurse-submodules https://github.com/5G-MAG/rt-mbs-client.git
-git clone https://github.com/5G-MAG/rt-mbs-application.git
-git clone https://github.com/5G-MAG/rt-mbs-application-provider.git
-git clone https://github.com/5G-MAG/rt-mbs-examples.git
+git clone --recurse-submodules -b feature/mbs-broadcast-rel19 https://github.com/5G-MAG/rt-mbs-function.git
+git clone --recurse-submodules -b feature/mbs-broadcast-rel19 https://github.com/5G-MAG/rt-mbs-transport-function.git
+git clone --recurse-submodules -b feature/mbs-broadcast-rel19 https://github.com/5G-MAG/rt-mbs-client.git
+git clone -b feature/mbs-compliance-fixes https://github.com/5G-MAG/rt-mbs-application.git
+git clone -b feature/mbs-compliance-fixes https://github.com/5G-MAG/rt-mbs-application-provider.git
+git clone -b feature/mbs-broadcast-rel19 https://github.com/5G-MAG/rt-mbs-examples.git
 ```
 
 That produces exactly the tree in section 3, so no variable needs setting. Only the three repositories
 shown with `--recurse-submodules` have any: MBSF, MBSTF and the MBS Client. If you already cloned one
 of those without it, run `git submodule update --init --recursive` in it before building.
 
-**The `-b 5mbs` on open5gs and `ocudu` is not optional.** Both are forks whose `main` tracks upstream and
-carries no MBS work; `5mbs` is the branch the broadcast chain in this tutorial runs on, and the AMF,
-MB-SMF, MB-UPF and gNB fixes the end-to-end check below depends on are on it. In `ocudu` the difference is total, so a
-plain `git clone` there produces a gNB that builds and then cannot do MBS. `srsRAN_4G_mbs` already defaults to the branch
-its MBS work is on, and section 6 lists the exact branches and commits that were tested together.
-
-The six `rt-mbs-*` components need no branch: they are MBS components throughout, and their default
-branch is the one to use.
+**The `-b` is not optional.** `open5gs` and `ocudu` are forks whose `main` tracks upstream and carries no MBS work: the
+Release 19 broadcast chain runs on `feature/mbs-broadcast-rel19` in `open5gs` (Open5GS 2.8, with the AMF, MB-SMF and MB-UPF fixes the
+end-to-end check below depends on) and on `5mbs` in `ocudu`, where the difference is total, so a plain `git clone` produces a gNB that
+builds and then cannot do MBS. The default branches of the other repositories do not hold the Release 19 work either. Section 6 lists the
+exact branches and commits that were tested together.
 
 **Several of these repositories are private.** If a clone fails with a 404 rather than a permission
 message, that is what it means: GitHub reports a repository you cannot see as absent, not as
@@ -439,10 +436,10 @@ DEMO_CHANNELS=mwc-tv-1 ./start-all.sh      # or: DEMO_CHANNELS=mwc-tv-1 ./demo u
 
 ### 5. Testing work that has not merged yet
 
-Everything above describes the **stable** layout: the `5mbs` branch of the three forks and the default
-branch of the six `rt-mbs-*` components. That is deliberate, so these instructions stay correct once
-outstanding work merges. It also means that while a change is still under review, the branch these
-instructions name is not the branch under test, and the two will disagree.
+Everything above describes the **Release 19** layout: the `feature/mbs-broadcast-rel19` branches, `feature/mbs-compliance-fixes` for the
+application and the provider, and `5mbs` for `ocudu`. The earlier layout (`5mbs` on the forks, the default branch of the `rt-mbs-*` components)
+is the Release 18 line and does not hold the Release 19 work. While a change is still under review, the branch these instructions name
+may not be the branch under test, and the two will disagree.
 
 To test unmerged work, check the relevant branch out in **every** repository that has it, not just the
 one whose change you are interested in. The components are built against each other, so a mixture of
@@ -451,11 +448,11 @@ branches produces failures that read as defects in whichever component happens t
 Taking the branches of section 6 as the example, since the same branch name does not exist in every repository:
 
 ```bash
-for pair in open5gs:5mbs-development ocudu:5mbs-development srsRAN_4G_mbs:feature/mbs-compliance-fixes \
-            rt-mbs/rt-mbs-function:development rt-mbs/rt-mbs-transport-function:development \
-            rt-mbs/rt-mbs-client:feature/mbs-compliance-fixes rt-mbs/rt-mbs-application:feature/mbs-compliance-fixes \
+for pair in open5gs:feature/mbs-broadcast-rel19 ocudu:5mbs-development srsRAN_4G_mbs:feature/mbs-broadcast-rel19 \
+            rt-mbs/rt-mbs-function:feature/mbs-broadcast-rel19 rt-mbs/rt-mbs-transport-function:feature/mbs-broadcast-rel19 \
+            rt-mbs/rt-mbs-client:feature/mbs-broadcast-rel19 rt-mbs/rt-mbs-application:feature/mbs-compliance-fixes \
             rt-mbs/rt-mbs-application-provider:feature/mbs-compliance-fixes \
-            rt-mbs/rt-mbs-examples:feature/mbs-compliance-fixes; do
+            rt-mbs/rt-mbs-examples:feature/mbs-broadcast-rel19; do
     git -C ~/Repos/"${pair%%:*}" checkout "${pair#*:}" && git -C ~/Repos/"${pair%%:*}" pull || break
 done
 ```
@@ -511,6 +508,53 @@ updated to name the next one.
 
 ### 6. What was tested together
 
+The table below is the Release 19 line, the one this README describes. The Release 18 line it replaces follows it.
+
+### The Release 19 line (tested 2026-11-20)
+
+Two end-to-end runs of `scripts/mbs-broadcast-demo/tests/test-e2e-chain.sh` on a reset demo each gave 50 of 50 on 2026-11-20 (Ubuntu 26.04, GCC 15,
+one machine, one AMF; the first with `MBS_AS=1`, the second without) with these trees. A fresh clone of the `rt-mbs-transport-function` branch, with its
+submodules and wraps, also builds and passes its 17 tests, and so did one of `rt-mbs-function` at the same commit:
+
+| Repository | Branch | Commit |
+|---|---|---|
+| open5gs | `feature/mbs-broadcast-rel19` | `50e298b7a` |
+| rt-5gc-service-consumers | `feature/mbs-broadcast-rel19` | `4a89cf60e` |
+| rt-mbs-function | `feature/mbs-broadcast-rel19` | `f2cfc0e` |
+| rt-mbs-transport-function | `feature/mbs-broadcast-rel19` | `95cf41f` |
+| rt-libflute (fetched by the wraps and the client) | `feature/mbs-broadcast-rel19` | `1e3a85b76` |
+| rt-mbs-client | `feature/mbs-broadcast-rel19` | `13e143164` |
+| ocudu (gNB), Release 18 radio | `5mbs-development` | `70b26c7cd0` (AddressSanitizer build) |
+| srsRAN_4G_mbs (UE) | `feature/mbs-broadcast-rel19` | `bd8358f6c` |
+| rt-mbs-application | `feature/mbs-compliance-fixes` | `7b75b26` |
+| rt-mbs-application-provider | `feature/mbs-compliance-fixes` | `35824a6` |
+| rt-mbs-examples | `feature/mbs-broadcast-rel19` | this branch |
+
+With the same gNB the test also ran 18 times on 2026-11-19 with no sanitizer report: 16 runs gave 50 of 50, and 2 passed the first 49 checks and failed the last
+one, the player of the demo. In one the client had ended when it joined on an address that the tunnel of the UE no longer had (fixed in
+rt-mbs-client `35b3c18`, and the demo now starts the client on the PDU session address); in the other the UE did not complete its registration after
+the restart of the gNB, and the cause was not found. The commits after `31f36d0277` fix a log line of the scheduler that was lost to a format error, a
+name table of the PDCP log that was too short, and a use-after-free in the CU-UP when an MBS session is released.
+
+`rt-mbs-application` and `rt-mbs-application-provider` have no Release 19 branch; use `feature/mbs-compliance-fixes`.
+
+Two commands differ from the table in section 2 for this line:
+
+- Build the UE with `cmake -S . -B build -DENABLE_SRSENB=OFF -DENABLE_SRSEPC=OFF && cmake --build build -j$(nproc)`. The demo needs only `srsue`; without
+  the two flags the build also compiles `srsenb`, and GCC 15 stops on `-Werror=stringop-overflow` in the upstream file `srsenb/src/stack/upper/gtpu.cc`
+  (the unmodified `release_26_10` tag fails the same way).
+- Start the demo with `MBSTF_CONFIG_FORM=uplift ./demo up`: the Release 19 MBSTF reads its configuration in the form of Open5GS 2.8 (see section 3).
+
+Geographical target service areas are not supported on this line: `extTgtServAreas` is for an untrusted AF over N33 only (TS 29.580 V19.6.0), and TS 23.247 V19.3.0
+has the NEF/MBSF translate such an area to a TAI or cell list before the MB-SMF sees it, which the MBSF does not do (it has no cell locations); it forwards the areas to the MB-SMF
+in `extMbsServiceArea`, which TS 29.571 V19.8.0 allows only over N33. The demo's Application Provider is a trusted AF and gives its target service area in `tgtServAreas`
+(`taiList`, and `intendedServAreaList` for an NR NTN Intended Service Area), which is the supported way and the one the tests use.
+
+The radio side of this line stays Release 18; the NR NTN Intended Service Area is carried through the core and NGAP and the gNB accepts it, but no SIB27 or
+`mbs-SessionAreaList-r19` is broadcast.
+
+### The Release 18 line (tested 2026-11-13)
+
 The end-to-end check above gave 50 of 50 on one run (2026-11-13, Ubuntu 26.04.1 LTS, one machine, one AMF), on the trees these
 commits hold. `rt-mbs-function` and `rt-mbs-transport-function` were run with the local `subprojects/*.wrap` edits that
 point their `open5gs`, `rt-5gc-service-consumers` and `libflute` subprojects at the branches under test.
@@ -528,48 +572,6 @@ point their `open5gs`, `rt-5gc-service-consumers` and `libflute` subprojects at 
 | rt-mbs-application-provider | `feature/mbs-compliance-fixes` | `9630ddb` |
 
 A different combination may work; this is the one that was run.
-
-### The Release 19 line (tested 2026-11-19)
-
-The Release 19 MBS Broadcast work is on its own branches, and a clone of the stable layout above does not contain it. Two end-to-end runs of
-`scripts/mbs-broadcast-demo/tests/test-e2e-chain.sh` on a reset demo each gave 50 of 50 (Ubuntu 26.04, GCC 15, one machine, one AMF) with
-these trees, the `rt-mbs-function` and `rt-mbs-transport-function` ones built from fresh clones of the branches named:
-
-| Repository | Branch | Commit |
-|---|---|---|
-| open5gs | `feature/mbs-broadcast-rel19` | `50e298b7a` |
-| rt-5gc-service-consumers | `feature/mbs-broadcast-rel19` | `4a89cf60e` |
-| rt-mbs-function | `feature/mbs-broadcast-rel19` | `82dff94a4` |
-| rt-mbs-transport-function | `feature/mbs-broadcast-rel19` | `0fb4f67a1` |
-| rt-libflute (fetched by the wraps and the client) | `feature/mbs-broadcast-rel19` | `341a4d399` |
-| rt-mbs-client | `feature/mbs-broadcast-rel19` | `97e13dfd5` |
-| ocudu (gNB) | `5mbs-development` | `31f36d0277` |
-| srsRAN_4G_mbs (UE) | `feature/mbs-broadcast-rel19` | `bd8358f6c` |
-| rt-mbs-examples | `feature/mbs-broadcast-rel19` | this branch |
-
-The gNB of `5mbs-development` has moved on since those two runs. With ocudu `70b26c7cd0` in place of `31f36d0277` (an AddressSanitizer build of the
-gNB, the same chain) the test ran 18 more times with no sanitizer report: 16 runs gave 50 of 50, and 2 passed the first 49 checks and failed the last
-one, the player of the demo. In one the client had ended when it joined on an address that the tunnel of the UE no longer had (fixed in
-rt-mbs-client `35b3c18`, and the demo now starts the client on the PDU session address); in the other the UE did not complete its registration after
-the restart of the gNB, and the cause was not found. The commits after `31f36d0277` fix a log line of the scheduler that was lost to a format error, a
-name table of the PDCP log that was too short, and a use-after-free in the CU-UP when an MBS session is released.
-
-`rt-mbs-application` and `rt-mbs-application-provider` have no such branch; use their default branch.
-
-Two commands differ from the table in section 2 for this line:
-
-- Build the UE with `cmake -S . -B build -DENABLE_SRSENB=OFF -DENABLE_SRSEPC=OFF && cmake --build build -j$(nproc)`. The demo needs only `srsue`; without
-  the two flags the build also compiles `srsenb`, and GCC 15 stops on `-Werror=stringop-overflow` in the upstream file `srsenb/src/stack/upper/gtpu.cc`
-  (the unmodified `release_26_10` tag fails the same way).
-- Start the demo with `MBSTF_CONFIG_FORM=uplift ./demo up`: the Release 19 MBSTF reads its configuration in the form of Open5GS 2.8 (see section 3).
-
-Geographical target service areas are not supported on this line: `extTgtServAreas` is for an untrusted AF over N33 only (TS 29.580 V19.6.0), and TS 23.247 V19.3.0
-has the NEF/MBSF translate such an area to a TAI or cell list before the MB-SMF sees it, which the MBSF does not do (it has no cell locations); it forwards the areas to the MB-SMF
-in `extMbsServiceArea`, which TS 29.571 V19.8.0 allows only over N33. The demo's Application Provider is a trusted AF and gives its target service area in `tgtServAreas`
-(`taiList`, and `intendedServAreaList` for an NR NTN Intended Service Area), which is the supported way and the one the tests use.
-
-The radio side of this line stays Release 18; the NR NTN Intended Service Area is carried through the core and NGAP and the gNB accepts it, but no SIB27 or
-`mbs-SessionAreaList-r19` is broadcast.
 
 ## Running it
 

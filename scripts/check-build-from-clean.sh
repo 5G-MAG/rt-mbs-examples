@@ -59,13 +59,14 @@ echo "package list from the README: $(wc -w < "$WORK/pkgs") packages"
 
 SRC="$WORK/tree"
 mkdir -p "$SRC/rt-mbs"
-# The stable branch of each component: 5mbs on the MBS forks (their main tracks upstream), main on the rt-* components,
-# as the stable layout of the demo README describes. --branch overrides it for all, to build work that has not merged yet.
+# The Release 19 branch of each component, as the demo README describes: feature/mbs-broadcast-rel19 where it exists, feature/mbs-compliance-fixes for the
+# application and the provider (no Release 19 branch), 5mbs for the gNB (its radio side stays on Release 18). --branch overrides it for all.
 branch_of() {
     if [ -n "$BRANCH" ]; then echo "$BRANCH"; return; fi
     case "$1" in
-        open5gs|ocudu|srsRAN_Project_mbs|srsRAN_4G_mbs)  echo 5mbs ;;
-        *)                                                echo main ;;
+        ocudu|srsRAN_Project_mbs)                         echo 5mbs ;;
+        rt-mbs-application|rt-mbs-application-provider)  echo feature/mbs-compliance-fixes ;;
+        *)                                                echo feature/mbs-broadcast-rel19 ;;
     esac
 }
 clone() {
