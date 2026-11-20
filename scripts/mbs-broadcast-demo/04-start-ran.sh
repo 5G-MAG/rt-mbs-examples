@@ -1,5 +1,5 @@
 #!/bin/bash
-# Starts the gNB (srsRAN_Project_mbs) and UE (srsRAN_4G_mbs) inside $NETNS, connected over
+# Starts the gNB (ocudu) and UE (srsRAN_4G_mbs) inside $NETNS, connected over
 # a ZMQ RF loopback (no SDR hardware needed). Both must run inside $NETNS so the gNB's NGU
 # socket and the UE's PDU-session TUN device (tun_bcastue) share that namespace's routing
 # table, isolated from the host's.

@@ -21,7 +21,7 @@
 set -uo pipefail
 
 IMAGE=ubuntu:26.04
-GNB_REPO="${GNB_REPO:-srsRAN_Project_mbs}"   # the gNB repository
+GNB_REPO="${GNB_REPO:-ocudu}"   # the gNB repository
 BRANCH=""   # empty: each component at its development branch, see branch_of()
 QUICK=0
 EXAMPLES_CHECKOUT=""

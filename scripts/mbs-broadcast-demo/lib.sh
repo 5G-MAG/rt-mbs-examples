@@ -187,12 +187,10 @@ wait_for_tcp() {
     local host="$1" port="$2" timeout="${3:-20}"
     local waited=0
     until (exec 3<>"/dev/tcp/$host/$port") 2>/dev/null; do
-        exec 3>&- 2>/dev/null || true
         sleep 1
         waited=$((waited+1))
         [[ $waited -ge $timeout ]] && return 1
     done
-    exec 3>&- 2>/dev/null || true
     return 0
 }
 

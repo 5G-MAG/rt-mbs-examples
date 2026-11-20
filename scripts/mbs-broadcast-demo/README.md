@@ -128,7 +128,7 @@ sudo apt install git ninja-build build-essential meson cmake pkg-config \
 `libspdlog-dev`, `libtinyxml2-dev` and `libgmime-3.0-dev` are the MBS Client's, which asks for them
 by name in its `CMakeLists.txt` and fails at configure time without them. `libyaml-cpp-dev` is the
 gNB's, and is not the same package as `libyaml-dev` above: that one is the C library, which open5gs
-uses, while the gNB (`srsRAN_Project_mbs`) needs the C++ one. `libglibmm-2.4-dev` is required by the MBSTF's
+uses, while the gNB (`ocudu`) needs the C++ one. `libglibmm-2.4-dev` is required by the MBSTF's
 `libmpdpp` subproject, which asks for `glibmm-2.4` by name; note the 2.4, not the newer 2.68 the
 archive also carries.
 
@@ -215,7 +215,7 @@ build command is repeated here only so you can see the whole job at once.
 | MBS-Aware Application | `rt-mbs-application` | `npm install` |
 | Application Provider | `rt-mbs-application-provider` | `npm install` |
 | Media Origin (optional) | `rt-media-origin` | `npm install` |
-| gNB | `srsRAN_Project_mbs` | `cmake -S . -B build -DENABLE_ZEROMQ=ON && cmake --build build -j$(nproc)` |
+| gNB | `ocudu` | `cmake -S . -B build -DENABLE_ZEROMQ=ON && cmake --build build -j$(nproc)` |
 | UE | `srsRAN_4G_mbs` | `cmake -S . -B build && cmake --build build -j$(nproc)` |
 
 `rt-media-origin` is optional. By default `03-start-media-server.sh` serves the content with this
@@ -243,7 +243,7 @@ subproject it stashes them rather than discarding them, recoverable with `git st
 directory; `--reset` would throw them away, which is why it is not used here.
 
 `ENABLE_ZEROMQ=ON` on the gNB is what lets it use the `device_driver: zmq` in this demo's
-`gnb.yaml`. It is the default in `srsRAN_Project_mbs` and in `srsRAN_4G_mbs`; the flag is spelled out so that the
+`gnb.yaml`. It is the default in `ocudu` and in `srsRAN_4G_mbs`; the flag is spelled out so that the
 command stays correct if the default changes, and the ZeroMQ radio is compiled only when it is on, so
 having `libzmq3-dev` installed does not cover it.
 
@@ -260,7 +260,7 @@ mkdir -p ~/Repos/rt-mbs
 
 cd ~/Repos
 git clone -b 5mbs-development https://github.com/5G-MAG/open5gs.git
-git clone -b 5mbs-development https://github.com/5G-MAG/srsRAN_Project_mbs.git
+git clone -b 5mbs-development https://github.com/5G-MAG/ocudu.git
 git clone -b 5mbs-development https://github.com/5G-MAG/srsRAN_4G_mbs.git
 git clone https://github.com/5G-MAG/rt-media-origin.git   # only for MEDIA_ORIGIN_BACKEND=rt-media-origin
 
@@ -277,9 +277,9 @@ That produces exactly the tree in section 3, so no variable needs setting. Only 
 shown with `--recurse-submodules` have any: MBSF, MBSTF and the MBS Client. If you already cloned one
 of those without it, run `git submodule update --init --recursive` in it before building.
 
-**The `-b 5mbs-development` on open5gs and `srsRAN_Project_mbs` is not optional.** Both are forks whose `main` tracks upstream and
+**The `-b 5mbs-development` on open5gs and `ocudu` is not optional.** Both are forks whose `main` tracks upstream and
 carries no MBS work; `5mbs-development` is the branch the broadcast chain in this tutorial runs on, and the AMF,
-MB-SMF, MB-UPF and gNB fixes the end-to-end check below depends on are on it. In `srsRAN_Project_mbs` the difference is total, so a
+MB-SMF, MB-UPF and gNB fixes the end-to-end check below depends on are on it. In `ocudu` the difference is total, so a
 plain `git clone` there produces a gNB that builds and then cannot do MBS. `srsRAN_4G_mbs` already defaults to the branch
 its MBS work is on, and section 6 lists the exact branches and commits that were tested together.
 
@@ -309,7 +309,7 @@ requirement: every path here has a variable that moves it.
 $HOME/Repos/                                REPOS_ROOT
 ├── open5gs/                                OPEN5GS_DIR
 ├── rt-media-origin/                        MEDIA_ORIGIN_DIR  (MEDIA_ORIGIN_BACKEND=rt-media-origin only)
-├── srsRAN_Project_mbs/                     GNB_DIR      (RAN_ROOT, defaults to REPOS_ROOT)
+├── ocudu/                                  GNB_DIR      (RAN_ROOT, defaults to REPOS_ROOT)
 │   └── build/apps/gnb/gnb                  GNB_BIN
 ├── srsRAN_4G_mbs/                          UE_DIR
 │   └── build/srsue/src/srsue               UE_BIN
@@ -421,14 +421,13 @@ To test unmerged work, check the relevant branch out in **every** repository tha
 one whose change you are interested in. The components are built against each other, so a mixture of
 branches produces failures that read as defects in whichever component happens to compile first.
 
-Taking the branches of section 6 as the example, since the same branch name does not exist in every repository:
+Taking the development branches as the example (put the branch under test in place of the one of its repository), since the same branch name does not exist in every repository:
 
 ```bash
-for pair in open5gs:5mbs-development srsRAN_Project_mbs:5mbs-development srsRAN_4G_mbs:feature/mbs-compliance-fixes \
+for pair in open5gs:5mbs-development ocudu:5mbs-development srsRAN_4G_mbs:5mbs-development \
             rt-mbs/rt-mbs-function:development rt-mbs/rt-mbs-transport-function:development \
-            rt-mbs/rt-mbs-client:feature/mbs-compliance-fixes rt-mbs/rt-mbs-application:feature/mbs-compliance-fixes \
-            rt-mbs/rt-mbs-application-provider:feature/mbs-compliance-fixes \
-            rt-mbs/rt-mbs-examples:feature/mbs-compliance-fixes; do
+            rt-mbs/rt-mbs-client:development rt-mbs/rt-mbs-application:development \
+            rt-mbs/rt-mbs-application-provider:development rt-mbs/rt-mbs-examples:development; do
     git -C ~/Repos/"${pair%%:*}" checkout "${pair#*:}" && git -C ~/Repos/"${pair%%:*}" pull || break
 done
 ```
@@ -484,21 +483,35 @@ updated to name the next one.
 
 ### 6. What was tested together
 
-The end-to-end check above gave 50 of 50 on one run (2026-11-13, Ubuntu 26.04.1 LTS, one machine, one AMF), on the trees these
-commits hold. The gNB of that run was ocudu `5mbs-development`; the clone list above names `srsRAN_Project_mbs`, with which the run has not been repeated. `rt-mbs-function` and `rt-mbs-transport-function` were run with the local `subprojects/*.wrap` edits that
-point their `open5gs`, `rt-5gc-service-consumers` and `libflute` subprojects at the branches under test.
+The end-to-end check above gave 50 of 50 on one run (2026-11-20, Ubuntu 26.04.1 LTS, one machine, one AMF), from fresh clones of the
+branches below, built with the commands of section 2 and started with `./demo up` for one channel (`DEMO_CHANNELS=mwc-tv-1`). The client
+learned the service from the Service Announcement channel over the radio, and the application's player in Chrome played the stream
+(`readyState` 4, the playback time advancing with the clock, 0 dropped frames).
 
 | Repository | Branch | Commit |
 |---|---|---|
 | open5gs | `5mbs-development` | `19149433f` |
-| ocudu (gNB, this run only) | `5mbs-development` | `61bcd3e80` |
-| srsRAN_4G_mbs (UE) | `feature/mbs-compliance-fixes` | `b23040496` |
-| rt-media-origin | `main` | `9f94d50` |
-| rt-mbs-function | `development` | `87bed08` |
-| rt-mbs-transport-function | `development` | `e33b245` |
-| rt-mbs-client | `feature/mbs-compliance-fixes` | `6f448ce` |
-| rt-mbs-application | `feature/mbs-compliance-fixes` | `7b75b26` |
-| rt-mbs-application-provider | `feature/mbs-compliance-fixes` | `9630ddb` |
+| ocudu (gNB) | `5mbs-development` | binary built from `1faa2a2f57` |
+| srsRAN_4G_mbs (UE) | `5mbs-development` | `d980ecb9c` |
+| rt-mbs-function | `development` | `87bed08e8` |
+| rt-mbs-transport-function | `development` | `e33b2459e` |
+| rt-mbs-client | `development` | `f71b2eacc` |
+| rt-mbs-application | `development` | `5518aa224` |
+| rt-mbs-application-provider | `development` | `c550c756f` |
+| rt-mbs-examples | `development` | `7fbfbd3c4` |
+
+Three things differ from a plain clone of those branches:
+
+- The wraps of `rt-mbs-function` and `rt-mbs-transport-function` on `development` name branches that do not carry the code yet (open5gs `5mbs`,
+  rt-5gc-service-consumers `main`, rt-libflute `main`). The run used the changes of pull requests 80 and 86 of those repositories, made locally.
+  `rt-mbs-transport-function` stays on open5gs `bbc-patches`: its code uses a field that `5mbs-development` lacks.
+- The gNB binary came from an existing build of ocudu at `1faa2a2f57`, a commit of `5mbs-development` (its tip then was `70b26c7cd0`), not from a fresh clone.
+- `rt-media-origin` was not used: the run served the content with this repository's own media server.
+
+`srsRAN_Project_mbs` does not work as the gNB of this demo. Its `5mbs-development` holds no MBS work; its `feature/mbs-compliance-fixes`, merged with
+`5mbs-development`, starts, connects to the AMF and, with a local change that makes its DU take its first cell when the CU-CP names none, sets the
+broadcast sessions up, but the UE of `srsRAN_4G_mbs` `5mbs-development` logs SIB20 and then nothing of the MCCH, and the client received no announcement in the 90 seconds the
+demo waits for it. Observed on 2026-11-20; the cause was not pursued.
 
 A different combination may work; this is the one that was run.
 

@@ -8,7 +8,6 @@ source lib.sh
 check_tcp() {
     local name="$1" host="$2" port="$3"
     if (exec 3<>"/dev/tcp/$host/$port") 2>/dev/null; then
-        exec 3>&- 2>/dev/null
         echo "  [up]   $name ($host:$port)"
     else
         echo "  [down] $name ($host:$port)"
