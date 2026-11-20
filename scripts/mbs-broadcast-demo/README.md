@@ -522,7 +522,8 @@ submodules and wraps, also builds and passes its 17 tests, and so did one of `rt
 | rt-5gc-service-consumers | `feature/mbs-broadcast-rel19` | `4a89cf60e` |
 | rt-mbs-function | `feature/mbs-broadcast-rel19` | `f2cfc0e` |
 | rt-mbs-transport-function | `feature/mbs-broadcast-rel19` | `95cf41f` |
-| rt-libflute (fetched by the wraps and the client) | `feature/mbs-broadcast-rel19` | `1e3a85b76` |
+| rt-libflute (fetched by the MBSTF wrap) | `feature/mbs-broadcast-rel19` | `1e3a85b76` |
+| rt-libflute (recorded by the client's submodule, one commit behind on the same branch) | `feature/mbs-broadcast-rel19` | `f7e7be94e` |
 | rt-mbs-client | `feature/mbs-broadcast-rel19` | `13e143164` |
 | ocudu (gNB), Release 18 radio | `5mbs-development` | `70b26c7cd0` (AddressSanitizer build) |
 | srsRAN_4G_mbs (UE) | `feature/mbs-broadcast-rel19` | `bd8358f6c` |
