@@ -21,6 +21,8 @@ if ! systemctl is-active --quiet mongod; then
     log "mongod is not active, starting it"
     ensure_sudo
     sudo -n systemctl start mongod || die "could not start mongod (needed by NRF/UDR)"
+    # systemctl returns once the service is started, before mongod accepts connections
+    wait_for_tcp 127.0.0.1 27017 30 || die "mongod did not accept connections on 127.0.0.1:27017"
 fi
 
 # Before the UDR starts, not after: a UE that registers against a database with no matching SUPI is
@@ -194,6 +196,14 @@ smf:
             mcc: $PLMN_MCC
             mnc: $PLMN_MNC
           tac: $TAC
+  # Coverage of this MB-SMF: a broadcast session requested without a service area is delivered here, and an MB-SMF
+  # that has none rejects it (TS 29.518 table 6.5.6.2.2-1 NOTE 1). The demo's Ingest Sessions carry no area.
+  mbsServiceArea:
+    taiList:
+      - plmn_id:
+          mcc: $PLMN_MCC
+          mnc: $PLMN_MNC
+        tac: $TAC
 EOF
 
 cat > "$GEN_CONF_DIR/upf.yaml" <<EOF
