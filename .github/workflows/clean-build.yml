@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
     inputs:
       branch:
-        description: "Branch to build every component at (empty means the stable branch of each: 5mbs on the forks, main elsewhere)"
+        description: "Branch to build every component at (empty means the development branch of each: 5mbs-development on the forks, development elsewhere)"
         required: false
         type: string
 
@@ -45,7 +45,7 @@ jobs:
             rt-mbs-application
             rt-mbs-application-provider
             rt-mbs-examples
-            ocudu
+            srsRAN_Project_mbs
             srsRAN_4G_mbs
 
       - name: Check out this repository
@@ -58,9 +58,9 @@ jobs:
         # in-memory URL rewrite; no token is written to Git configuration.
         env:
           INPUT_BRANCH: ${{ inputs.branch }}
-          # ocudu is the gNB the demo runs. It must be in the repository selection of the GitHub App installation behind
+          # srsRAN_Project_mbs is the gNB this branch builds. It must be in the repository selection of the GitHub App installation behind
           # MBS_CI_APP_*, as must every repository in the token list above, or the token cannot be created.
-          GNB_REPO: ocudu
+          GNB_REPO: srsRAN_Project_mbs
           GIT_CONFIG_COUNT: "1"
           GIT_CONFIG_KEY_0: url.https://x-access-token:${{ steps.github-app-token.outputs.token }}@github.com/.insteadOf
           BUILD_IMAGE: ${{ matrix.image }}

@@ -21,8 +21,8 @@
 set -uo pipefail
 
 IMAGE=ubuntu:26.04
-GNB_REPO="${GNB_REPO:-ocudu}"   # the gNB repository; srsRAN_Project_mbs is the deprecated one
-BRANCH=""   # empty: each component at its stable branch, see branch_of()
+GNB_REPO="${GNB_REPO:-srsRAN_Project_mbs}"   # the gNB repository
+BRANCH=""   # empty: each component at its development branch, see branch_of()
 QUICK=0
 EXAMPLES_CHECKOUT=""
 WORK=${WORK:-$(mktemp -d)}
@@ -59,13 +59,13 @@ echo "package list from the README: $(wc -w < "$WORK/pkgs") packages"
 
 SRC="$WORK/tree"
 mkdir -p "$SRC/rt-mbs"
-# The stable branch of each component: 5mbs on the MBS forks (their main tracks upstream), main on the rt-* components,
-# as the stable layout of the demo README describes. --branch overrides it for all, to build work that has not merged yet.
+# The development branch of each component: 5mbs-development on the MBS forks (their main tracks upstream), development on the rt-* components,
+# as the layout of the demo README describes. --branch overrides it for all, to build work that has not merged yet.
 branch_of() {
     if [ -n "$BRANCH" ]; then echo "$BRANCH"; return; fi
     case "$1" in
-        open5gs|ocudu|srsRAN_Project_mbs|srsRAN_4G_mbs)  echo 5mbs ;;
-        *)                                                echo main ;;
+        open5gs|ocudu|srsRAN_Project_mbs|srsRAN_4G_mbs)  echo 5mbs-development ;;
+        *)                                                echo development ;;
     esac
 }
 clone() {
