@@ -310,6 +310,14 @@ pcap:
   ngap_filename: $LOG_DIR/gnb_ngap.pcap
 EOF
 
+# The configuration above uses the option names of ocudu. For srsRAN_Project_mbs (GNB_FLAVOR=srsran) the file
+# conf/gnb-pre-rel19.yaml.in is expanded instead, with the same variables.
+if [ "${GNB_FLAVOR:-ocudu}" = srsran ]; then
+    eval "cat <<__GNB_PRE_REL19_EOF__
+$(cat "$(dirname "${BASH_SOURCE[0]}")/conf/gnb-pre-rel19.yaml.in")
+__GNB_PRE_REL19_EOF__" > "$GEN_CONF_DIR/gnb_bcast.yaml" || { echo "cannot write the gNB configuration" >&2; exit 1; }
+fi
+
 cat > "$GEN_CONF_DIR/ue_bcast.conf" <<EOF
 [rf]
 freq_offset = 0

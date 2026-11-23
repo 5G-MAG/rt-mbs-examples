@@ -1,0 +1,175 @@
+# gNB configuration of the pre-Release 19 setup: srsRAN_Project_mbs, branch 5mbs-development.
+#
+# 04-start-ran.sh expands this file with the shell, exactly as it expands the heredoc that writes the ocudu
+# configuration, so the variable references below, with their defaults, are the demo's own. The option names are
+# those of srsRAN_Project_mbs; the ocudu file differs in multicast_rx, nof_cell_csi_res, the radio gains,
+# main_pool, f1u_level and broadcast_enabled.
+gnb_id: 1
+
+cu_cp:
+  amf:
+    addr: $VETH_ROOT_ADDR
+    port: 38412
+    bind_addr: $VETH_NS_ADDR
+    supported_tracking_areas:
+      - tac: $TAC
+        plmn_list:
+          - plmn: "${PLMN_MCC}${PLMN_MNC}"
+            tai_slice_support_list:
+              - sst: 1
+                sd: 1
+  inactivity_timer: 7200
+${gnb_extra_amfs}
+
+cu_up:
+  ngu:
+    socket:
+      - bind_addr: $VETH_NS_ADDR
+
+cell_cfg:
+  sib:
+    # SIB20 is a Release 17 SIB, scheduled through schedulingInfoList2 (TS 38.331 SchedulingInfo2-r17). Its SI window is
+    # (si-WindowPosition - 1) x si-WindowLength, and si-WindowLength exists only in si-SchedulingInfo, which the SIB1 carries
+    # only when a regular SIB is scheduled: SIB2 goes first (its parameters are fixed in the gNB, there is no sib2 key) and
+    # SIB20 takes window position 2.
+    si_sched_info:
+      - si_period: 32
+        sib_mapping: 2
+      - si_period: 32
+        sib_mapping: 20
+        si_window_position: 2
+  dl_arfcn: ${NR_DL_ARFCN}
+  band: ${NR_BAND}
+  channel_bandwidth_MHz: ${CELL_BW_MHZ}
+  common_scs: 15
+  plmn: "${PLMN_MCC}${PLMN_MNC}"
+  tac: $TAC
+  pci: 1
+  slicing:
+    - sst: 1
+      sd: 1
+  pdcch:
+    common:
+      ss0_index: 0
+      coreset0_index: ${CELL_CORESET0_IDX}
+      # SearchSpace#1 carries the RAR, the other SI messages, the MCCH and the MTCH of the broadcast sessions, all in
+      # CORESET#0 where SIB1 also is sent. One aggregation level 4 candidate leaves the MCCH without a PDCCH in the
+      # frames where SIB1 holds it; the second candidate is the place it then takes.
+      ss1_n_candidates: [0, 0, 2, 0, 0]
+    dedicated:
+      ss2_type: common
+      dci_format_0_1_and_1_1: false
+  prach:
+    prach_config_index: 1
+  pdsch:
+    mcs_table: qam64
+  pusch:
+    mcs_table: qam64
+  # Periodic CSI reporting makes the UE transmit PUCCH format 2 on a fixed cadence. This UE loses its
+  # own MBS PDSCH reception in any slot it transmits in: measured over one run, broadcast blocks in a
+  # slot carrying a periodic PUCCH failed 6795 times out of 6795, against 1 failure in 127513 blocks
+  # in every other slot. Broadcast has no HARQ retransmission (TS 38.212 clause 7.3.1.5.1 gives DCI
+  # format 4_0 no HARQ process number and no new data indicator), so each of those blocks is lost
+  # outright and any object spanning one is unrecoverable.
+  #
+  # A receiver of a broadcast service reports no channel state: there is no link being adapted to it.
+  # Disabling it here removes the transmissions rather than working around their effect. Set
+  # CELL_CSI_ENABLED=true to restore the stock behaviour; nof_cell_csi_resources must be 0 whenever it
+  # is false, which the gNB's own config validator enforces.
+  csi:
+    csi_rs_enabled: ${CELL_CSI_ENABLED}
+  pucch:
+    # The gNB's own config validator requires this to be 0 when csi_rs_enabled is false and non-zero
+    # when it is true, so it is derived from the same setting rather than set independently.
+    f2_or_f3_or_f4_nof_cell_res_csi: ${CELL_CSI_RESOURCES}
+
+ru_sdr:
+  device_driver: zmq
+  device_args: tx_port=tcp://127.0.0.1:2100,rx_port=tcp://127.0.0.1:2101,base_srate=${CELL_SRATE_MHZ}e6
+  srate: ${CELL_SRATE_MHZ}
+  tx_gain: 75
+  rx_gain: 75
+
+# The gNB's own remote control server. Off in the stock configuration; needed for the provider's RAN
+# tab to change anything while the gNB is running, rather than only writing what it will read next
+# time it starts. Bound to loopback inside the namespace, so nothing outside it can reach the control
+# surface.
+remote_control:
+  enabled: ${GNB_REMOTE_CONTROL_ENABLED:-true}
+  bind_addr: 127.0.0.1
+  port: ${GNB_REMOTE_CONTROL_PORT:-8001}
+
+expert_execution:
+  threads:
+    non_rt:
+      nof_non_rt_threads: 2
+
+mbs:
+  # The MCCH content is left entirely to the sessions live NGAP/F1AP Broadcast Session Setup
+  # establishes, which is what this demo actually provisions: one Distribution Session for the
+  # User Service Announcement Channel and one for the media.
+  #
+  # 0 disables the config-provisioned MCCH entry (the CLI's own documented meaning of 0). It is
+  # off because a static entry and a dynamic session collide: both take a G-RNTI from the same
+  # space, so MCCH ends up advertising two MBS-SessionInfo-r17 entries carrying the SAME g-RNTI,
+  # which the UE cannot disambiguate. Observed with the static entry enabled: MCCH advertised
+  # three sessions, two of them on 0xCACA, and the gNB then scheduled only one of the two real
+  # sessions -- 4580 transmissions on one G-RNTI against 5 on the other, all of those from setup.
+  # The announcement channel was the starved one, so the client never discovered the service.
+  #
+  # Keeping it off also removes a maintenance trap: bcast_session_tmgi_service_id below had to be
+  # edited to match whatever TMGI the MB-SMF happened to allocate on the last provisioning run,
+  # and the gNB restarted, or MCCH advertised a session with the wrong TMGI. Nothing needs to
+  # track a live-allocated TMGI when every session comes from live signalling.
+  #
+  # Set BCAST_SESSION_G_RNTI to a non-zero value to re-enable the static entry, and then keep
+  # BCAST_TMGI_SERVICE_ID in step with the TMGI actually allocated that run.
+  bcast_session_tmgi_service_id: ${BCAST_TMGI_SERVICE_ID:-7972906}
+  bcast_session_g_rnti: ${BCAST_SESSION_G_RNTI:-0}
+
+  # MCCH scheduling (MCCH-Config-r17). Defaults match the gNB's own, so an untouched config behaves
+  # exactly as before; they are named here so the provider's RAN tab has somewhere to write them.
+  repetition_period: ${MCCH_REPETITION_PERIOD:-1}
+  repetition_offset: ${MCCH_REPETITION_OFFSET:-0}
+  window_start_slot: ${MCCH_WINDOW_START_SLOT:-0}
+  mcch_modification_period: ${MCCH_MODIFICATION_PERIOD:-2}
+${MBS_OPTIONAL_LINES}
+
+  # Broadcast carries no channel-state feedback (DCI format 4_0 has no HARQ process number and no
+  # PDSCH-to-HARQ_feedback timing indicator, TS 38.212 V17.13.0 clause 7.3.1.5.1), so the gNB has nothing
+  # to adapt this to and it is an operator choice: a lower index reaches further and carries less. It is an
+  # index into the table mcs-Table in pdsch-ConfigMTCH selects (TS 38.214 V17.5.0 clause 5.1.3.1); qam64 is
+  # the default table, giving 0..28.
+  #
+  # This rig is a ZMQ loopback with no radio channel between the two ends, so nothing here is limited by
+  # propagation and no coverage margin is being bought by a low index. The value is set high enough that the
+  # transport block carries the demo's content rather than being the bottleneck; a deployment over real
+  # radio must choose its own from its own coverage target, which is why this is a variable and not a
+  # constant in the scheduler.
+  fixed_mcs_index: ${CELL_MBS_MCS_INDEX}
+
+log:
+  filename: $LOG_DIR/gnb.log
+  all_level: ${GNB_LOG_LEVEL:-info}
+  # The MBS scheduler explains its per-session decisions at debug level (which session it skipped
+  # and why), and those are the only record of a session being suppressed rather than starved. The
+  # scheduler shares its logger level with the MAC ("MAC" and "SCHED" are registered together), so
+  # this is the key that reaches it. Settable so it can be captured without editing this file.
+  mac_level: ${GNB_SCHED_LOG_LEVEL:-info}
+  rlc_level: ${GNB_RLC_LOG_LEVEL:-info}
+  phy_level: ${GNB_PHY_LOG_LEVEL:-warning}
+  gtpu_level: ${GNB_GTPU_LOG_LEVEL:-warning}
+  pdcp_level: ${GNB_PDCP_LOG_LEVEL:-info}
+  rrc_level: info
+  cu_level: info
+  hex_max_size: 0
+
+pcap:
+  mac_enable: $gnb_pcap
+  mac_filename: $LOG_DIR/gnb_mac.pcap
+  f1ap_enable: $gnb_pcap
+  f1ap_filename: $LOG_DIR/gnb_f1ap.pcap
+  e1ap_enable: $gnb_pcap
+  e1ap_filename: $LOG_DIR/gnb_e1ap.pcap
+  ngap_enable: true
+  ngap_filename: $LOG_DIR/gnb_ngap.pcap
