@@ -76,6 +76,15 @@ elif [ -d "$RAN_ROOT/ocudu" ]; then
 else
     GNB_DIR="$RAN_ROOT/srsRAN_Project_mbs"
 fi
+# The option names of the generated gNB configuration differ between the two gNB repositories: 04-start-ran.sh writes
+# those of ocudu and, for GNB_FLAVOR=srsran, rewrites the few that srsRAN_Project_mbs names differently or lacks.
+# The flavor follows the name of the gNB directory unless it is set.
+if [ -z "${GNB_FLAVOR:-}" ]; then
+    case "$(basename "$GNB_DIR")" in
+        ocudu*) GNB_FLAVOR=ocudu ;;
+        *)      GNB_FLAVOR=srsran ;;
+    esac
+fi
 UE_DIR="${UE_DIR:-$RAN_ROOT/srsRAN_4G_mbs}"
 
 # Binaries (built positions, not an `install/` staging tree -- matches how every one of
