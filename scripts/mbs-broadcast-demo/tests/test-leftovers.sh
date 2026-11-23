@@ -1,6 +1,6 @@
 #!/bin/bash
 # Cases for the leftover check of ./demo down: the names it looks for must find the processes the demo starts. Each
-# executable is stood in for by a copy of sleep under its name; nothing of a real run is signalled.
+# executable is stood in for by a script of that name that sleeps; nothing of a real run is signalled.
 cd "$(dirname "${BASH_SOURCE[0]}")/../../.." \
   || { echo "cannot find the repository" >&2; exit 1; }
 PASS=0; FAIL=0
@@ -11,6 +11,9 @@ eval "$(sed -n '/^signal_matching() {/,/^}/p' demo)"
 
 T=$(mktemp -d)
 pids=()
+# A stand-in is a script, not a copy of /bin/sleep: where sleep is one applet of a multi-call binary, a renamed copy no
+# longer knows which applet to run. The kernel names the process after the script.
+standin() { printf '#!/bin/sh\nwhile :; do sleep 1; done\n' > "$1"; chmod +x "$1"; }
 trap 'kill "${pids[@]}" 2>/dev/null; rm -rf "$T"' EXIT
 
 found() {
@@ -21,8 +24,8 @@ found() {
 
 echo "1. each executable the demo starts is recognised by its name"
 for exe in gnb srsue open5gs-mbsfd open5gs-mbstfd mbs-client; do
-    cp /bin/sleep "$T/$exe"
-    "$T/$exe" 300 &
+    standin "$T/$exe"
+    "$T/$exe" &
     pids+=($!)
     sleep 0.1
     check "$exe" "$(found $!)" "found"
@@ -30,8 +33,8 @@ done
 
 echo "2. signal_matching stops a process of this user"
 name="lefttest-$$"; name="${name:0:15}"
-cp /bin/sleep "$T/$name"
-"$T/$name" 300 &
+standin "$T/$name"
+"$T/$name" &
 pid=$!; pids+=("$pid")
 sleep 0.1
 signal_matching TERM -x "$name"
