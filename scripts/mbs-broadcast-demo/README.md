@@ -410,32 +410,35 @@ where the UE struggles to attach:
 DEMO_CHANNELS=mwc-tv-1 ./start-all.sh      # or: DEMO_CHANNELS=mwc-tv-1 ./demo up
 ```
 
-### 5. Testing work that has not merged yet
+### 5. Pins that do not build yet
 
 Everything above describes the **development** layout: the `5mbs-development` branch of the three forks and the `development`
-branch of the six `rt-mbs-*` components. That is deliberate, so these instructions stay correct once
-outstanding work merges. It also means that while a change is still under review, the branch these
-instructions name is not the branch under test, and the two will disagree.
+branch of the six `rt-mbs-*` components. The two components that carry `subprojects/*.wrap` files pin the release branches,
+though, and the work this demo needs is not on those yet:
 
-To test unmerged work, check the relevant branch out in **every** repository that has it, not just the
-one whose change you are interested in. The components are built against each other, so a mixture of
-branches produces failures that read as defects in whichever component happens to compile first.
+| Component | Pin on `development` | What the demo needs |
+|---|---|---|
+| `rt-mbs-function` | `open5gs` `5mbs`, `rt-5gc-service-consumers` `main` | `open5gs` `5mbs-development`, `rt-5gc-service-consumers` `development` |
+| `rt-mbs-transport-function` | `rt-libflute` `main` (`open5gs` is `bbc-patches`, which stays) | `rt-libflute` `development` |
 
-Taking the branches of section 6 as the example, since the same branch name does not exist in every repository:
+Built as committed, they do not compile (2026-11-23, `rt-mbs-function` `87bed08`, `rt-mbs-transport-function` `e33b245`):
+`MBSNcgi.cc: 'mb_smf_sc_ncgi_set_plmn_id_len' was not declared` and
+`MBSMFMBSSession.cc: ... has no member named 'red_mbs_service_area'` for the MBSF, and
+`FecOtiHelper.cc: 'kDefaultFecRedundancyLevel' is not a member of 'LibFlute'` for the MBSTF.
+
+Until those branches are released, edit the `revision` of those three wraps to the right-hand column **before** the build; the run
+of section 6 was built that way:
 
 ```bash
-for pair in open5gs:5mbs-development srsRAN_Project_mbs:5mbs-development srsRAN_4G_mbs:feature/mbs-compliance-fixes \
-            rt-mbs/rt-mbs-function:development rt-mbs/rt-mbs-transport-function:development \
-            rt-mbs/rt-mbs-client:feature/mbs-compliance-fixes rt-mbs/rt-mbs-application:feature/mbs-compliance-fixes \
-            rt-mbs/rt-mbs-application-provider:feature/mbs-compliance-fixes \
-            rt-mbs/rt-mbs-examples:feature/mbs-compliance-fixes; do
-    git -C ~/Repos/"${pair%%:*}" checkout "${pair#*:}" && git -C ~/Repos/"${pair%%:*}" pull || break
-done
+cd ~/Repos/rt-mbs/rt-mbs-function && \
+sed -i 's/^revision = 5mbs$/revision = 5mbs-development/' subprojects/open5gs.wrap && \
+sed -i 's/^revision = main$/revision = development/' subprojects/rt-5gc-service-consumers.wrap
+cd ~/Repos/rt-mbs/rt-mbs-transport-function && \
+sed -i 's/^revision = main$/revision = development/' subprojects/rt-libflute.wrap
 ```
 
-`rt-5gc-service-consumers` and `rt-common-shared` are not in that list because you do not clone them:
-they arrive as a meson subproject and a git submodule respectively, and follow from the wraps once you
-do the next step.
+`rt-5gc-service-consumers`, `rt-libflute` and `rt-common-shared` are not cloned by you: they arrive as meson subprojects and a git
+submodule, and follow from the wraps once you do the next step.
 
 **Then rebuild, and do not skip the refresh.** Switching branches changes the `.wrap` files but not the
 subproject directories already on disk, and meson will not touch a subproject directory that exists, so
@@ -479,26 +482,29 @@ wrap, so the first line is what handles it and it must not be removed. This cost
 open5gs, which is why it is the fallback rather than the everyday command.
 
 
-This section exists only while work is outstanding. When the branches merge it should be deleted, not
-updated to name the next one.
+This section exists only while the release branches lack that work. When they carry it, the pins go back to `main` and `5mbs` and
+this section should be deleted, not updated to name the next one.
 
 ### 6. What was tested together
 
-The end-to-end check above gave 50 of 50 on one run (2026-11-13, Ubuntu 26.04.1 LTS, one machine, one AMF), on the trees these
-commits hold. The gNB of that run was ocudu `5mbs-development`; the clone list above names `srsRAN_Project_mbs`, with which the run has not been repeated. `rt-mbs-function` and `rt-mbs-transport-function` were run with the local `subprojects/*.wrap` edits that
-point their `open5gs`, `rt-5gc-service-consumers` and `libflute` subprojects at the branches under test.
+The end-to-end check above gave 50 of 50 on 2026-11-23 (Ubuntu 26.04.1 LTS, one machine, one AMF), `./demo down` returned 0 and left
+nothing behind, and the MBS Client received the service announcement and the player played the video (`currentTime` advancing,
+readyState 4). Every component was cloned fresh from GitHub and built with the commands of section 2; `rt-mbs-function` and
+`rt-mbs-transport-function` had the three wrap edits of section 5.
 
 | Repository | Branch | Commit |
 |---|---|---|
-| open5gs | `5mbs-development` | `19149433f` |
-| ocudu (gNB, this run only) | `5mbs-development` | `61bcd3e80` |
-| srsRAN_4G_mbs (UE) | `feature/mbs-compliance-fixes` | `b23040496` |
-| rt-media-origin | `main` | `9f94d50` |
-| rt-mbs-function | `development` | `87bed08` |
-| rt-mbs-transport-function | `development` | `e33b245` |
-| rt-mbs-client | `feature/mbs-compliance-fixes` | `6f448ce` |
-| rt-mbs-application | `feature/mbs-compliance-fixes` | `7b75b26` |
-| rt-mbs-application-provider | `feature/mbs-compliance-fixes` | `9630ddb` |
+| open5gs | `5mbs-development` | `831b878dd9` |
+| srsRAN_Project_mbs (gNB) | `5mbs-development` | `1a76a9f798` (the branch tip, `2279c91d3f`, adds one commit that changes only a unit test) |
+| srsRAN_4G_mbs (UE) | `5mbs-development` | `ad983eeefd` |
+| rt-mbs-function | `development`, wraps edited | `87bed08e80` |
+| rt-mbs-transport-function | `development`, wraps edited | `e33b2459e4` |
+| rt-mbs-client | `development` | `5650448770` |
+| rt-mbs-application | `development` | `5518aa224d` |
+| rt-mbs-application-provider | `development` | `c550c756f6` |
+
+The scripts are those of this repository at the commit that holds this README. The content is the demo's own, served by the
+`express-mock-media-server` of this repository (`MEDIA_ORIGIN_BACKEND` left at `legacy`).
 
 A different combination may work; this is the one that was run.
 
