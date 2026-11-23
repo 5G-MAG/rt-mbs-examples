@@ -1,6 +1,6 @@
 #!/bin/bash
 # Starts the gNB (srsRAN_Project_mbs) and UE (srsRAN_4G_mbs) inside $NETNS, connected over
-# a ZMQ RF loopback (no SDR hardware needed). Both must run inside $NETNS so the gNB's NGU
+# a ZMQ RF loopback (no SDR hardware needed), or over USRPs with RAN_RADIO=uhd. Both must run inside $NETNS so the gNB's NGU
 # socket and the UE's PDU-session TUN device (tun_bcastue) share that namespace's routing
 # table, isolated from the host's.
 set -euo pipefail
@@ -51,6 +51,36 @@ CELL_NOF_PRB="${CELL_NOF_PRB:-52}"
 # 106-PRB (20 MHz) carrier but not a 52-PRB (10 MHz) one, where the gNB refuses to start with
 # "Unable to derive a valid SSB pointA and k_SSB". Index 6 gives 48 PRBs, which fits.
 CELL_CORESET0_IDX="${CELL_CORESET0_IDX:-6}"
+
+# Radio: zmq (default), the loopback above; or uhd, the gNB on a USRP N310 and the UE on a USRP B210, cabled to each
+# other through attenuators. The N310 master clock (122.88, 125 or 153.6 MHz) does not divide down to 11.52 Msps, so the
+# gNB samples at 15.36 Msps; the UE stays at 11.52 Msps, the rate its FFT size for 52 PRBs implies. The gNB reaches the
+# N310 over the network interface RAN_N310_IF, which this script moves into $NETNS.
+RAN_RADIO="${RAN_RADIO:-zmq}"
+case "$RAN_RADIO" in
+    zmq)
+        GNB_RF_DRIVER=zmq
+        GNB_RF_ARGS="tx_port=tcp://127.0.0.1:2100,rx_port=tcp://127.0.0.1:2101,base_srate=${CELL_SRATE_MHZ}e6"
+        GNB_RF_SRATE_MHZ="$CELL_SRATE_MHZ"
+        GNB_RF_TX_GAIN=0; GNB_RF_RX_GAIN=0
+        UE_RF_DEVICE=zmq
+        UE_RF_ARGS="tx_port=tcp://127.0.0.1:2101,rx_port=tcp://127.0.0.1:2100,base_srate=${CELL_SRATE_MHZ}e6"
+        UE_RF_SRATE_MHZ="$CELL_SRATE_MHZ"
+        UE_RF_TX_GAIN=50; UE_RF_RX_GAIN=40 ;;
+    uhd)
+        RAN_N310_IF="${RAN_N310_IF:-eth0}"
+        RAN_N310_ADDR="${RAN_N310_ADDR:-192.168.10.2}"
+        RAN_N310_LOCAL="${RAN_N310_LOCAL:-192.168.10.1/24}"
+        GNB_RF_DRIVER=uhd
+        GNB_RF_ARGS="${GNB_RF_ARGS:-type=n3xx,addr=$RAN_N310_ADDR,mgmt_addr=$RAN_N310_ADDR,master_clock_rate=122.88e6}"
+        GNB_RF_SRATE_MHZ="${GNB_RF_SRATE_MHZ:-15.36}"
+        GNB_RF_TX_GAIN="${GNB_RF_TX_GAIN:-30}"; GNB_RF_RX_GAIN="${GNB_RF_RX_GAIN:-50}"
+        UE_RF_DEVICE=uhd
+        UE_RF_ARGS="${UE_RF_ARGS:-type=b200,clock=internal}"
+        UE_RF_SRATE_MHZ="${UE_RF_SRATE_MHZ:-11.52}"
+        UE_RF_TX_GAIN="${UE_RF_TX_GAIN:-70}"; UE_RF_RX_GAIN="${UE_RF_RX_GAIN:-40}" ;;
+    *) die "RAN_RADIO must be zmq or uhd, not '$RAN_RADIO'" ;;
+esac
 ensure_dirs
 
 require_file "$GNB_BIN"
@@ -58,6 +88,20 @@ require_file "$UE_BIN"
 netns_exists || die "run 00-setup-netns.sh first"
 wait_for_tcp "$AMF_ADDR" "$SBI_PORT" 5 || die "AMF is not up yet -- run 01-start-core-nfs.sh first"
 ensure_sudo
+
+if [ "$RAN_RADIO" = uhd ]; then
+    if ! sudo -n ip netns exec "$NETNS" ip link show "$RAN_N310_IF" >/dev/null 2>&1; then
+        log "moving $RAN_N310_IF (the N310) into $NETNS"
+        sudo -n ip link set "$RAN_N310_IF" netns "$NETNS" || die "cannot move $RAN_N310_IF into $NETNS"
+    fi
+    sudo -n ip netns exec "$NETNS" ip addr replace "$RAN_N310_LOCAL" dev "$RAN_N310_IF"
+    sudo -n ip netns exec "$NETNS" ip link set "$RAN_N310_IF" up
+    for _ in $(seq 1 20); do
+        sudo -n ip netns exec "$NETNS" ping -c1 -W1 "$RAN_N310_ADDR" >/dev/null 2>&1 && break
+    done
+    sudo -n ip netns exec "$NETNS" ping -c1 -W1 "$RAN_N310_ADDR" >/dev/null 2>&1 \
+        || die "the N310 does not answer at $RAN_N310_ADDR from $NETNS"
+fi
 
 # Optional mbs: parameters. Each is emitted only when it actually has a value: the gNB treats an
 # absent key as "use my own default", but an empty one is a parse error, so writing the key
@@ -173,11 +217,11 @@ cell_cfg:
     nof_cell_csi_res: ${CELL_CSI_RESOURCES}
 
 ru_sdr:
-  device_driver: zmq
-  device_args: tx_port=tcp://127.0.0.1:2100,rx_port=tcp://127.0.0.1:2101,base_srate=${CELL_SRATE_MHZ}e6
-  srate: ${CELL_SRATE_MHZ}
-  tx_gain: 0
-  rx_gain: 0
+  device_driver: ${GNB_RF_DRIVER}
+  device_args: ${GNB_RF_ARGS}
+  srate: ${GNB_RF_SRATE_MHZ}
+  tx_gain: ${GNB_RF_TX_GAIN}
+  rx_gain: ${GNB_RF_RX_GAIN}
 
 # The gNB's own remote control server. Off in the stock configuration; needed for the provider's RAN
 # tab to change anything while the gNB is running, rather than only writing what it will read next
@@ -269,13 +313,13 @@ EOF
 cat > "$GEN_CONF_DIR/ue_bcast.conf" <<EOF
 [rf]
 freq_offset = 0
-tx_gain = 50
-rx_gain = 40
-srate = ${CELL_SRATE_MHZ}e6
+tx_gain = ${UE_RF_TX_GAIN}
+rx_gain = ${UE_RF_RX_GAIN}
+srate = ${UE_RF_SRATE_MHZ}e6
 nof_antennas = 1
 
-device_name = zmq
-device_args = tx_port=tcp://127.0.0.1:2101,rx_port=tcp://127.0.0.1:2100,base_srate=${CELL_SRATE_MHZ}e6
+device_name = ${UE_RF_DEVICE}
+device_args = ${UE_RF_ARGS}
 
 [rat.eutra]
 dl_earfcn = 2850
@@ -332,17 +376,11 @@ EOF
 
 
 log "starting gNB in $NETNS"
-run_bg_netns "gNB" gnb "$GNB_BIN" -c "$GEN_CONF_DIR/gnb_bcast.yaml" $GNB_EXTRA_ARGS
-
 # The UE must not start before the gNB's DU is up: with the ZeroMQ radio, a UE started early waits
 # for samples that never come and never attaches. How long the DU takes depends on the host's load,
 # so this waits for the gNB to say so rather than for a fixed time.
 log "waiting for the gNB's DU to start (up to ${GNB_READY_WAIT_SECS}s)"
-for _ in $(seq 1 "$GNB_READY_WAIT_SECS"); do
-    grep -aq 'DU started successfully' "$LOG_DIR/gnb.log" 2>/dev/null && break
-    sleep 1
-done
-grep -aq 'DU started successfully' "$LOG_DIR/gnb.log" 2>/dev/null \
+start_gnb "$GNB_BIN" -c "$GEN_CONF_DIR/gnb_bcast.yaml" $GNB_EXTRA_ARGS \
     || die "the gNB's DU did not start within ${GNB_READY_WAIT_SECS}s; see $LOG_DIR/gnb.log"
 
 # The gNB's remote-control socket binds loopback inside $NETNS, so nothing outside the namespace
