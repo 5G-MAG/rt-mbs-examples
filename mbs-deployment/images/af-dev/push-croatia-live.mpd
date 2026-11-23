@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<MPD xmlns="urn:mpeg:dash:schema:mpd:2011" profiles="urn:mpeg:dash:profile:isoff-live:2011,urn:mpeg:dash:profile:cmaf:2019,urn:cta:wave:test-content-media-profile:2022" type="dynamic" availabilityStartTime="1970-01-01T00:00:00Z" publishTime="1970-01-01T00:00:00Z" minimumUpdatePeriod="PT2S" minBufferTime="PT2S" timeShiftBufferDepth="PT1M" maxSegmentDuration="PT2S">
+  <BaseURL>https://livesim2.dashif.org/livesim2/WAVE/vectors/cfhd_sets/12.5_25_50/t1/2022-10-17/stream.mpd</BaseURL>
+  <ProgramInformation>
+    <Title>croatia, 1920x1080, 25.0fps, cfhd, Test Vector 1</Title>
+    <Source>croatia_L1_1920x1080@25_30 version 3 (2022-04-20)</Source>
+    <Copyright>© Croatia (2019), credited to EBU, used and licensed under Creative Commons Attribution 4.0 International (CC BY 4.0) (https://creativecommons.org/licenses/by/4.0/) by the Consumer Technology Association (CTA)® / annotated, encoded and compressed from original.</Copyright>
+  </ProgramInformation>
+  <Period id="P0" start="PT0S">
+    <AssetIdentifier schemeIdUri="urn:cta:org:wave-test-mezzanine:unique-id" value="0.1"></AssetIdentifier>
+    <AdaptationSet lang="und" contentType="video" par="16:9" maxWidth="1920" maxHeight="1080" maxFrameRate="25" segmentAlignment="true" containerProfiles="&#39;cmf2&#39;, &#39;cfhd&#39;" startWithSAP="1">
+      <SegmentTemplate media="1/$Number$.m4s" initialization="1/init.mp4" duration="25600" startNumber="0" timescale="12800"></SegmentTemplate>
+      <Representation id="1" bandwidth="5100000" width="1920" height="1080" sar="1:1" frameRate="25" mimeType="video/mp4" codecs="avc1.640028"></Representation>
+    </AdaptationSet>
+  </Period>
+  <UTCTiming schemeIdUri="urn:mpeg:dash:utc:http-xsdate:2014" value="https://time.akamai.com/?iso&amp;ms"></UTCTiming>
+</MPD>

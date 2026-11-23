@@ -1,0 +1,2 @@
+#!/bin/bash
+iptables -t mangle -A POSTROUTING -d 224.0.0.0/4 -j TTL --ttl-set 16

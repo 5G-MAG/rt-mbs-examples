@@ -1,0 +1,9 @@
+#!/bin/bash
+set -eu
+
+ingest_url="${1}"
+
+curl -H 'Content-Type: application/dash+xml' -X PUT --data-binary @/push-croatia-live.mpd "${ingest_url}"
+
+#newline
+echo

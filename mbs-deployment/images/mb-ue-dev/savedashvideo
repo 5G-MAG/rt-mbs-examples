@@ -1,0 +1,30 @@
+#!/bin/bash
+
+cd stream
+
+set -eu
+
+(
+    # wait for init
+    while [ ! -f init.mp4 ]; do
+        sleep 0.05
+    done
+    cat init.mp4
+
+    first_segment_filename=$(ls -1 *.m4s | sort -n | head -1)
+    first_segment_number="${first_segment_filename%%.*}"
+
+    i=${first_segment_number}
+    while true; do
+        file="${i}.m4s"
+
+        # wait until the segment exists
+        while [ ! -f "$file" ]; do
+            sleep 0.05
+        done
+
+        cat "$file"
+
+        i=$((i+1))
+    done
+    ) | ffmpeg -f mp4 -i pipe:0 -c copy dashvideo.mkv

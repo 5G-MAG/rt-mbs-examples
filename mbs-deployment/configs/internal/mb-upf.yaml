@@ -1,0 +1,22 @@
+logger:
+  file:
+    path: /var/log/open5gs/mb-upf.log
+
+global:
+
+upf:
+  pfcp:
+    server:
+      - address: mb-upf.open5gs.org
+    client:
+  gtpu:
+    server:
+      - address: mb-upf.open5gs.org
+  session:
+    - subnet: 10.45.0.0/16
+      gateway: 10.45.0.1
+  mbs:
+    multicast_router:
+      input_interface: eth0
+      output_interface: ogstun
+      activate: true
