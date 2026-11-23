@@ -100,7 +100,9 @@ pgrep_other() {
 # signal_matching <signal> <-x|-f> <pattern>: signals the processes pgrep finds, with sudo if this user cannot.
 signal_matching() {
     local pids
-    pids=$(pgrep "$2" "$3" 2>/dev/null | grep -vxF -e "$$" -e "${PPID:-0}" | tr '\n' ' ')
+    # "|| true": nothing matching is the usual case, and then pgrep exits 1; with set -e and pipefail that would end this
+    # function, and with it ./demo down, before it removes anything.
+    pids=$(pgrep "$2" "$3" 2>/dev/null | grep -vxF -e "$$" -e "${PPID:-0}" | tr '\n' ' ' || true)
     [ -n "${pids// }" ] || return 0
     kill -"$1" $pids 2>/dev/null || sudo kill -"$1" $pids 2>/dev/null || true
 }
@@ -401,9 +403,12 @@ hard_clean() {
     # Deleting the namespace takes the namespace end of the veth pair with it but leaves the root
     # end, which then looks to 00-setup-netns.sh like a pair that already exists. Remove it here so
     # the next run really does start from nothing.
+    # An if, not "A && B": deleting the namespace usually removes the root end too, and a list that ends on the failed
+    # "ip link show" would make hard_clean return 1, which stops ./demo down (set -e) before it reports success.
     for v in "${SELF_VETHS[@]}"; do
-        ip link show "$v" >/dev/null 2>&1 && \
-            { sudo ip link delete "$v" 2>/dev/null || true; }
+        if ip link show "$v" >/dev/null 2>&1; then
+            sudo ip link delete "$v" 2>/dev/null || true
+        fi
     done
 }
 

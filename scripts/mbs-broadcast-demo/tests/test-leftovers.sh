@@ -46,6 +46,20 @@ for _ in $(seq 1 30); do
 done
 check "process gone" "$state" "gone"
 
+echo "3. signal_matching succeeds when nothing matches"
+# ./demo down runs with set -e and pipefail: a signal_matching that returns 1 stops it before it removes anything.
+set -o pipefail
+rc=$( set -e; signal_matching TERM -x "lefttest-none-$$"; echo $? )
+check "exit status" "$rc" "0"
+
+echo "4. hard_clean succeeds when the veth pair is already gone with the namespace"
+eval "$(sed -n '/^hard_clean() {/,/^}/p' demo)"
+SELF_PROCS=(); SELF_PROC_PATTERNS=(); SELF_PORTS=()
+SELF_NETNS="lefttest-ns-$$"; SELF_VETHS=("lefttest-v$$")
+sudo() { :; }   # nothing is deleted: neither the namespace nor the veth exists
+rc=$( set -e; hard_clean >/dev/null 2>&1; echo $? )
+check "exit status" "$rc" "0"
+
 echo
 echo "$PASS passed, $FAIL failed"
 [ "$FAIL" -eq 0 ]
