@@ -403,8 +403,8 @@ done
 
 `channels.json` is the line-up itself: four channels, all of them encoded and served by the
 origin, and the `onAir` flag decides which are carried over the radio as their own MBS User
-Service. One is on air here; `channels.json`'s own comment records why, and what happens if you
-set a second.
+Service. One is on air by default, to keep the load of the demo down; a second can be put on air by setting its
+`onAir` flag, and the comment in `channels.json` says what was checked with two.
 
 Encoding four channels at once is the demo's heaviest steady-state cost. `DEMO_CHANNELS` limits
 the run to the channel ids it names, space or comma separated, which is worth doing on a machine
