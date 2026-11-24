@@ -665,6 +665,14 @@ see it.
   repository `https://forge.3gpp.org/rep/all/5G_APIs.git` (branch `TSG111-Rel18`) to generate the OpenAPI bindings, so it needs
   both hosts. It happened once on 2026-11-24 as `Recv failure: Connection reset by peer` from `forge.3gpp.org` and went away on
   the next attempt: run the same build command again. A build with no access to those hosts will not get past this step.
+- **After the machine was suspended (laptop lid closed) with the demo running, the player says `dash error: 32 No streams to play`,
+  and the MBS Client holds the manifest and the init segments but no media chunk.** From the logs of one occurrence: the live
+  encoder's media time did not advance during the suspend (24 minutes of media after 2 hours and 5 minutes of wall-clock time,
+  a lag equal to the 1 hour 40 minutes of the gap in `mbstf.log`), while the segment timeline of the manifest is tied to the wall
+  clock. Every new segment is then already past its availability window (the end of the segment plus the 24 segments of the
+  manifest window), and the MBSTF gives up on it at once (`Request timed out` in `mbstf.log`, with no request reaching the media
+  server). The lag never closes, so it does not recover by itself. Stop the demo with `./demo down`, start it again with
+  `./demo up`, and do not suspend the machine while the demo runs. This was not reproduced on purpose.
 - **The core stops answering on the loaded machine (`No MBSTF was found in the network`, or releases that fail).** See
   "Checking the whole chain": the NRF de-registers an NF that misses its heartbeat, and the encoders can starve it. Stop
   the other work or run one channel (`CHANNELS_FILE`).
