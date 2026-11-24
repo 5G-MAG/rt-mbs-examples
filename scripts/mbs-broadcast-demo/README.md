@@ -496,7 +496,7 @@ which gave 50 of 50 as well with the gNB at `1a76a9f798`.
 | Repository | Branch | Commit |
 |---|---|---|
 | open5gs | `5mbs-development` | `831b878dd9` |
-| srsRAN_Project_mbs (gNB) | `5mbs-development` | `c2597f16c1` (the branch tip) |
+| srsRAN_Project_mbs (gNB) | `5mbs-development` | `f29a1772d4` (the branch tip) |
 | srsRAN_4G_mbs (UE) | `5mbs-development` | `ad983eeefd` |
 | rt-mbs-function | `development`, wraps edited | `87bed08e80` |
 | rt-mbs-transport-function | `development`, wraps edited | `e33b2459e4` |
