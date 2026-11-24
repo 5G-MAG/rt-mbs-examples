@@ -659,6 +659,11 @@ see it.
 
 ## Troubleshooting
 
+- **`meson setup` of the MBSF stops with `Failed to fetch branch TSG111-Rel18 from the 5G_APIs repository` and `Failed to generate
+  OpenAPI model`.** The MBSF's configure step downloads `jmustache-1.16.jar` from `repo1.maven.org` and clones the 3GPP API
+  repository `https://forge.3gpp.org/rep/all/5G_APIs.git` (branch `TSG111-Rel18`) to generate the OpenAPI bindings, so it needs
+  both hosts. It happened once on 2026-11-24 as `Recv failure: Connection reset by peer` from `forge.3gpp.org` and went away on
+  the next attempt: run the same build command again. A build with no access to those hosts will not get past this step.
 - **The core stops answering on the loaded machine (`No MBSTF was found in the network`, or releases that fail).** See
   "Checking the whole chain": the NRF de-registers an NF that misses its heartbeat, and the encoders can starve it. Stop
   the other work or run one channel (`CHANNELS_FILE`).
