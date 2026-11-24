@@ -9,6 +9,10 @@ what the operating mode changes, see `rt-mbs-examples/templates/README.md`, the 
 tutorial. **Its own RAN-free walkthrough is no longer supported** -- see the note at the top of
 that file for why -- so reproduce its steps against a `./start-all.sh` run instead.
 
+**To test the development branches, before the releases exist:** the committed pins point to the release branches (`5mbs` on the
+forks, `main` on the `rt-*` components) and stay there. Section 5 has one table with what to change to run the demo from
+`5mbs-development` and `development`, and section 6 says what was run that way.
+
 ## Which script
 
 | Script | What it does | When |
@@ -410,24 +414,36 @@ where the UE struggles to attach:
 DEMO_CHANNELS=mwc-tv-1 ./start-all.sh      # or: DEMO_CHANNELS=mwc-tv-1 ./demo up
 ```
 
-### 5. Pins that do not build yet
+### 5. Release pins and the pins for testing
 
-Everything above describes the **development** layout: the `5mbs-development` branch of the three forks and the `development`
-branch of the six `rt-mbs-*` components. The two components that carry `subprojects/*.wrap` files pin the release branches,
-though, and the work this demo needs is not on those yet:
+What is committed points at the release branches: `5mbs` on the three forks, `main` on the `rt-*` components. That is what a release
+uses and it stays so. The work this demo needs is on the development branches and not yet on the release ones, so to test it, point
+everything at the development branches **before the build**, as in this table. Nothing else changes.
 
-| Component | Pin on `development` | What the demo needs |
-|---|---|---|
-| `rt-mbs-function` | `open5gs` `5mbs`, `rt-5gc-service-consumers` `main` | `open5gs` `5mbs-development`, `rt-5gc-service-consumers` `development` |
-| `rt-mbs-transport-function` | `rt-libflute` `main` (`open5gs` is `bbc-patches`, which stays) | `rt-libflute` `development` |
+| What | Release (committed, the goal) | For testing | How |
+|---|---|---|---|
+| `open5gs` | branch `5mbs` | branch `5mbs-development` | `git clone -b 5mbs-development` (section 2) |
+| `srsRAN_Project_mbs` (gNB) | `5mbs` | `5mbs-development` | `git clone -b 5mbs-development` |
+| `srsRAN_4G_mbs` (UE) | `5mbs` | `5mbs-development` | `git clone -b 5mbs-development` |
+| `rt-mbs-function`, `rt-mbs-transport-function`, `rt-mbs-client`, `rt-mbs-application`, `rt-mbs-application-provider`, `rt-mbs-examples` | `main` | `development` | `git clone -b development` (section 2) |
+| `rt-mbs-function/subprojects/open5gs.wrap` | `revision = 5mbs` | `revision = 5mbs-development` | edit the file (first command below) |
+| `rt-mbs-function/subprojects/rt-5gc-service-consumers.wrap` | `revision = main` | `revision = development` | edit the file (first command below) |
+| `rt-mbs-transport-function/subprojects/rt-libflute.wrap` | `revision = main` | `revision = development` | edit the file (second command below) |
+| `rt-mbs-transport-function/subprojects/open5gs.wrap` | `revision = bbc-patches` | `revision = bbc-patches` | no change: the BBC-patched open5gs has no release and development variant |
+| submodules: `rt-common-shared` (MBSF, MBSTF), `lib/libflute` (MBS Client) | the commit the submodule records | the same commit | no change: `git submodule update --init --recursive` follows the recorded commit |
+| `rt-mbs-function/subprojects/rt-5gc-service-consumers/subprojects/open5gs.wrap` | `revision = 5mbs` | no change | none needed: meson uses the `open5gs` of the MBSF's own wrap, and no `open5gs` directory is cloned inside it |
 
-Built as committed, they do not compile (2026-11-23, `rt-mbs-function` `87bed08`, `rt-mbs-transport-function` `e33b245`):
+The three rows marked "edit the file" are the only edits. The other wraps (`freeDiameter`, `libtins`, `usrsctp`,
+`prometheus-client-c`, `libmpdpp`, `libxmlplusplus`) name a fixed tag or an upstream branch and are the same for a release and for testing.
+
+Built as committed, they do not compile:
 `MBSNcgi.cc: 'mb_smf_sc_ncgi_set_plmn_id_len' was not declared` and
 `MBSMFMBSSession.cc: ... has no member named 'red_mbs_service_area'` for the MBSF, and
 `FecOtiHelper.cc: 'kDefaultFecRedundancyLevel' is not a member of 'LibFlute'` for the MBSTF.
 
-Until those branches are released, edit the `revision` of those three wraps to the right-hand column **before** the build; the run
-of section 6 was built that way:
+Built with the release pins, the two do not compile, because that work is not on `5mbs` and `main` yet (observed 2026-11-23,
+`rt-mbs-function` `87bed08`, `rt-mbs-transport-function` `e33b245`; the errors are above). Edit the `revision` of those three wraps to
+the "For testing" column **before** the build; the run of section 6 was built that way:
 
 ```bash
 cd ~/Repos/rt-mbs/rt-mbs-function && \
@@ -482,8 +498,8 @@ wrap, so the first line is what handles it and it must not be removed. This cost
 open5gs, which is why it is the fallback rather than the everyday command.
 
 
-This section exists only while the release branches lack that work. When they carry it, the pins go back to `main` and `5mbs` and
-this section should be deleted, not updated to name the next one.
+This section exists only while the release branches lack that work. When they carry it, the committed pins are the ones to use, the
+"For testing" column and the three edits are no longer needed, and this section should be deleted, not updated to name the next one.
 
 ### 6. What was tested together
 
