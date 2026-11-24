@@ -507,12 +507,13 @@ The end-to-end check above gave 50 of 50 on 2026-11-24 (Ubuntu 26.04.1 LTS, one 
 nothing behind, and the MBS Client received the service announcement and the player played the video (`currentTime` advancing,
 readyState 4). Every component was cloned fresh from GitHub and built with the commands of section 2; `rt-mbs-function` and
 `rt-mbs-transport-function` had the three wrap edits of section 5. The other components are those of the same check on 2026-11-23,
-which gave 50 of 50 as well with the gNB at `1a76a9f798`.
+which gave 50 of 50 as well with the gNB at `1a76a9f798`. The gNB then moved from `f29a1772d4` to the tip below; the check was
+run again on a build of that tree (50 of 50, twice), not from a fresh clone of it.
 
 | Repository | Branch | Commit |
 |---|---|---|
 | open5gs | `5mbs-development` | `831b878dd9` |
-| srsRAN_Project_mbs (gNB) | `5mbs-development` | `f29a1772d4` (the branch tip) |
+| srsRAN_Project_mbs (gNB) | `5mbs-development` | `abcd3432bb` (the branch tip) |
 | srsRAN_4G_mbs (UE) | `5mbs-development` | `ad983eeefd` |
 | rt-mbs-function | `development`, wraps edited | `87bed08e80` |
 | rt-mbs-transport-function | `development`, wraps edited | `e33b2459e4` |
