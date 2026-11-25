@@ -93,6 +93,14 @@ else
     clone rt-mbs-examples "$SRC/rt-mbs" || exit 1
 fi
 
+# At the development branches the wraps of the MBSF and the MBSTF still name the release branches, which lack the work the demo needs, so the
+# two do not compile as committed. Section 5 of the demo README has the three edits; they are made here exactly as it describes them. With
+# --branch the caller chose the branches and nothing is edited.
+if [ -z "$BRANCH" ]; then
+    . "$HERE/development-pins.sh"
+    apply_development_pins "$SRC" || exit 1
+fi
+
 SKIP=""
 [ "$QUICK" = 1 ] && SKIP="ue gnb"
 
