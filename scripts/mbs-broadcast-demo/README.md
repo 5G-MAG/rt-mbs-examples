@@ -13,6 +13,15 @@ that file for why -- so reproduce its steps against a `./start-all.sh` run inste
 forks, `main` on the `rt-*` components) and stay there. Section 5 has one table with what to change to run the demo from
 `5mbs-development` and `development`, and section 6 says what was run that way.
 
+**All of it with one command**, from fresh clones of the development branches: `scripts/test-development-branches.sh` (in the directory above
+this one) clones every component, makes the three edits of section 5, builds with the commands of section 2, runs `./demo up` and the chain
+test (with the player check) and stops the demo, and `--soak 110` plays the video every five minutes for that long before it does. It needs
+the prerequisites below and a Playwright install with Chrome, see "Checking the whole chain":
+
+```bash
+PLAYWRIGHT_MODULE=/path/to/node_modules/playwright ./scripts/test-development-branches.sh --root ~/mbs-development-test --soak 110
+```
+
 ## Which script
 
 | Script | What it does | When |
@@ -97,6 +106,12 @@ The MB-SMF asks an AMF again for a broadcast context that could not be created a
 
 Environment for more detail in the logs: `GNB_BCAST_LOG=true` turns on the gNB's broadcast log, which the checks for the
 gNB read; `UE_LOG_LEVEL` (default `info`) sets the UE's log level, and the UE's MBS channel checks need `info` or a more verbose level.
+
+**A stream that stops after a while.** The chain test lasts a few minutes. `tests/test-soak.sh [MINUTES [INTERVAL]]` leaves the demo up
+and plays the video again every `INTERVAL` minutes (default 5) for `MINUTES` (default 110), with the same check as the last line of the
+chain test: the video advances at least 5 s with readyState >= 3. It needs `PLAYWRIGHT_MODULE` as the chain test does. It prints `PASS`
+or `FAIL` per look and `passed N, failed M`. A machine that was suspended during the run ends it with status 2 and the line `VOID`:
+while the machine sleeps the encoders stop, and the video does not recover until the demo is restarted (see Troubleshooting).
 
 ## Prerequisites
 
@@ -433,7 +448,9 @@ everything at the development branches **before the build**, as in this table. N
 | submodules: `rt-common-shared` (MBSF, MBSTF), `lib/libflute` (MBS Client) | the commit the submodule records | the same commit | no change: `git submodule update --init --recursive` follows the recorded commit |
 | `rt-mbs-function/subprojects/rt-5gc-service-consumers/subprojects/open5gs.wrap` | `revision = 5mbs` | no change | none needed: meson uses the `open5gs` of the MBSF's own wrap, and no `open5gs` directory is cloned inside it |
 
-The three rows marked "edit the file" are the only edits. The other wraps (`freeDiameter`, `libtins`, `usrsctp`,
+The three rows marked "edit the file" are the only edits; `scripts/development-pins.sh` makes them, and both
+`scripts/test-development-branches.sh` and `scripts/check-build-from-clean.sh` source it, so the table and the scripts are changed together.
+The other wraps (`freeDiameter`, `libtins`, `usrsctp`,
 `prometheus-client-c`, `libmpdpp`, `libxmlplusplus`) name a fixed tag or an upstream branch and are the same for a release and for testing.
 
 Built as committed, they do not compile:
@@ -503,23 +520,22 @@ This section exists only while the release branches lack that work. When they ca
 
 ### 6. What was tested together
 
-The end-to-end check above gave 50 of 50 on 2026-11-24 (Ubuntu 26.04.1 LTS, one machine, one AMF), `./demo down` returned 0 and left
-nothing behind, and the MBS Client received the service announcement and the player played the video (`currentTime` advancing,
-readyState 4). Every component was cloned fresh from GitHub and built with the commands of section 2; `rt-mbs-function` and
-`rt-mbs-transport-function` had the three wrap edits of section 5. The other components are those of the same check on 2026-11-23,
-which gave 50 of 50 as well with the gNB at `1a76a9f798`. The gNB then moved from `f29a1772d4` to the tip below; the check was run again on a build of the tip (50 of 50) and,
-twice, on a build of `abcd3432bb` (50 of 50 each), never from a fresh clone of them.
+`scripts/test-development-branches.sh` gave 50 of 50 on the chain test on 2026-11-25 (Ubuntu 26.04.1 LTS, one machine, one AMF, the default
+line-up of four channels): every component cloned fresh from GitHub at the commits below, the three wrap edits of section 5, the build commands
+of section 2, `./demo up`, then the chain test, whose last check played the video (`currentTime` advancing, readyState 4). Played again
+afterwards, the video advanced 15.03 s in 15 s at 960x540. The soak (`--soak`, see "Checking the whole chain") was not run on these commits.
 
 | Repository | Branch | Commit |
 |---|---|---|
-| open5gs | `5mbs-development` | `831b878dd9` |
-| srsRAN_Project_mbs (gNB) | `5mbs-development` | `bd999cb212` (the branch tip) |
+| open5gs | `5mbs-development` | `50ba8ccb24` |
+| srsRAN_Project_mbs (gNB) | `5mbs-development` | `bd999cb212` |
 | srsRAN_4G_mbs (UE) | `5mbs-development` | `ad983eeefd` |
 | rt-mbs-function | `development`, wraps edited | `87bed08e80` |
-| rt-mbs-transport-function | `development`, wraps edited | `e33b2459e4` |
+| rt-mbs-transport-function | `development`, wraps edited | `e07c16740e` |
 | rt-mbs-client | `development` | `5650448770` |
 | rt-mbs-application | `development` | `5518aa224d` |
 | rt-mbs-application-provider | `development` | `c550c756f6` |
+| rt-mbs-examples | `development` | `92e5bdb991`, plus the commits that added the scripts of this section |
 
 The scripts are those of this repository at the commit that holds this README. The content is the demo's own, served by the
 `express-mock-media-server` of this repository (`MEDIA_ORIGIN_BACKEND` left at `legacy`).
