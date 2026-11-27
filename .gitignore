@@ -62,3 +62,11 @@ express-mock-media-server/public/carousel-live
 # copies rather than anything the repository should carry.
 express-mock-media-server/public/tv_1_micro/
 express-mock-media-server/public/tv_1_short/
+
+# mbs-broadcast-demo: what the demo puts in media-origin/public -- the DASH package copied in from
+# MWC_CONTENT_ROOT (a folder named DEMO_STREAM, whatever you chose), the live channels the encoders write
+# (tens of megabytes, produced continuously) and the carousel manifests it generates. The fixtures that
+# are committed are files at the top of that folder, so every sub-folder there is generated.
+media-origin/public/*/
+media-origin/public/carousel
+media-origin/public/carousel-live

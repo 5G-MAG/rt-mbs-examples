@@ -1,0 +1,33 @@
+# rt-media-origin configuration of the MBS examples: one static channel that serves MEDIA_PUBLIC_DIR at
+# the root. The formats are declared here and nothing is taken from a file extension: copy this file and
+# edit the copy to declare yours.
+#   defaultContentType, defaultCacheControl  every object not matched below (a short cache: the objects
+#                                            are regenerated in place)
+#   pathOverrides                            a file name, or a pattern with * and ?; the first match wins.
+#                                            The object manifests carry the MBS object manifest type the
+#                                            MBSTF needs; a DASH manifest is application/dash+xml, no-cache
+#   redirects                                the chain of relocations the MBSTF is tested with
+# PORT (3004 unless set), HOST and MEDIA_PUBLIC_DIR are read from the environment.
+server:
+  port: 3004
+channels:
+  - id: mbs-demo-origin
+    mode: static
+    mountPath: "/"
+    output:
+      dir: ${MEDIA_PUBLIC_DIR}
+      defaultCacheControl: "max-age=30"
+      defaultContentType: "text/plain"
+      pathOverrides:
+        - { match: "*.mpd", contentType: "application/dash+xml", cacheControl: "no-cache" }
+        - { match: "carousel", contentType: 'application/3gpp-mbs-object-manifest+json;version="Rel17"' }
+        - { match: "carousel-live", contentType: 'application/3gpp-mbs-object-manifest+json;version="Rel17"' }
+        - { match: "collection-manifest", contentType: 'application/3gpp-mbs-object-manifest+json;version="Rel17"' }
+        - { match: "carousel-file-set", contentType: 'application/3gpp-mbs-object-manifest+json;version="Rel17"' }
+    redirects:
+      - { from: "/object2", to: "/real-object2", status: 302 }
+      - { from: "/object3", to: "/perm-object3", status: 301 }
+      - { from: "/perm-object3", to: "/real-object3", status: 302 }
+      - { from: "/object4", to: "/temp-object4", status: 302 }
+      - { from: "/temp-object4", to: "/real-object4", status: 301 }
+    transport: http
