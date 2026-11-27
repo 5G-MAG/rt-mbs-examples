@@ -59,7 +59,7 @@ echo "package list from the README: $(wc -w < "$WORK/pkgs") packages"
 
 SRC="$WORK/tree"
 mkdir -p "$SRC/rt-mbs"
-# The development branch of each component: 5mbs-development on the MBS forks (their main tracks upstream), development on the rt-* components,
+# The development branch of each component: 5mbs-development on the MBS forks (their main tracks upstream), development on the rt-mbs-* components and on rt-media-origin,
 # as the layout of the demo README describes. --branch overrides it for all, to build work that has not merged yet.
 branch_of() {
     if [ -n "$BRANCH" ]; then echo "$BRANCH"; return; fi
@@ -80,7 +80,7 @@ clone() {
     fi
 }
 echo "cloning ${BRANCH:-each component at its tested branch}"
-for r in open5gs "$GNB_REPO" srsRAN_4G_mbs;                                           do clone "$r" "$SRC" || exit 1; done
+for r in open5gs "$GNB_REPO" srsRAN_4G_mbs rt-media-origin;                           do clone "$r" "$SRC" || exit 1; done
 for r in rt-mbs-function rt-mbs-transport-function rt-mbs-client;                 do clone "$r" "$SRC/rt-mbs" --recurse-submodules || exit 1; done
 for r in rt-mbs-application rt-mbs-application-provider;                         do clone "$r" "$SRC/rt-mbs" || exit 1; done
 if [ -n "$EXAMPLES_CHECKOUT" ]; then
@@ -178,7 +178,7 @@ b mbstf     /src/rt-mbs/rt-mbs-transport-function   "meson setup build && ninja 
 b mbsclient /src/rt-mbs/rt-mbs-client               "mkdir -p build && cd build && cmake -GNinja .. && ninja && ctest"
 b app       /src/rt-mbs/rt-mbs-application          "npm install"
 b provider  /src/rt-mbs/rt-mbs-application-provider "npm install"
-b mediasrv  /src/rt-mbs/rt-mbs-examples/express-mock-media-server "npm install"
+b mediasrv  /src/rt-media-origin                     "npm install"
 b ue        /src/srsRAN_4G_mbs                      "cmake -S . -B build && cmake --build build -j$(nproc)"
 b gnb       /src/$GNB_REPO                      "cmake -S . -B build -DENABLE_ZEROMQ=ON && cmake --build build -j$(nproc)"
 

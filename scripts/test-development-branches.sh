@@ -5,7 +5,7 @@
 #
 # In this order, each step the one the demo README describes (scripts/mbs-broadcast-demo/README.md):
 #   1. clones every component at its development branch: 5mbs-development on open5gs, srsRAN_Project_mbs and srsRAN_4G_mbs, development on
-#      the six rt-mbs-* components (section 2), and records the commit of each in ROOT/test-logs/commits.txt
+#      the six rt-mbs-* components and on rt-media-origin (section 2), and records the commit of each in ROOT/test-logs/commits.txt
 #   2. points the three wraps at the development branches (section 5); --release-pins leaves them as committed
 #   3. builds every component with the commands of section 2
 #   4. ./demo up, tests/test-e2e-chain.sh (50 checks, the last one plays the video in Chrome), and ./demo down
@@ -69,7 +69,7 @@ if command -v ccache >/dev/null; then
 fi
 export GIT_TERMINAL_PROMPT=0
 
-# 1. clones, the layout of README section 3: open5gs and the two srsRAN forks directly under ROOT, the six rt-mbs-* components in ROOT/rt-mbs
+# 1. clones, the layout of README section 3: open5gs, the two srsRAN forks and rt-media-origin directly under ROOT, the six rt-mbs-* components in ROOT/rt-mbs
 clone() { # repo parent branch [git clone options]
     local repo="$1" parent="$2" branch="$3"; shift 3
     git clone --quiet -b "$branch" "$@" "$GITHUB_BASE/$repo.git" "$parent/$repo" || return 1
@@ -78,6 +78,7 @@ clone() { # repo parent branch [git clone options]
 clone_all() {
     : > "$LOGS/commits.txt"
     for r in open5gs srsRAN_Project_mbs srsRAN_4G_mbs; do clone "$r" "$ROOT" 5mbs-development || return 1; done
+    clone rt-media-origin "$ROOT" development || return 1
     for r in rt-mbs-function rt-mbs-transport-function rt-mbs-client; do clone "$r" "$ROOT/rt-mbs" development --recurse-submodules || return 1; done
     for r in rt-mbs-application rt-mbs-application-provider rt-mbs-examples; do clone "$r" "$ROOT/rt-mbs" development || return 1; done
 }
@@ -102,6 +103,7 @@ build mbstf     "$ROOT/rt-mbs/rt-mbs-transport-function"     "git submodule upda
 build client    "$ROOT/rt-mbs/rt-mbs-client"                 "git submodule update --init --recursive && mkdir -p build && cd build && cmake -GNinja .. && ninja"
 build app       "$ROOT/rt-mbs/rt-mbs-application"            "npm install"
 build provider  "$ROOT/rt-mbs/rt-mbs-application-provider"   "npm install"
+build origin    "$ROOT/rt-media-origin"                     "npm install"
 
 # 4. the demo and the chain test, from the checkout of rt-mbs-examples that was just cloned
 export REPOS_ROOT="$ROOT" RAN_ROOT="$ROOT"

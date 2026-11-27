@@ -70,13 +70,14 @@ repository.
 How to set it up is described in the
 [mbs-docker-setup README](./mbs-docker-setup/README.md#docker-monitor).
 
-### Express mock AF
+### Media origin
 
-A simple HTTP server that serves a basic set of object downloads with varying redirections. It is
-meant for development, when static responses are enough to implement or test a new feature. The
-Broadcast demo also uses it as its media origin.
+The configuration of [rt-media-origin](https://github.com/5G-MAG/rt-media-origin) that serves the
+objects the MBSTF pulls, a few fixture objects (a basic set of object downloads with varying
+redirections) for testing the MBSTF, and a test of the configuration. The Broadcast demo and the
+tmux tutorials use it as their media origin.
 
-See [express-mock-media-server](./express-mock-media-server/).
+See [media-origin](./media-origin/).
 
 ### Insomnia collections
 
@@ -122,10 +123,11 @@ cd rt-mbs-examples
 There is nothing to build. `./demo` starts components you have already built elsewhere, and fails
 with the name of anything it cannot find.
 
-The one exception is the mock media origin under `express-mock-media-server/`, a Node application:
+The one exception is the media origin, [rt-media-origin](https://github.com/5G-MAG/rt-media-origin), a
+Node application in its own repository:
 
 ```bash
-cd express-mock-media-server
+cd <your rt-media-origin checkout>        # MEDIA_ORIGIN_DIR in scripts/mbs-broadcast-demo/local.env
 npm install
 ```
 

@@ -54,7 +54,7 @@ step of the tutorial. Namely, it starts the following components:
 * The `NRF`, `SCP`, `MB-SMF`, `MB-UPF`, `MB-AMF` and `UDM` Network Functions of the [Open5GS core](https://github.com/5G-MAG/open5gs)
 * The [MBSTF](https://github.com/5G-MAG/rt-mbs-transport-function)
 * The [MBSF](https://github.com/5G-MAG/rt-mbs-function)
-* The simple media server located in [express-mock-media-server](https://github.com/5G-MAG/rt-mbs-examples/tree/main/express-mock-media-server).  
+* The media origin, [rt-media-origin](https://github.com/5G-MAG/rt-media-origin) (your checkout, `npm install` done; `~/rt-media-origin` unless you set `MEDIA_SERVER_DIR` in `local.env`), configured by [media-origin](../../media-origin/).  
 
 ### Usage
 
@@ -86,7 +86,7 @@ components in one step instead of launching each process manually. Namely, it st
 * The `NRF`, `SCP`, `MB-SMF`, `MB-UPF`, `MB-AMF` and `UDM` Network Functions of the [Open5GS core](https://github.com/5G-MAG/open5gs)
 * The [MBSTF](https://github.com/5G-MAG/rt-mbs-transport-function)
 * The [MBSF](https://github.com/5G-MAG/rt-mbs-function)
-* The simple media server located in [express-mock-media-server](https://github.com/5G-MAG/rt-mbs-examples/tree/main/express-mock-media-server).  
+* The media origin, [rt-media-origin](https://github.com/5G-MAG/rt-media-origin) (your checkout, `npm install` done; `~/rt-media-origin` unless you set `MEDIA_SERVER_DIR` in `local.env`), configured by [media-origin](../../media-origin/).  
 
 ### Usage
 

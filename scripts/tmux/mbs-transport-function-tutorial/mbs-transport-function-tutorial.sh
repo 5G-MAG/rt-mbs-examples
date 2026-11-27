@@ -13,7 +13,11 @@ OPEN5GS_BASE_DIR="$HOME/open5gs_mbs/install/bin"
 OPEN5GS_CONFIG_DIR="$HOME/open5gs_mbs/install/etc/open5gs"
 MBSTF_BASE_DIR="$HOME/rt-mbs-transport-function/build/src/mbstf"
 MBSTF_CONFIG_DIR="$HOME/rt-mbs-transport-function/build/src/mbstf"
-MEDIA_SERVER_DIR="$SCRIPT_DIR/../../../express-mock-media-server"
+# rt-media-origin checkout (https://github.com/5G-MAG/rt-media-origin, `npm install` done), and this
+# repository's media-origin/ folder, which holds its configuration and the objects it serves.
+MEDIA_SERVER_DIR="$HOME/rt-media-origin"
+MEDIA_ORIGIN_CONFIG_DIR="$SCRIPT_DIR/../../../media-origin"
+MEDIA_SERVER_PORT=3004
 LOG_DIR="/var/local/log/open5gs"
 
 # User-specific overrides
@@ -25,6 +29,12 @@ if [[ -f "$LOCAL_ENV" ]]; then
         exit 1
     fi
 fi
+
+# What the media origin serves and how it is configured. The configuration declares the format of every
+# object (see media-origin/media-origin.yaml), so point MEDIA_ORIGIN_CONFIG at your own copy to declare
+# yours. Set any of these in local.env; the defaults follow MEDIA_ORIGIN_CONFIG_DIR.
+: "${MEDIA_ORIGIN_CONFIG:=$MEDIA_ORIGIN_CONFIG_DIR/media-origin.yaml}"
+: "${MEDIA_PUBLIC_DIR:=$MEDIA_ORIGIN_CONFIG_DIR/public}"
 
 if [[ -z "$LOG_DIR" ]]; then
     echo "Error: LOG_DIR is empty. Check local.env." >&2
@@ -77,7 +87,7 @@ done
 # 2b. Kill Binary Instances
 echo "Killing orphaned processes..."
 echo "$SUDO_PASS" | sudo -S pkill -9 open5gs-nrfd open5gs-scpd open5gs-smfd open5gs-upfd open5gs-amfd open5gs-mbstfd 2>/dev/null
-echo "$SUDO_PASS" | sudo -S fuser -k 3004/tcp 2>/dev/null
+echo "$SUDO_PASS" | sudo -S fuser -k "$MEDIA_SERVER_PORT"/tcp 2>/dev/null
 
 sleep 1
 
@@ -90,6 +100,8 @@ require_executable() {
 
 require_command tmux
 require_command npm
+[[ -f "$MEDIA_SERVER_DIR/bin/www" ]] || { echo "rt-media-origin not found at $MEDIA_SERVER_DIR (no bin/www). Clone https://github.com/5G-MAG/rt-media-origin there, run npm install, or set MEDIA_SERVER_DIR in scripts/tmux/local.env."; exit 1; }
+[[ -d "$MEDIA_SERVER_DIR/node_modules" ]] || { echo "Run npm install in $MEDIA_SERVER_DIR first (the media origin)."; exit 1; }
 require_executable "$OPEN5GS_BASE_DIR/open5gs-nrfd"
 require_executable "$OPEN5GS_BASE_DIR/open5gs-scpd"
 require_executable "$OPEN5GS_BASE_DIR/open5gs-smfd"
@@ -158,7 +170,7 @@ COMPONENTS=(
     "UPF||echo '$SUDO_PASS' | sudo -S -E $OPEN5GS_BASE_DIR/open5gs-upfd -c $OPEN5GS_CONFIG_DIR/upf.yaml"
     "AMF||$OPEN5GS_BASE_DIR/open5gs-amfd -c $OPEN5GS_CONFIG_DIR/amf.yaml"
     "MBSTF||$MBSTF_BASE_DIR/open5gs-mbstfd -c $MBSTF_CONFIG_DIR/mbstf.yaml"
-    "MediaServer|$MEDIA_SERVER_DIR|npm start"
+    "MediaServer|$MEDIA_SERVER_DIR|env PORT=$MEDIA_SERVER_PORT MEDIA_PUBLIC_DIR=$MEDIA_PUBLIC_DIR RT_MEDIA_SERVER_CONFIG=$MEDIA_ORIGIN_CONFIG npm start"
 )
 
 for item in "${COMPONENTS[@]}"; do

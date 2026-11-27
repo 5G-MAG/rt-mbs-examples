@@ -196,6 +196,13 @@ services:
   mediaserver:
     container_name: mediaserver
     image: "mediaserver:latest"
+    environment:
+      - PORT=3004
+      - MEDIA_PUBLIC_DIR=/media
+      - RT_MEDIA_SERVER_CONFIG=/config/origin.yaml
+    volumes:
+      - ${COMPILE_PATH}/rt-mbs-examples/media-origin/public:/media:ro
+      - ${COMPILE_PATH}/rt-mbs-examples/media-origin/media-origin.yaml:/config/origin.yaml:ro
 #    command: "-c /etc/open5gs/custom/mbstf.yaml"
     networks:
       open5gs:

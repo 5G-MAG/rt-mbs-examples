@@ -40,28 +40,18 @@ MBSF_DIR="${MBSF_DIR:-$RTMBS_ROOT/rt-mbs-function}"
 CLIENT_DIR="${CLIENT_DIR:-$RTMBS_ROOT/rt-mbs-client}"
 APP_DIR="${APP_DIR:-$RTMBS_ROOT/rt-mbs-application}"
 PROVIDER_DIR="${PROVIDER_DIR:-$RTMBS_ROOT/rt-mbs-application-provider}"
-# The content tree (03-start-media-server.sh's copied VOD package, the carousel manifest, and
-# live-encoder.sh's/live-carousel.sh's ffmpeg output) always lives under here, at $MEDIA_DIR/public
-# -- true for both values of MEDIA_ORIGIN_BACKEND below, since only the process serving that tree
-# differs. express-mock-media-server itself is also still used directly by this repo's own test/
-# suite, independent of this demo.
-MEDIA_DIR="${MEDIA_DIR:-$RTMBS_ROOT/rt-mbs-examples/express-mock-media-server}"
-# rt-media-origin (5G-MAG/rt-media-origin): the generic config-driven origin that
-# 03-start-media-server.sh points at $MEDIA_DIR/public when MEDIA_ORIGIN_BACKEND=rt-media-origin.
-# A separate top-level checkout, like open5gs/the two srsRAN forks, not one of the six rt-mbs-*
-# components: it is a shared reference-tools repository, not MBS-specific. Unused, and its checkout
-# not required, when MEDIA_ORIGIN_BACKEND=legacy.
+# The media origin's folder: media-origin.yaml (the rt-media-origin configuration) and public/, the
+# content tree that rt-media-origin serves -- 03-start-media-server.sh's copied VOD package, the
+# carousel manifest, and live-encoder.sh's/live-carousel.sh's ffmpeg output.
+MEDIA_DIR="${MEDIA_DIR:-$RTMBS_ROOT/rt-mbs-examples/media-origin}"
+# The rt-media-origin configuration. It declares the format (Content-Type, Cache-Control) of what the
+# origin serves, so a service provider with other formats points this at a copy of their own.
+MEDIA_ORIGIN_CONFIG="${MEDIA_ORIGIN_CONFIG:-$MEDIA_DIR/media-origin.yaml}"
+# rt-media-origin (5G-MAG/rt-media-origin): the origin that 03-start-media-server.sh starts to serve
+# $MEDIA_DIR/public. A separate top-level checkout, like open5gs/the two srsRAN forks, not one of the six
+# rt-mbs-* components: it is a shared reference-tools repository, not MBS-specific. Run `npm install`
+# there once; 03-start-media-server.sh does it if node_modules is missing.
 MEDIA_ORIGIN_DIR="${MEDIA_ORIGIN_DIR:-$REPOS_ROOT/rt-media-origin}"
-# Which server 03-start-media-server.sh starts to serve $MEDIA_DIR/public:
-#   legacy (default)  -- this repository's own express-mock-media-server. No MEDIA_ORIGIN_DIR
-#                        checkout needed.
-#   rt-media-origin   -- 5G-MAG/rt-media-origin, generic and config-driven (see above). The
-#                        default stays legacy while that repository is not yet public, so a
-#                        fresh clone of this one runs without it.
-# Both serve the same directory the same way at the same $MEDIA_HOST:$MEDIA_PORT, so every other
-# script (start-all.sh, status.sh, 06-provision-*.sh, live-encoder.sh, live-carousel.sh) is
-# unaffected by which one is running.
-MEDIA_ORIGIN_BACKEND="${MEDIA_ORIGIN_BACKEND:-legacy}"
 # The gNB repository is 5G-MAG/srsRAN_Project_mbs (branch 5mbs-development), so that is the directory a plain
 # `git clone` produces and the default here. A checkout of the older rt-srsRAN_Project_mbs name, or of
 # ocudu, is still accepted when no srsRAN_Project_mbs checkout exists.
@@ -171,8 +161,8 @@ PROVIDER_AUTH_TOKEN=testtoken123
 # Media server (root namespace / host -- reached by MBSTF, which also runs in the root
 # namespace, over loopback; the UE/client side never talks to it directly, only via
 # FLUTE carried over the veth pair once MBSTF has pulled and carouselled the content)
-MEDIA_HOST=127.0.0.1
-MEDIA_PORT=3004
+MEDIA_HOST="${MEDIA_HOST:-127.0.0.1}"
+MEDIA_PORT="${MEDIA_PORT:-3004}"
 
 # Content: MWC TV/Radio DASH package this demo carousels. Read-only source; scripts copy
 # from here, never write into it.

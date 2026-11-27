@@ -115,7 +115,7 @@ end time signalled for it has passed, and that time comes from the presentation'
 ## Things to try
 
 **Different content already on the media server.** Put a DASH presentation under
-`express-mock-media-server/public/` and point the session's *Object IDs to pull* at its manifest.
+`media-origin/public/` and point the session's *Object IDs to pull* at its manifest.
 To skip the encoder entirely:
 
 ```bash

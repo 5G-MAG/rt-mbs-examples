@@ -17,9 +17,8 @@
 #   - the MBMS demo (rt-mbms-examples) and this one both drive an RF-over-ZMQ radio on TCP
 #     2100 and 2101, so whichever starts second finds the ports taken and fails in the radio
 #     rather than anywhere informative;
-#   - the DVB-I demo (rt-dvb-i-examples) runs its own copy of this repository's
-#     express-mock-media-server on the same port 3004 this demo uses, so the two cannot
-#     both be up;
+#   - the DVB-I demo (rt-dvb-i-examples) runs its own rt-media-origin on the same port 3004
+#     this demo uses, so the two cannot both be up;
 #   - all three are memory-hungry, and an out-of-memory kill lands on whichever process the
 #     kernel picks, not on the one that was started last.
 #
@@ -42,7 +41,13 @@ MIN_FREE_MB="${DEMO_MIN_FREE_MB:-2500}"
 # Process names as pgrep -x sees them: the executable's name, cut to 15 characters by the kernel.
 SELF_PROCS=(gnb srsue open5gs-mbsfd open5gs-mbstfd mbs-client)
 SELF_PROC_PATTERNS=("open5gs-(smfd|amfd|upfd|nrfd|udmd|udrd|pcfd|ausfd|nssfd|bsfd|scpd)" "rt-mbs-application")
-SELF_PORTS=(2100 2101 3004 3050 8091)
+# The media origin's port is whatever env.sh says (MEDIA_PORT, 3004 unless you set it), so an origin that
+# was moved is checked where it is.
+media_port() {
+    (cd "$SCRIPTS_DIR/mbs-broadcast-demo" && set +eu && source ./env.sh >/dev/null 2>&1; printf '%s' "${MEDIA_PORT:-3004}")
+}
+MEDIA_PORT_NOW="$(media_port)"
+SELF_PORTS=(2100 2101 "$MEDIA_PORT_NOW" 3050 8091)
 SELF_NETNS="ns-gnb"
 # Root-namespace half of the veth pair the demos build; see hard_clean for why it is listed.
 SELF_VETHS=(veth-h)
@@ -219,10 +224,6 @@ check_paths() {
                 "CONTENT_ROOT:${CONTENT_ROOT:-}"; do
         path="${spec#*:}"
         [ -n "$path" ] || continue          # this demo does not use it
-        # rt-media-origin's checkout is only needed when it is actually the selected backend --
-        # MEDIA_ORIGIN_BACKEND=legacy runs express-mock-media-server instead (see env.sh) and
-        # never touches MEDIA_ORIGIN_DIR, so requiring it there would block a run for no reason.
-        [ "${spec%%:*}" = "MEDIA_ORIGIN_DIR" ] && [ "${MEDIA_ORIGIN_BACKEND:-legacy}" = legacy ] && continue
         [ -d "$path" ] || echo "dir ${spec%%:*} $path"
     done
     for spec in "CLIENT_BIN:${CLIENT_BIN:-}" "GNB_BIN:${GNB_BIN:-}" "UE_BIN:${UE_BIN:-}"; do
@@ -308,14 +309,14 @@ check_mbms() {
     return 0
 }
 
-# The DVB-I demo. It runs its own copy of this repository's express-mock-media-server, on the same
-# port 3004 this demo's media server binds, so the two cannot both be up.
+# The DVB-I demo. It runs its own rt-media-origin on the same port 3004 this demo's media server
+# binds, so the two cannot both be up.
 check_dvbi() {
     local holder proc
-    holder=$(port_held_by 3004) || true
+    holder=$(port_held_by "$MEDIA_PORT_NOW") || true
     if [ -n "$holder" ] && [ "$SELF_RUNNING" -eq 0 ]; then
         proc=$(sed -n 's/.*users:((\"\([^"]*\)\".*/\1/p' <<<"$holder")
-        bad "media origin port 3004 is already held by ${proc:-another process}"
+        bad "media origin port $MEDIA_PORT_NOW is already held by ${proc:-another process}"
         if [ -n "$(pgrep_other "rt-dvb-i-application")" ]; then
             echo "        that is the DVB-I demo, which runs its own media server on the same port"
             echo "        stop it from your rt-dvb-i-examples checkout:  ./demo down"
@@ -327,7 +328,7 @@ check_dvbi() {
     if [ -n "$(pgrep_other "rt-dvb-i-application")" ]; then
         warn "the DVB-I demo is running and will compete for memory"
     else
-        ok "media origin port 3004 is free"
+        ok "media origin port $MEDIA_PORT_NOW is free"
     fi
     return 0
 }

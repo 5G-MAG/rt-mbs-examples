@@ -69,7 +69,7 @@ build-mbstf:
 	cd ${COMPILE_PATH}/rt-mbs-transport-function && docker build --tag=mbstf:latest -f docker/local/Dockerfile .
 
 build-mediaserver:
-	cd ${COMPILE_PATH}/rt-mbs-examples/express-mock-media-server && docker build -f docker/Dockerfile -t mediaserver:latest .
+	cd ${COMPILE_PATH}/rt-media-origin && docker build -f docker/Dockerfile -t mediaserver:latest .
 
 ips:
 	docker inspect open5gs | jq '.[0].Containers | .[] | "\(.IPv4Address) \(.Name) "' | sed 's/"//g' | sed 's#/24##'  | sort -t '.' -k4 -n | column -t

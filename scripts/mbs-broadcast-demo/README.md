@@ -233,14 +233,15 @@ build command is repeated here only so you can see the whole job at once.
 | MBS Client | `rt-mbs-client` | `git submodule update --init --recursive && mkdir -p build && cd build && cmake -GNinja .. && ninja` |
 | MBS-Aware Application | `rt-mbs-application` | `npm install` |
 | Application Provider | `rt-mbs-application-provider` | `npm install` |
-| Media Origin (optional) | `rt-media-origin` | `npm install` |
+| Media Origin | `rt-media-origin` | `npm install` |
 | gNB | `srsRAN_Project_mbs` | `cmake -S . -B build -DENABLE_ZEROMQ=ON && cmake --build build -j$(nproc)` |
 | UE | `srsRAN_4G_mbs` | `cmake -S . -B build && cmake --build build -j$(nproc)` |
 
-`rt-media-origin` is optional. By default `03-start-media-server.sh` serves the content with this
-repository's own `express-mock-media-server`; set `MEDIA_ORIGIN_BACKEND=rt-media-origin` (`env.sh`, or on
-the command line) to serve it with `rt-media-origin` instead. Both serve `express-mock-media-server/public/`
-the same way at the same address, so nothing else in this demo needs to know which one is running.
+The origin is `rt-media-origin`, configured by [`media-origin/media-origin.yaml`](../../media-origin/media-origin.yaml)
+(`MEDIA_ORIGIN_CONFIG`), serving `media-origin/public/` (`MEDIA_DIR`) on `$MEDIA_HOST:$MEDIA_PORT` (127.0.0.1:3004
+unless set). The configuration declares the format of everything served instead of taking it from the file
+extension; [how to declare yours](../../media-origin/README.md#formats). It needs an rt-media-origin with the
+`output.defaultContentType` option, which is on its `development` branch until that reaches `main`.
 
 The `git submodule update` and `meson subprojects update` steps on the three components that carry
 dependencies of their own are there so a rebuild is correct after changing branches, without anyone
@@ -269,7 +270,7 @@ having `libzmq3-dev` installed does not cover it.
 `srsRAN_4G_mbs`'s own README covers its two extra dependencies, cpprestsdk and OpenSSL, in more
 detail.
 
-Clone each from its development branch: `5mbs-development` on the three forks, `development` on the six `rt-mbs-*` components. **Where you put them matters**: the scripts expect open5gs and
+Clone each from its development branch: `5mbs-development` on the three forks, `development` on the six `rt-mbs-*` components and on `rt-media-origin`. **Where you put them matters**: the scripts expect open5gs and
 the two srsRAN forks directly under one root, and the six MBS components one level deeper in
 `rt-mbs/`. Cloning them all side by side gives a layout the defaults do not describe, so from a
 machine with nothing on it:
@@ -281,7 +282,7 @@ cd ~/Repos
 git clone -b 5mbs-development https://github.com/5G-MAG/open5gs.git
 git clone -b 5mbs-development https://github.com/5G-MAG/srsRAN_Project_mbs.git
 git clone -b 5mbs-development https://github.com/5G-MAG/srsRAN_4G_mbs.git
-git clone https://github.com/5G-MAG/rt-media-origin.git   # only for MEDIA_ORIGIN_BACKEND=rt-media-origin
+git clone -b development https://github.com/5G-MAG/rt-media-origin.git
 
 cd ~/Repos/rt-mbs
 git clone -b development --recurse-submodules https://github.com/5G-MAG/rt-mbs-function.git
@@ -302,7 +303,8 @@ MB-SMF, MB-UPF and gNB fixes the end-to-end check below depends on are on it. In
 plain `git clone` there produces a gNB that builds and then cannot do MBS. `srsRAN_4G_mbs` already defaults to the branch
 its MBS work is on, and section 6 lists the exact branches and commits that were tested together.
 
-The six `rt-mbs-*` components are cloned from `development`, where the compliance fixes of this tutorial have been merged.
+The six `rt-mbs-*` components are cloned from `development`, where the compliance fixes of this tutorial have been merged; `rt-media-origin` from
+`development` too: the option the demo's origin configuration uses is only there.
 
 **Several of these repositories are private.** If a clone fails with a 404 rather than a permission
 message, that is what it means: GitHub reports a repository you cannot see as absent, not as
@@ -327,7 +329,7 @@ requirement: every path here has a variable that moves it.
 ```
 $HOME/Repos/                                REPOS_ROOT
 ├── open5gs/                                OPEN5GS_DIR
-├── rt-media-origin/                        MEDIA_ORIGIN_DIR  (MEDIA_ORIGIN_BACKEND=rt-media-origin only)
+├── rt-media-origin/                        MEDIA_ORIGIN_DIR
 ├── srsRAN_Project_mbs/                     GNB_DIR      (RAN_ROOT, defaults to REPOS_ROOT)
 │   └── build/apps/gnb/gnb                  GNB_BIN
 ├── srsRAN_4G_mbs/                          UE_DIR
@@ -340,10 +342,10 @@ $HOME/Repos/                                REPOS_ROOT
     ├── rt-mbs-application/                 APP_DIR
     ├── rt-mbs-application-provider/        PROVIDER_DIR
     └── rt-mbs-examples/                    this repository
-        └── express-mock-media-server/      MEDIA_DIR
+        └── media-origin/                   MEDIA_DIR
 ```
 
-`./demo doctor` checks those directories (`rt-media-origin` only when it is the selected backend) and three binaries. The other components are
+`./demo doctor` checks those directories and three binaries. The other components are
 run from inside their own checkouts, so they need no separate binary path.
 
 Content lives outside this tree and is covered in section 4: `$MWC_CONTENT_ROOT/$DEMO_STREAM`
@@ -368,21 +370,24 @@ each one, so a wrong layout is caught before anything starts.
 
 ### 4. Content
 
-**Nothing here is downloadable and nothing is assumed to be on the machine already.** The directory
-name is historical, after the event the line-up was first shown at; it does not name a content pack you
-are missing.
+Nothing is downloadable and nothing is assumed to be on the machine. `./demo up` needs one thing and can use
+another.
 
-What matters is what `./demo up` does with it. `up` runs the numbered scripts in order, and content
-enters at two different points: `03-start-media-server.sh` **requires** a DASH package and stops the
-run without one, while the live encoders started later **do not** require anything and generate a test
-pattern if their source is absent. So of the two things under this directory, only the first is a
-prerequisite for `./demo up`.
+**Required: a DASH package at `$MWC_CONTENT_ROOT/$DEMO_STREAM`**, by default `~/MWC_TV_RADIO/dash/tv_1`.
+`03-start-media-server.sh` copies it into the origin and builds the carousel from it; without it `./demo up`
+stops with `content not found`. Make one from your own video (any file ffmpeg reads, with video and audio):
 
-**Required: a DASH package at `$MWC_CONTENT_ROOT/$DEMO_STREAM`**, which defaults to
-`~/MWC_TV_RADIO/dash/tv_1`. `03-start-media-server.sh` copies it into the origin and builds the
-carousel manifest from what it finds, so without it `./demo up` stops at that step with
-`content not found: <path>`. Any MP4 will do as the input; the demo does not care what the picture
-shows:
+```bash
+mkdir -p /path/to/my-package && cd /path/to/my-package
+ffmpeg -y -i /path/to/your-video.mp4 -t 30 \
+       -c:v libx264 -preset veryfast -pix_fmt yuv420p -g 50 -keyint_min 50 -sc_threshold 0 \
+       -c:a aac -b:a 128k \
+       -f dash -seg_duration 2 -use_template 1 -use_timeline 1 manifest.mpd
+
+MWC_CONTENT_ROOT=/path/to DEMO_STREAM=my-package ./demo up     # or set both in local.env
+```
+
+Without a video, generate a test pattern instead:
 
 ```bash
 mkdir -p ~/MWC_TV_RADIO/dash/tv_1 && cd ~/MWC_TV_RADIO/dash/tv_1
@@ -393,18 +398,14 @@ ffmpeg -y -f lavfi -i testsrc2=size=1280x720:rate=25 \
        -f dash -seg_duration 2 -use_template 1 -use_timeline 1 manifest.mpd
 ```
 
-That produces `manifest.mpd`, `init-stream*.m4s` and `chunk-stream*.m4s`, which is the shape the media
-server expects. Substitute `-i your-file.mp4` for the two `lavfi` inputs to use your own media.
+Keep the package short: the carousel built from it must fit `INGEST_MAX_BITRATE` (see Troubleshooting).
 
-**Optional: source clips at `$CONTENT_ROOT`**, which defaults to `~/MWC_TV_RADIO`, named `TV_1.mp4`,
-`TV_2.mp4`, `TV_3.mp4` and `RADIO.mp4` after the `source` fields in `channels.json`. These feed the
-looping live encoder, and **they are genuinely optional**: `live-encoder.sh` falls back to a generated
-test pattern with a tone when the file is absent, logging `source: none at <path>, generating a test
-pattern instead`. `./demo up` therefore starts and runs without them. Provide them only if you want specific content on
-the live channels rather than a test pattern, or point `LIVE_SOURCE_MEDIA` at your own file. A radio
-channel discards the video track either way.
-
-To provide them anyway:
+**Optional: source clips at `$CONTENT_ROOT`**, by default `~/MWC_TV_RADIO`, named as the `source` fields of
+`channels.json` say: `TV_1.mp4`, `TV_2.mp4`, `TV_3.mp4`, `RADIO.mp4`. They feed the looping live encoders; without
+them `live-encoder.sh` generates a test pattern with a tone. To use your own, set `CONTENT_ROOT` to a folder with
+files of those names (or edit `channels.json`), or `LIVE_SOURCE_MEDIA` for one file. A radio channel uses only the
+audio. rt-media-origin ships the same four clips in its `content-sources/` (Git LFS, about 570 MB):
+`CONTENT_ROOT="$MEDIA_ORIGIN_DIR/content-sources"`. To generate test clips:
 
 ```bash
 mkdir -p ~/MWC_TV_RADIO && cd ~/MWC_TV_RADIO
@@ -416,14 +417,10 @@ for f in TV_1 TV_2 TV_3 RADIO; do
 done
 ```
 
-`channels.json` is the line-up itself: four channels, all of them encoded and served by the
-origin, and the `onAir` flag decides which are carried over the radio as their own MBS User
-Service. One is on air by default, to keep the load of the demo down; a second can be put on air by setting its
-`onAir` flag, and the comment in `channels.json` says what was checked with two.
-
-Encoding four channels at once is the demo's heaviest steady-state cost. `DEMO_CHANNELS` limits
-the run to the channel ids it names, space or comma separated, which is worth doing on a machine
-where the UE struggles to attach:
+`channels.json` is the line-up: four channels, all encoded and served by the origin; `onAir` decides which are
+carried over the radio as their own MBS User Service. One is on air by default, to keep the load down; the comment
+in `channels.json` says what was checked with two. `DEMO_CHANNELS` limits the run to the channel ids it names
+(space or comma separated), worth doing where the UE struggles to attach:
 
 ```bash
 DEMO_CHANNELS=mwc-tv-1 ./start-all.sh      # or: DEMO_CHANNELS=mwc-tv-1 ./demo up
@@ -440,7 +437,7 @@ everything at the development branches **before the build**, as in this table. N
 | `open5gs` | branch `5mbs` | branch `5mbs-development` | `git clone -b 5mbs-development` (section 2) |
 | `srsRAN_Project_mbs` (gNB) | `5mbs` | `5mbs-development` | `git clone -b 5mbs-development` |
 | `srsRAN_4G_mbs` (UE) | `5mbs` | `5mbs-development` | `git clone -b 5mbs-development` |
-| `rt-mbs-function`, `rt-mbs-transport-function`, `rt-mbs-client`, `rt-mbs-application`, `rt-mbs-application-provider`, `rt-mbs-examples` | `main` | `development` | `git clone -b development` (section 2) |
+| `rt-media-origin`, `rt-mbs-function`, `rt-mbs-transport-function`, `rt-mbs-client`, `rt-mbs-application`, `rt-mbs-application-provider`, `rt-mbs-examples` | `main` | `development` | `git clone -b development` (section 2) |
 | `rt-mbs-function/subprojects/open5gs.wrap` | `revision = 5mbs` | `revision = 5mbs-development` | edit the file (first command below) |
 | `rt-mbs-function/subprojects/rt-5gc-service-consumers.wrap` | `revision = main` | `revision = development` | edit the file (first command below) |
 | `rt-mbs-transport-function/subprojects/rt-libflute.wrap` | `revision = main` | `revision = development` | edit the file (second command below) |
@@ -537,8 +534,9 @@ afterwards, the video advanced 15.03 s in 15 s at 960x540. The soak (`--soak`, s
 | rt-mbs-application-provider | `development` | `c550c756f6` |
 | rt-mbs-examples | `development` | `92e5bdb991`, plus the commits that added the scripts of this section |
 
-The scripts are those of this repository at the commit that holds this README. The content is the demo's own, served by the
-`express-mock-media-server` of this repository (`MEDIA_ORIGIN_BACKEND` left at `legacy`).
+The scripts are those of this repository at the commit that holds this README. The content is the demo's own. The media origin of the run above
+was the Express mock server; it is now `rt-media-origin` (`development`, `bd49ad4`; the `output.defaultContentType` option is not on `main` yet),
+and the chain test passed 50 of 50 with it on 2026-11-27 in an existing build tree, not from fresh clones, so the commits above are not claimed for it.
 
 A different combination may work; this is the one that was run.
 
@@ -556,7 +554,7 @@ This runs, in order:
 | 00 | `00-setup-netns.sh` | Creates the `ns-gnb` network namespace + veth pair (idempotent; `--teardown` removes it) |
 | 01 | `01-start-core-nfs.sh` | NRF, AUSF, UDM, UDR, PCF, NSSF, BSF, then UPF, SMF, AMF |
 | 02 | `02-start-mbs-function.sh` | MBSTF, then MBSF |
-| 03 | `03-start-media-server.sh` | Copies the demo DASH content into `express-mock-media-server/public/`, (re)generates its object-manifest carousel, starts the origin serving that tree -- the repository's own `express-mock-media-server` by default, or `rt-media-origin` with `MEDIA_ORIGIN_BACKEND=rt-media-origin` |
+| 03 | `03-start-media-server.sh` | Copies the demo DASH content into `media-origin/public/`, (re)generates its object-manifest carousel, starts `rt-media-origin` serving that tree |
 | 04 | `04-start-ran.sh` | gNB and UE, both inside `ns-gnb`, over a ZMQ RF loopback |
 | 05 | `05-start-client-and-app.sh` | rt-mbs-client + rt-mbs-application (both inside `ns-gnb`) + a socat relay so the dashboard is reachable from outside the namespace, and rt-mbs-application-provider on the host |
 | 06 | `06-provision-live-service.sh` | What `start-all.sh` calls per on-air channel: creates the live DASH MBS User Service and its Ingest Session through the application provider (OBJECT_STREAMING, the presentation manifest as entry point), then asks the MBS Client to join it |
